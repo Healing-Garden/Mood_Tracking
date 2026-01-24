@@ -1,46 +1,73 @@
-import { useState } from 'react';
-import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
-import { getAllMoods } from '../../utils/mood';
+import { useState } from "react"
+import { Button } from "../../components/ui/Button"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../components/ui/Card"
+import { Check } from "lucide-react"
 
 interface QuickCheckInProps {
-  onSubmit?: (mood: string, energy: number) => void;
+  onComplete?: (data: { mood: number; energy: number }) => void
 }
 
-export default function QuickCheckIn({ onSubmit }: QuickCheckInProps) {
-  const [selectedMood, setSelectedMood] = useState<string>('calm');
-  const [energy, setEnergy] = useState(5);
-  const moods = getAllMoods();
+export default function QuickCheckIn({ onComplete }: QuickCheckInProps) {
+  const [mood, setMood] = useState<number | null>(null)
+  const [energy, setEnergy] = useState<number | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = () => {
-    onSubmit?.(selectedMood, energy);
-  };
+  const moods = [
+    { emoji: "😢", label: "Very Bad", value: 1 },
+    { emoji: "😔", label: "Bad", value: 2 },
+    { emoji: "😐", label: "Okay", value: 3 },
+    { emoji: "😊", label: "Good", value: 4 },
+    { emoji: "😄", label: "Great", value: 5 },
+  ]
+
+  const handleSubmit = async () => {
+    if (mood === null || energy === null) return
+
+    setIsSubmitting(true)
+
+    // TODO: integrate API call here
+    console.log("Check-in submitted:", { mood, energy })
+
+    setTimeout(() => {
+      setIsSubmitting(false)
+      onComplete?.({ mood, energy })
+    }, 1000)
+  }
 
   return (
-    <Card className="p-6">
-      <h2 className="mb-4 text-xl font-bold" style={{ color: 'var(--color-primary)' }}>
-        Quick Check-In
-      </h2>
+    <Card className="border-border shadow-md">
+      <CardHeader>
+        <CardTitle className="text-primary">Today's Check-in</CardTitle>
+        <CardDescription>How are you feeling right now?</CardDescription>
+      </CardHeader>
 
-      <div className="space-y-6">
+      <CardContent className="space-y-6">
         {/* Mood Selection */}
         <div>
-          <p className="mb-3 text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
-            How are you feeling?
+          <p className="text-sm font-semibold text-primary mb-3">
+            Your Mood
           </p>
-          <div className="grid grid-cols-4 gap-2">
-            {moods.map((mood) => (
+          <div className="flex justify-between gap-2">
+            {moods.map((m) => (
               <button
-                key={mood.value}
-                onClick={() => setSelectedMood(mood.value)}
-                className="flex flex-col items-center gap-1 rounded-lg p-3 transition-all"
-                style={{
-                  backgroundColor: selectedMood === mood.value ? 'var(--color-primary)' : 'var(--color-muted)',
-                  color: selectedMood === mood.value ? 'white' : 'var(--color-foreground)',
-                }}
+                key={m.value}
+                type="button"
+                onClick={() => setMood(m.value)}
+                title={m.label}
+                className={`flex-1 flex flex-col items-center gap-1 p-3 rounded-lg transition-all ${
+                  mood === m.value
+                    ? "bg-primary text-white shadow-lg scale-105"
+                    : "bg-secondary/50 hover:bg-secondary text-foreground"
+                }`}
               >
-                <span className="text-2xl">{mood.emoji}</span>
-                <span className="text-xs">{mood.label}</span>
+                <span className="text-2xl">{m.emoji}</span>
+                <span className="text-xs font-medium">{m.label}</span>
               </button>
             ))}
           </div>
@@ -48,32 +75,52 @@ export default function QuickCheckIn({ onSubmit }: QuickCheckInProps) {
 
         {/* Energy Level */}
         <div>
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-medium" style={{ color: 'var(--color-foreground)' }}>
+          <div className="flex justify-between items-center mb-3">
+            <p className="text-sm font-semibold text-primary">
               Energy Level
             </p>
-            <span className="text-sm font-semibold" style={{ color: 'var(--color-primary)' }}>
-              {energy}/10
-            </span>
+            {energy !== null && (
+              <span className="text-sm font-semibold text-accent bg-accent/20 px-2 py-1 rounded">
+                {energy}/5
+              </span>
+            )}
           </div>
-          <input
-            type="range"
-            min="1"
-            max="10"
-            value={energy}
-            onChange={(e) => setEnergy(Number(e.target.value))}
-            className="w-full"
-            style={{
-              background: `linear-gradient(to right, var(--color-primary) 0%, var(--color-primary) ${(energy / 10) * 100}%, var(--color-border) ${(energy / 10) * 100}%, var(--color-border) 100%)`,
-            }}
-          />
+
+          <div className="flex gap-2">
+            {[1, 2, 3, 4, 5].map((level) => (
+              <button
+                key={level}
+                type="button"
+                onClick={() => setEnergy(level)}
+                className={`flex-1 h-10 rounded-lg font-semibold transition-all ${
+                  energy === level
+                    ? "bg-accent text-primary shadow-md"
+                    : "bg-secondary/50 hover:bg-secondary text-muted-foreground"
+                }`}
+              >
+                {level}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Submit Button */}
-        <Button onClick={handleSubmit} className="w-full">
-          Save Check-In
+        {/* Submit */}
+        <Button
+          type="button"
+          onClick={handleSubmit}
+          disabled={mood === null || energy === null || isSubmitting}
+          className="w-full bg-primary hover:bg-primary/90 text-white h-11 font-semibold gap-2"
+        >
+          {isSubmitting ? (
+            "Saving..."
+          ) : (
+            <>
+              <Check size={18} />
+              Save Check-in
+            </>
+          )}
         </Button>
-      </div>
+      </CardContent>
     </Card>
-  );
+  )
 }

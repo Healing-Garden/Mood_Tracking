@@ -1,83 +1,238 @@
+import React from 'react'
 import { Link } from 'react-router-dom'
-import Header from '../components/layout/Header'
 import { Button } from '../components/ui/Button'
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
-import { Heart, Brain, BarChart3, Zap, MessageSquare, Calendar } from 'lucide-react'
+import { ArrowRight, Leaf, Heart, BarChart3, Brain, Lock, Shield } from 'lucide-react'
 
-export default function LandingPage() {
+interface FeatureItem {
+  title: string
+  description: string
+  icon: React.ElementType
+}
+
+interface LeafConfig {
+  left: string
+  top: string
+  size: number
+  duration: string
+  delay: string
+}
+
+
+const FEATURES: FeatureItem[] = [
+  {
+    title: 'Daily Check-ins',
+    description: 'Quick mood tracking with daily mood tracking, journaling, and more with peace of mind',
+    icon: Heart,
+  },
+  {
+    title: 'Smart Journaling',
+    description: 'Write freely and let AI help you understand your thoughts and emotions better',
+    icon: Brain,
+  },
+  {
+    title: 'AI Chat Partner',
+    description: 'Get AI-powered support and guidance designed just for your wellness journey',
+    icon: BarChart3,
+  },
+  {
+    title: 'Mindful Analytics',
+    description: 'Visualize patterns, triggers, and progress with beautiful interactive charts',
+    icon: Leaf,
+  },
+  {
+    title: 'Personalized Insights',
+    description: 'Get thoughtful recommendations based on your unique emotional patterns',
+    icon: Brain,
+  },
+  {
+    title: 'Healing Guides',
+    description: 'Access breathing exercises, meditation tips, and wellness resources',
+    icon: Heart,
+  },
+]
+
+const generateLeaves = (): LeafConfig[] => {
+  return Array.from({ length: 25 }).map(() => ({
+    left: `${Math.random() * 100}%`,
+    top: `${-20 - Math.random() * 50}%`,
+    size: Math.random() * 35 + 18,
+    duration: `${20 + Math.random() * 15}s`,
+    delay: `${Math.random() * 8}s`,
+  }))
+}
+
+const leaves = generateLeaves()
+
+const LandingPage = () => {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-[hsl(var(--background))] via-[hsl(var(--secondary)_/_0.05)] to-[hsl(var(--accent)_/_0.1)]">
-      <Header />
+    <div className="min-h-screen bg-background overflow-hidden">
+      {/* Animated falling leaves background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        {leaves.map((leaf, i) => (
+          <div
+            key={i}
+            className="absolute animate-fall-leaf"
+            style={{
+              left: leaf.left,
+              top: leaf.top,
+              opacity: 0.12,
+              animation: `fall-leaf ${leaf.duration} linear infinite`,
+              animationDelay: leaf.delay,
+            }}
+          >
+            <Leaf size={leaf.size} className="text-primary" />
+          </div>
+        ))}
+      </div>
 
-      <section className="px-6 lg:px-12 py-20 lg:py-32 max-w-6xl mx-auto relative">
-        <div className="absolute top-10 right-10 text-6xl opacity-20">🌸</div>
-        <div className="absolute bottom-20 left-10 text-5xl opacity-20">🌻</div>
 
-        <div className="text-center mb-12 lg:mb-16">
-          <h1 className="text-5xl lg:text-7xl font-bold text-[hsl(var(--foreground))] mb-6 leading-tight">
-            Your Personal Mental Health
-            <span className="bg-gradient-to-r from-[hsl(var(--primary))] via-[hsl(var(--accent))] to-[hsl(var(--secondary))] bg-clip-text text-transparent">
-              {' '}
-              Flower Garden
-            </span>
-          </h1>
-          <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-8 leading-relaxed">
-            Cultivate your healing journey with daily mood tracking, journaling, and AI-powered insights in a peaceful garden sanctuary.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/register">
-              <Button size="lg" className="bg-[hsl(var(--primary))] text-white rounded-full px-8">
-                Plant Your Seeds
+      {/* Navigation */}
+      <header className="relative z-10 border-b border-border bg-white/80 backdrop-blur-sm sticky top-0">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+          <div className="flex items-center gap-2">
+            <img
+              src="/healing-garden-logo.png"
+              alt="Healing Garden"
+              width={40}
+              height={40}
+              className="rounded-lg"
+            />
+            <div className="text-xl font-bold text-primary">Healing Garden</div>
+          </div>
+          <div className="flex gap-3">
+            <Link to="/login">
+              <Button variant="outline" className="border-primary text-primary hover:bg-secondary/30 bg-transparent">
+                Login
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="rounded-full px-8 bg-transparent">
-              Learn More
-            </Button>
+            <Link to="/register">
+              <Button className="bg-primary hover:bg-primary/90 text-white">
+                Get Started
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Hero Section */}
+      <section className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
+        <div className="text-center space-y-8">
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground leading-tight">
+              Your Personal Mental Health
+            </h1>
+            <h2 className="text-3xl md:text-5xl font-bold text-accent">
+              Flower Garden
+            </h2>
+            <p className="text-lg text-foreground/70 max-w-2xl mx-auto leading-relaxed">
+              Cultivate your feelings journey with daily mood tracking, journaling, and AI-powered insights in a peaceful garden sanctuary.
+            </p>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
+            <Link to="/register">
+              <Button className="bg-primary hover:bg-primary/90 text-white h-12 text-base gap-2 px-8">
+                Get Started Free <ArrowRight size={20} />
+              </Button>
+            </Link>
+            <Link to="/login">
+              <Button variant="outline" className="border-primary text-primary hover:bg-secondary/30 h-12 text-base px-8 bg-transparent">
+                Learn More
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
-      <section className="px-6 lg:px-12 py-20 max-w-6xl mx-auto">
-        <h2 className="text-3xl lg:text-4xl font-bold text-center text-[hsl(var(--foreground))] mb-4">
-          Designed for Your Wellness
-        </h2>
-        <p className="text-center text-gray-600 dark:text-gray-400 mb-16 max-w-2xl mx-auto">
-          Grow stronger each day with tools designed to help you bloom and understand yourself better.
-        </p>
+      {/* Features Grid - Designed for Your Wellness */}
+      <section className="relative z-10 bg-white/60 py-16 border-t border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+              Designed for Your Wellness
+            </h3>
+            <p className="text-foreground/60">Drive strategic well-being with tools designed to help you understand yourself better</p>
+          </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[
-            { icon: Calendar, title: 'Daily Check-ins', description: 'Quick mood and energy tracking with beautiful emoji selectors.', flower: '🌱' },
-            { icon: Brain, title: 'Smart Journaling', description: 'Write freely with AI-powered prompts. Capture your thoughts.', flower: '🌷' },
-            { icon: MessageSquare, title: 'AI Chat Partner', description: '24/7 support with CBT-based conversations.', flower: '🌹' },
-            { icon: BarChart3, title: 'Meaningful Analytics', description: 'Beautiful visualizations showing your mood trends.', flower: '📊' },
-            { icon: Zap, title: 'Personalized Insights', description: 'AI analyzes your journey to detect patterns.', flower: '⚡' },
-            { icon: Heart, title: 'Healing Content', description: 'Access curated breathing exercises and mindfulness content.', flower: '💚' },
-          ].map((feature, idx) => (
-            <Card key={idx} className="border border-[hsl(var(--border)_/_0.5)] hover:shadow-lg transition-all">
-              <CardHeader>
-                <div className="w-12 h-12 rounded-lg bg-[hsl(var(--primary)_/_0.1)] flex items-center justify-center mb-4">
-                  <span className="text-2xl">{feature.flower}</span>
+          <div className="grid md:grid-cols-3 gap-6">
+            {FEATURES.map((feature, i) => {
+              const IconComponent = feature.icon
+              return (
+                <div 
+                  key={i} 
+                  className="bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:border-primary/30"
+                >
+                  <div className="w-12 h-12 bg-muted rounded-xl flex items-center justify-center mb-4">
+                    <IconComponent size={24} className="text-primary" />
+                  </div>
+                  <h4 className="text-lg font-semibold text-foreground mb-2">{feature.title}</h4>
+                  <p className="text-sm text-foreground/60 leading-relaxed">{feature.description}</p>
                 </div>
-                <CardTitle className="text-lg">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600 dark:text-gray-400">{feature.description}</p>
-              </CardContent>
-            </Card>
-          ))}
+              )
+            })}
+          </div>
         </div>
       </section>
 
-      <footer className="px-6 lg:px-12 py-8 border-t border-[hsl(var(--border))] mt-12">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between">
-          <div className="flex items-center gap-2 mb-4 md:mb-0">
-            <span className="text-2xl">🌼</span>
-            <span className="font-semibold text-[hsl(var(--foreground))]">Healing Garden</span>
+      {/* Privacy & Security Section */}
+      <section className="relative z-10 bg-muted py-16 border-t border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-2xl p-8 md:p-12 border border-border">
+            <h3 className="text-2xl md:text-3xl font-bold text-foreground mb-6">
+              Your Privacy & Security Matter
+            </h3>
+            <div className="space-y-3">
+              <div className="flex gap-3 items-start">
+                <Lock size={24} className="text-primary flex-shrink-0 mt-1" />
+                <p className="text-foreground/70">
+                  <strong className="text-foreground">End-to-end encryption</strong> for all your personal mental and personal data
+                </p>
+              </div>
+              <div className="flex gap-3 items-start">
+                <Shield size={24} className="text-primary flex-shrink-0 mt-1" />
+                <p className="text-foreground/70">
+                  <strong className="text-foreground">Your data stays yours</strong> with full control over who can access it
+                </p>
+              </div>
+              <div className="flex gap-3 items-start">
+                <Heart size={24} className="text-primary flex-shrink-0 mt-1" />
+                <p className="text-foreground/70">
+                  <strong className="text-foreground">HIPAA-compliant infrastructure</strong> with regular security audits
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400">© 2026 Healing Garden. Supporting your mental health journey.</p>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="relative z-10 py-16 border-t border-border">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center space-y-8">
+          <div className="space-y-3">
+            <h3 className="text-3xl md:text-4xl font-bold text-foreground">
+              Start Your Healing Garden Today
+            </h3>
+            <p className="text-lg text-foreground/60">
+              Join thousands who are cultivating their wellness journey with daily insights and support
+            </p>
+          </div>
+          <Link to="/register">
+            <Button className="bg-primary hover:bg-primary/90 text-white h-12 text-base px-10 gap-2">
+              Plant Your Seeds 🌱 Now <ArrowRight size={20} />
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="relative z-10 border-t border-border bg-white/50 py-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-foreground/60 text-sm">
+          <p>🌼 Healing Garden - Nurturing Your Mental Wellness Journey Together</p>
         </div>
       </footer>
-    </main>
+    </div>
   )
 }
+
+export default LandingPage
