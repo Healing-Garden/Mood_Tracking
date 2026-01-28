@@ -141,8 +141,8 @@ export default function DashboardSidebar({
           onClick={onClose}
         >
           <Button
-            variant="outline"
-            className="w-full justify-start gap-3 bg-transparent border-border/50 text-foreground hover:bg-muted"
+            variant="ghost"
+            className="w-full justify-start gap-3 px-3 py-2 text-foreground hover:bg-muted/50 hover:text-primary"
           >
             <User size={20} />
             Profile
@@ -154,8 +154,8 @@ export default function DashboardSidebar({
           onClick={onClose}
         >
           <Button
-            variant="outline"
-            className="w-full justify-start gap-3 bg-transparent border-border/50 text-foreground hover:bg-muted"
+            variant="ghost"
+            className="w-full justify-start gap-3 px-3 py-2 text-foreground hover:bg-muted/50 hover:text-primary"
           >
             <Settings size={20} />
             Settings

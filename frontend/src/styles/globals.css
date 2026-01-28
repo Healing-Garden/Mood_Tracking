@@ -161,3 +161,32 @@
     transform: translateX(30px);
   }
 }
+
+/* Falling Flowers/Petals Animation */
+@keyframes fall-flower {
+  0% {
+    top: -20vh;
+    transform: translateX(0) rotate(0deg);
+    opacity: 0.8;
+  }
+  25% {
+    transform: translateX(15vw) rotate(90deg);
+  }
+  50% {
+    transform: translateX(-10vw) rotate(180deg);
+  }
+  75% {
+    transform: translateX(20vw) rotate(270deg);
+  }
+  100% {
+    top: 100vh;
+    transform: translateX(0) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Optional: Flutter effect for petals */
+@keyframes flutter {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+}

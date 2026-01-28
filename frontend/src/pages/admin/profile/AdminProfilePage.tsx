@@ -151,7 +151,6 @@ const AdminProfilePage: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-border flex flex-col items-center">
               <AvatarUpload
-                currentAvatar="/default-avatar.png" // optional
                 onAvatarChange={(file) => console.log('New avatar file:', file)}
               />
               <div className="mt-6 pt-4 border-t border-border w-full text-center">
