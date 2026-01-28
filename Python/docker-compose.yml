@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  ai-service:
+    build: .
+    container_name: mental-health-ai
+    env_file:
+      - .env  
+    ports:
+      - "8000:8000"
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./models_cache:/app/models_cache
+      - ./data:/app/data
+      - ./logs:/app/logs 
+    restart: unless-stopped
+    networks:
+      - mental-health-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  
+
+  redis:
+    image: redis:7-alpine
+    container_name: mental-health-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-password}
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - mental-health-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  celery-worker:
+    build: .
+    container_name: mental-health-celery-worker
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+    env_file:
+      - .env  
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./models_cache:/app/models_cache
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - mental-health-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  celery-beat:
+    build: .
+    container_name: mental-health-celery-beat
+    command: celery -A src.tasks.celery_app beat --loglevel=info
+    env_file:
+      - .env 
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./models_cache:/app/models_cache
+      - ./data:/app/data
+      - ./logs:/app/logs
+    restart: unless-stopped
+    networks:
+      - mental-health-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  redis_data:
+
+networks:
+  mental-health-net:
+    driver: bridge
