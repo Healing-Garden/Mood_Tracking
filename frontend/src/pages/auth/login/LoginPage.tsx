@@ -34,10 +34,10 @@ export default function LoginPage() {
       if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
-        navigate("/app/dashboard");
+        navigate("/user/dashboard");
       }
     } catch (err: any) {
-      console.log("LOGIN ERROR", err.response || err); // 👈 THÊM
+      console.log("LOGIN ERROR", err.response || err);
       setError(err.response?.data?.message || "Login failed");
     } finally {
       setIsLoading(false);

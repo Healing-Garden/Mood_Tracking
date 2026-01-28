@@ -31,7 +31,7 @@ const routes = [
     element: <ForgotPasswordPage />,
   },
   {
-    path: "/app/dashboard",
+    path: "/user/dashboard",
     element: (
       <ProtectedRoute role="user">
         <UserDashboardPage />
@@ -39,15 +39,15 @@ const routes = [
     ),
   },
   {
-    path: "/app/journal",
+    path: "/user/journal",
     element: <JournalPage />,
   },
   {
-    path: "/app/analytics",
+    path: "/user/analytics",
     element: <AnalyticsPage />,
   },
   {
-    path: "/app/profile",
+    path: "/user/profile",
     element: <UserProfilePage />,
   },
   {

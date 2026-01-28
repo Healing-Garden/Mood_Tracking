@@ -17,6 +17,16 @@ interface LeafConfig {
   delay: string
 }
 
+interface FlowerConfig {
+  left: string;
+  top: string;
+  size: number;
+  duration: string;
+  delay: string;
+  color: string; 
+  opacity: number;        
+  rotation: number;
+}
 
 const FEATURES: FeatureItem[] = [
   {
@@ -61,7 +71,54 @@ const generateLeaves = (): LeafConfig[] => {
   }))
 }
 
+const generateFlowers = (): FlowerConfig[] => {
+  const colors = ['#ffffff', '#fffacd', '#fff8dc'];
+
+  return Array.from({ length: 30 }).map(() => {
+    return {
+      left: `${Math.random() * 100}%`,
+      top: `${-20 - Math.random() * 50}%`,
+      size: Math.random() * 28 + 16,
+      duration: `${25 + Math.random() * 20}s`,
+      delay: `${Math.random() * 10}s`,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      opacity: 1,  
+      rotation: Math.random() * 360,                   
+    }
+  })
+}
+
+// SVG Daisy Flower component
+const SVGFlower = ({ color, size }: { color: string; size: number }) => {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+      {/* 12 petals for daisy */}
+      {Array.from({ length: 12 }).map((_, i) => {
+        const angle = (i * 30 * Math.PI) / 180;
+        const cx = 50 + 30 * Math.cos(angle);
+        const cy = 50 + 30 * Math.sin(angle);
+        return (
+          <ellipse
+            key={`petal-${i}`}
+            cx={cx}
+            cy={cy}
+            rx="10"
+            ry="20"
+            fill={color}
+            opacity="0.95"
+            transform={`rotate(${i * 30} ${cx} ${cy})`}
+          />
+        );
+      })}
+      {/* Center circle - yellow */}
+      <circle cx="50" cy="50" r="14" fill="#FFD700" opacity="0.95" />
+      <circle cx="50" cy="50" r="11" fill="#FFC700" opacity="0.85" />
+    </svg>
+  );
+}
+
 const leaves = generateLeaves()
+const flowers = generateFlowers()
 
 const LandingPage = () => {
   return (
@@ -85,6 +142,25 @@ const LandingPage = () => {
         ))}
       </div>
 
+      {/* Animated falling flowers */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+        {flowers.map((flower, i) => (
+          <div
+            key={i}
+            className="absolute animate-fall-flower"
+            style={{
+              left: flower.left,
+              top: flower.top,
+              animation: `fall-flower ${flower.duration} linear infinite`,
+              animationDelay: flower.delay,
+              width: flower.size,
+              height: flower.size,
+            }}
+          >
+            <SVGFlower color={flower.color} size={flower.size} />
+          </div>
+        ))}
+      </div>
 
       {/* Navigation */}
       <header className="relative z-10 border-b border-border bg-white/80 backdrop-blur-sm sticky top-0">
@@ -219,7 +295,7 @@ const LandingPage = () => {
           </div>
           <Link to="/register">
             <Button className="bg-primary hover:bg-primary/90 text-white h-12 text-base px-10 gap-2">
-              Plant Your Seeds 🌱 Now <ArrowRight size={20} />
+              Plant Your Seeds Now <ArrowRight size={20} />
             </Button>
           </Link>
         </div>
