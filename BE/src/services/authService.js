@@ -8,15 +8,14 @@ module.exports = {
     if (exists) throw new Error("Email already exists");
 
     const hash = await bcrypt.hash(password, 10);
-    const user = await User.create({
+
+    return await User.create({
       fullName,
       email,
       password: hash,
       age,
       weight,
     });
-
-    return user;
   },
 
   login: async ({ email, password }) => {
@@ -25,17 +24,22 @@ module.exports = {
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) throw new Error("Invalid password");
-    if (!process.env.JWT_SECRET) {
-      throw new Error("JWT_SECRET is not defined");
-    }
-    const token = jwt.sign(
+
+    const accessToken = jwt.sign(
       { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET,
       { expiresIn: "7d" }
     );
 
     return {
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -45,6 +49,16 @@ module.exports = {
       },
     };
   },
-};
 
-//d
+  refreshToken: async (token) => {
+    const payload = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+
+    const accessToken = jwt.sign(
+      { id: payload.id },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    return { accessToken };
+  },
+};

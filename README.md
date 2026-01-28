@@ -20,7 +20,7 @@ step 1: cd BE
 
 step 2: install library
 - npm init -y
-- npm install express mongoose dotenv bcrypt jsonwebtoken cors
+- npm install express mongoose dotenv bcrypt jsonwebtoken cors cookie-parser
 - npm install -D nodemon
   
 step 3: run BE project

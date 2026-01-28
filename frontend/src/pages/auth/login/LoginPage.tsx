@@ -1,43 +1,60 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { Button } from '../../../components/ui/Button'
-import { Input } from '../../../components/ui/Input'
-import { Label } from '../../../components/ui/Label'
-import { Leaf } from 'lucide-react'
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
+import { Label } from "../../../components/ui/Label";
+import { Leaf } from "lucide-react";
+import { authApi } from "../../../api/authApi";
 
 export default function LoginPage() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [email, setEmail] = useState<string>('')
-  const [password, setPassword] = useState<string>('')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
-  const [error, setError] = useState<string>('')
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    console.log("CLICK LOGIN", email, password); // 👈 THÊM
 
-    // TODO: Replace with real authentication logic
-    console.log('Login:', { email, password })
+    setIsLoading(true);
+    setError("");
 
-    setTimeout(() => {
-      setIsLoading(false)
-      navigate('/dashboard')
-    }, 500)
-  }
+    try {
+      const res = await authApi.login({ email, password });
+      console.log("LOGIN RESPONSE", res); // 👈 THÊM
+
+      const { accessToken, user } = res;
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("user", JSON.stringify(user));
+
+      if (user.role === "ADMIN") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/app/dashboard");
+      }
+    } catch (err: any) {
+      console.log("LOGIN ERROR", err.response || err); // 👈 THÊM
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGoogleLogin = () => {
-    setIsLoading(true)
+    setIsLoading(true);
 
     // TODO: Implement Google OAuth
-    console.log('Google OAuth login')
+    console.log("Google OAuth login");
 
     setTimeout(() => {
-      setIsLoading(false)
-      navigate('/dashboard')
-    }, 500)
-  }
+      setIsLoading(false);
+      navigate("/dashboard");
+    }, 500);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center px-4 relative overflow-hidden">
@@ -48,7 +65,7 @@ export default function LoginPage() {
 
       <div
         className="absolute bottom-10 left-10 opacity-15 pointer-events-none"
-        style={{ animationDelay: '1s' }}
+        style={{ animationDelay: "1s" }}
       >
         <Leaf size={100} className="text-primary animate-pulse" />
       </div>
@@ -97,7 +114,10 @@ export default function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-foreground font-semibold">
+              <Label
+                htmlFor="password"
+                className="text-foreground font-semibold"
+              >
                 Password
               </Label>
               <Input
@@ -116,7 +136,7 @@ export default function LoginPage() {
               disabled={isLoading}
               className="w-full bg-primary hover:bg-primary/90 text-white h-11 font-semibold mt-6"
             >
-              {isLoading ? 'Signing in...' : 'Sign In'}
+              {isLoading ? "Signing in..." : "Sign In"}
             </Button>
           </form>
 
@@ -148,7 +168,7 @@ export default function LoginPage() {
           <div className="mt-6 text-center text-sm space-y-3">
             <div>
               <span className="text-muted-foreground">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
               </span>
               <Link
                 to="/register"
@@ -170,5 +190,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

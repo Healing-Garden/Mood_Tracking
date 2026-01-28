@@ -1,14 +1,31 @@
 import http from "./http";
 
-export const authApi = {
-  login: (data: { email: string; password: string }) =>
-    http.post("/auth/login", data),
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
 
-  register: (data: {
+export interface LoginResponse {
+  accessToken: string;
+  user: {
+    id: string;
     fullName: string;
     email: string;
-    password: string;
-  }) => http.post("/auth/register", data),
+    role: string;
+    avatar?: string;
+  };
+}
 
-  logout: () => http.post("/auth/logout"),
+export const authApi = {
+  login(data: LoginRequest): Promise<LoginResponse> {
+    return http.post("/auth/login", data) as Promise<LoginResponse>;
+  },
+
+  logout(): Promise<void> {
+    return http.post("/auth/logout") as Promise<void>;
+  },
+
+  refreshToken(): Promise<{ accessToken: string }> {
+    return http.post("/auth/refresh-token") as Promise<{ accessToken: string }>;
+  },
 };

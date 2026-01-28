@@ -1,5 +1,6 @@
-import { NavLink, useLocation } from "react-router-dom"
-import { Button } from "../../components/ui/Button"
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { authApi } from "../../api/authApi";
+import { Button } from "../../components/ui/Button";
 import {
   Home,
   User,
@@ -10,46 +11,76 @@ import {
   Users,
   BarChart3,
   LogOut,
-} from "lucide-react"
+} from "lucide-react";
 
 interface MenuItem {
-  label: string
-  icon: React.ReactNode
-  href: string
-  badge?: number
+  label: string;
+  icon: React.ReactNode;
+  href: string;
+  badge?: number;
 }
 
 interface DashboardSidebarProps {
-  userType: "user" | "admin"
-  onClose?: () => void
+  userType: "user" | "admin";
+  onClose?: () => void;
 }
 
 export default function DashboardSidebar({
   userType,
   onClose,
 }: DashboardSidebarProps) {
-  const location = useLocation()
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await authApi.logout(); // optional nếu backend có
+    } catch (err) {
+      console.error("Logout error", err);
+    } finally {
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
+      navigate("/", { replace: true });
+    }
+  };
+
+  const location = useLocation();
 
   const userMenuItems: MenuItem[] = [
     { label: "Dashboard", icon: <Home size={20} />, href: "/user/dashboard" },
     { label: "Check-ins", icon: <Brain size={20} />, href: "/user/journal" },
     { label: "Journal", icon: <BookOpen size={20} />, href: "/user/journal" },
-    { label: "Analytics", icon: <TrendingUp size={20} />, href: "/user/analytics" },
-  ]
+    {
+      label: "Analytics",
+      icon: <TrendingUp size={20} />,
+      href: "/user/analytics",
+    },
+  ];
 
   const adminMenuItems: MenuItem[] = [
     { label: "Dashboard", icon: <Home size={20} />, href: "/admin/dashboard" },
-    { label: "Users", icon: <Users size={20} />, href: "/admin/users", badge: 3 },
-    { label: "Analytics", icon: <BarChart3 size={20} />, href: "/admin/analytics" },
-    { label: "Reports", icon: <TrendingUp size={20} />, href: "/admin/reports" },
+    {
+      label: "Users",
+      icon: <Users size={20} />,
+      href: "/admin/users",
+      badge: 3,
+    },
+    {
+      label: "Analytics",
+      icon: <BarChart3 size={20} />,
+      href: "/admin/analytics",
+    },
+    {
+      label: "Reports",
+      icon: <TrendingUp size={20} />,
+      href: "/admin/reports",
+    },
     { label: "System", icon: <Settings size={20} />, href: "/admin/settings" },
-  ]
+  ];
 
-  const menuItems = userType === "user" ? userMenuItems : adminMenuItems
+  const menuItems = userType === "user" ? userMenuItems : adminMenuItems;
 
   const isActive = (href: string) =>
-    location.pathname === href ||
-    location.pathname.startsWith(href + "/")
+    location.pathname === href || location.pathname.startsWith(href + "/");
 
   return (
     <aside className="w-64 bg-white border-r border-border/50 h-screen sticky top-0 flex flex-col">
@@ -133,6 +164,7 @@ export default function DashboardSidebar({
 
         <Button
           variant="outline"
+          onClick={handleLogout}
           className="w-full justify-start gap-3 bg-transparent border-destructive/30 text-destructive hover:bg-destructive/10"
         >
           <LogOut size={20} />
@@ -140,5 +172,5 @@ export default function DashboardSidebar({
         </Button>
       </div>
     </aside>
-  )
+  );
 }
