@@ -31,7 +31,7 @@ export default function LoginPage() {
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
 
-      if (user.role === "ADMIN") {
+      if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/app/dashboard");
