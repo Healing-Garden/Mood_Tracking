@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { Leaf } from "lucide-react"
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Label } from '../../../components/ui/Label'
 
 const RegisterPage: React.FC = () => {
+  const navigate = useNavigate()
   const [step, setStep] = useState<"form" | "otp" | "checkin">("form")
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
@@ -54,6 +55,10 @@ const RegisterPage: React.FC = () => {
     setTimeout(() => {
       setStep("checkin")
       setIsLoading(false)
+      // Auto-navigate after 2 seconds
+      setTimeout(() => {
+        navigate('/onboarding/Step1')
+      }, 2000)
     }, 1000)
   }
 
@@ -212,27 +217,22 @@ const RegisterPage: React.FC = () => {
                 Welcome!
               </h1>
               <p className="text-center text-muted-foreground mb-8">
-                Let's set up your first check-in
+                Let's set up your profile
               </p>
 
               <div className="space-y-6">
-                <div className="flex justify-center gap-3 text-3xl">
-                  {["😀", "😊", "😐", "😔", "😢"].map((e) => (
-                    <button
-                      key={e}
-                      type="button"
-                      className="p-2 rounded-lg hover:bg-muted"
-                    >
-                      {e}
-                    </button>
-                  ))}
+                <div className="text-center">
+                  <p className="text-muted-foreground">Redirecting to onboarding...</p>
                 </div>
 
-                <Link to="/user/dashboard">
+                <button
+                  onClick={() => navigate('/onboarding/Step1')}
+                  className="w-full"
+                >
                   <Button className="w-full h-11">
-                    Complete Setup
+                    Start Onboarding
                   </Button>
-                </Link>
+                </button>
               </div>
             </>
           )}
