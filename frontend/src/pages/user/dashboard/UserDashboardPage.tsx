@@ -1,10 +1,12 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts'
 import { Heart, Brain, BookOpen, TrendingUp, Plus, Menu, X } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
+import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 
 const moodTrendData = [
   { day: 'Mon', mood: 7, energy: 6 },
@@ -34,6 +36,22 @@ const UserDashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [selectedMood, setSelectedMood] = useState<number | null>(null)
   const [energyLevel, setEnergyLevel] = useState<number>(5)
+
+  const { setShowModal, hasCheckedInToday } = useDailyCheckInStore()
+
+  // Kiểm tra và hiển thị modal check-in nếu chưa check-in hôm nay
+  useEffect(() => {
+    const hydrateStore = async () => {
+      // Đợi store hydrate từ localStorage
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      
+      if (!hasCheckedInToday()) {
+        setShowModal(true)
+      }
+    }
+
+    hydrateStore()
+  }, [])
 
   const handleQuickCheckin = () => {
     if (selectedMood !== null) {
@@ -258,6 +276,9 @@ const UserDashboardPage = () => {
           </div>
         </main>
       </div>
+
+      {/* Daily Check-in Modal */}
+      <DailyCheckInModal />
     </div>
   )
 }

@@ -1,13 +1,16 @@
 import { useState } from "react";
+import type { AxiosError } from 'axios'
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { Leaf } from "lucide-react";
 import { authApi } from "../../../api/authApi";
+import { useDailyCheckInStore } from "../../../store/dailyCheckInStore";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { setShowModal, hasCheckedInToday } = useDailyCheckInStore();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -34,12 +37,26 @@ export default function LoginPage() {
       if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
-        navigate("/user/dashboard");
+        // Kiểm tra xem user đã check-in hôm nay chưa
+        // Đợi store hydrate từ localStorage
+        setTimeout(() => {
+          if (!hasCheckedInToday()) {
+            // Chưa check-in, modal sẽ được hiển thị trên dashboard
+            setShowModal(true);
+          }
+          navigate("/user/dashboard");
+        }, 100);
       }
-    } catch (err: any) {
-      console.log("LOGIN ERROR", err.response || err);
-      setError(err.response?.data?.message || "Login failed");
-    } finally {
+    } catch (err: unknown) {
+        console.log('LOGIN ERROR', err)
+
+        if (err instanceof Error && 'response' in err) {
+          const axiosError = err as AxiosError<{ message?: string }>
+          setError(axiosError.response?.data?.message || 'Login failed')
+        } else {
+          setError('Login failed')
+        }
+      } finally {
       setIsLoading(false);
     }
   };
