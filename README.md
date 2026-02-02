@@ -1,4 +1,5 @@
 # Mood_Tracking
+
 **Version**
 node -v: 20.19.x or later
 
@@ -7,11 +8,12 @@ node -v: 20.19.x or later
 - git clone https://github.com/Healing-Garden/Mood_Tracking.git
 - git add .
 - git commit -m "comment"
-- git pull origin 
+- git pull origin
 - git push origin (branch)
 
 * If don't have personal branch:
-- git checkout -b (name) 
+
+- git checkout -b (name)
 - git checkout //change branch
 - git branch //show branch
 
@@ -19,11 +21,13 @@ node -v: 20.19.x or later
 step 1: cd BE
 
 step 2: install library
+
 - npm init -y
 - npm install express mongoose dotenv bcrypt jsonwebtoken cors cookie-parser
 - npm install -D nodemon
-  
+
 step 3: run BE project
+
 - npm run dev
 
 **Frontend**
@@ -31,7 +35,9 @@ step 3: run BE project
 step1: cd frontend
 
 step2: install library
-- npm install 
 
-step 3: 
+- npm install
+
+step 3:
+
 - npm run dev
