@@ -1,96 +1,125 @@
-import { useState } from 'react'
-import type { FormEvent } from 'react'
-import { Link, useNavigate } from "react-router-dom"
-import { Leaf } from "lucide-react"
-import { Button } from '../../../components/ui/Button'
-import { Input } from '../../../components/ui/Input'
-import { Label } from '../../../components/ui/Label'
+import { useState } from "react";
+import type { FormEvent } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { Leaf, Eye, EyeOff } from "lucide-react";
+import { Button } from "../../../components/ui/Button";
+import { Input } from "../../../components/ui/Input";
+import { Label } from "../../../components/ui/Label";
+import { useRef } from "react";
+import { authApi } from "../../../api/authApi";
 
-type Step = "email" | "verify" | "reset"
-type UserType = "user" | "admin" | null
+type Step = "email" | "verify" | "reset";
 
 const ForgotPasswordPage: React.FC = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
 
-  const [step, setStep] = useState<Step>("email")
-  const [detectedUserType, setDetectedUserType] = useState<UserType>(null)
+  const [step, setStep] = useState<Step>("email");
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const otpInputsRef = useRef<Array<HTMLInputElement | null>>([]);
 
-  const [email, setEmail] = useState("")
-  const [otp, setOtp] = useState("")
-  const [recoveryCode, setRecoveryCode] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
+  // Password validation
+  const passwordChecklist = {
+    length: newPassword.length >= 8,
+    upper: /[A-Z]/.test(newPassword),
+    number: /\d/.test(newPassword),
+    special: /[^A-Za-z0-9]/.test(newPassword),
+  };
+  const isPasswordValid = Object.values(passwordChecklist).every(Boolean);
 
-  /* STEP 1: EMAIL SUBMIT */
-  const handleEmailSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError("")
-    setIsLoading(true)
+  // STEP 1: EMAIL
+  const handleEmailSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    setIsLoading(true);
 
-    const isAdmin = email.includes("admin") || email.includes("adm")
-    console.log(`Email submitted: ${email}, detected as ${isAdmin ? "admin" : "user"}`)
-
-    setTimeout(() => {
-      setDetectedUserType(isAdmin ? "admin" : "user")
-      setStep("verify")
-      setIsLoading(false)
-    }, 1000)
-  }
-
-  /* STEP 2: VERIFY */
-  const handleVerify = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError("")
-
-    if (!detectedUserType) return
-
-    if (detectedUserType === "user" && otp.length !== 6) {
-      setError("Please enter a valid 6-digit OTP")
-      return
+    try {
+      await authApi.forgotPassword({ email });
+      setStep("verify");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to send OTP");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    if (detectedUserType === "admin" && !recoveryCode.trim()) {
-      setError("Please enter your recovery code")
-      return
+  // STEP 2: VERIFY OTP
+  const handleVerifyOtp = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    const otpCode = otp.join("");
+    if (otpCode.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      return;
     }
+    setIsLoading(true);
+    try {
+      await authApi.verifyForgotOtp({ email, otp: otpCode });
+      setStep("reset");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "OTP invalid or expired");
+      setOtp(Array(6).fill(""));
+      setTimeout(() => {
+        const firstInput = document.querySelector(
+          "#otp-input-0"
+        ) as HTMLInputElement;
+        if (firstInput) firstInput.focus();
+      }, 100);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    setIsLoading(true)
-    console.log(
-      "Verify:",
-      detectedUserType === "user" ? otp : recoveryCode
-    )
-
-    setTimeout(() => {
-      setStep("reset")
-      setIsLoading(false)
-    }, 1000)
-  }
-
-  /* STEP 3: RESET PASSWORD */
-  const handleResetPassword = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    setError("")
-
+  // STEP 3: RESET PASSWORD
+  const handleResetPassword = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setError("");
+    if (!isPasswordValid) {
+      setError(
+        "Password must be at least 8 characters, include uppercase letter, number and special character"
+      );
+      return;
+    }
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match")
-      return
+      setError("Passwords do not match");
+      return;
     }
-
-    if (newPassword.length < 8) {
-      setError("Password must be at least 8 characters")
-      return
+    setIsLoading(true);
+    try {
+      await authApi.resetForgotPassword({ email, newPassword });
+      navigate("/login");
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Failed to reset password");
+    } finally {
+      setIsLoading(false);
     }
+  };
 
-    setIsLoading(true)
-    console.log("Reset password for:", email)
-
-    setTimeout(() => {
-      navigate("/login")
-      setIsLoading(false)
-    }, 1000)
-  }
+  const handleResendOtp = async () => {
+    setResendLoading(true);
+    setOtp(Array(6).fill(""));
+    setError("");
+    try {
+      await authApi.forgotPassword({ email });
+    } catch (err: any) {
+      setError(err?.response?.data?.message || "Cannot resend OTP");
+    } finally {
+      setResendLoading(false);
+      setTimeout(() => {
+        const firstInput = document.querySelector(
+          "#otp-input-0"
+        ) as HTMLInputElement;
+        if (firstInput) firstInput.focus();
+      }, 100);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30 flex items-center justify-center px-4 relative overflow-hidden">
@@ -127,7 +156,6 @@ const ForgotPasswordPage: React.FC = () => {
               <p className="text-center text-muted-foreground mb-8">
                 Enter your email address to reset your password
               </p>
-
               <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Email Address</Label>
@@ -138,18 +166,15 @@ const ForgotPasswordPage: React.FC = () => {
                     required
                   />
                 </div>
-
                 {error && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-
                 <Button disabled={isLoading} className="w-full h-11">
                   {isLoading ? "Sending..." : "Send Recovery Code"}
                 </Button>
               </form>
-
               <div className="mt-6 text-center text-sm">
                 Remember your password?{" "}
                 <Link to="/login" className="text-primary font-semibold">
@@ -160,58 +185,108 @@ const ForgotPasswordPage: React.FC = () => {
           )}
 
           {/* STEP VERIFY */}
-          {step === "verify" && detectedUserType && (
+          {step === "verify" && (
             <>
               <h1 className="text-3xl font-bold text-primary text-center mb-2">
-                {detectedUserType === "admin"
-                  ? "Enter Recovery Code"
-                  : "Verify Your Email"}
+                Enter OTP
               </h1>
-
-              <form onSubmit={handleVerify} className="space-y-6">
-                {detectedUserType === "user" ? (
-                  <div className="flex gap-2 justify-between">
-                    {Array.from({ length: 6 }).map((_, i) => (
-                      <Input
-                        key={i}
-                        maxLength={1}
-                        value={otp[i] || ""}
-                        onChange={(e) => {
-                          const v = e.target.value.replace(/\D/g, "")
-                          setOtp(
-                            otp.substring(0, i) + v + otp.substring(i + 1)
-                          )
-                        }}
-                        className="w-12 h-12 text-center text-xl"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <Input
-                    value={recoveryCode}
-                    onChange={(e) => setRecoveryCode(e.target.value)}
-                    placeholder="Enter recovery code"
-                  />
-                )}
-
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
+                <div className="flex gap-2 justify-between mb-2">
+                  {otp.map((v, i) => (
+                    <Input
+                      key={i}
+                      id={`otp-input-${i}`}
+                      maxLength={1}
+                      className="w-12 h-12 text-center text-xl"
+                      value={v}
+                      ref={(el) => {
+                        otpInputsRef.current[i] = el;
+                      }}
+                      onChange={(e) => {
+                        const digit = e.target.value.replace(/\D/g, "");
+                        if (!digit) return;
+                        const next = [...otp];
+                        next[i] = digit;
+                        setOtp(next);
+                        setError("");
+                        // Auto focus next
+                        if (digit && i < 5) {
+                          const nextInput = document.querySelector(
+                            `#otp-input-${i + 1}`
+                          ) as HTMLInputElement | null;
+                          if (nextInput) nextInput.focus();
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === "Backspace") {
+                          if (otp[i]) {
+                            const next = [...otp];
+                            next[i] = "";
+                            setOtp(next);
+                          } else if (i > 0) {
+                            const prevInput = document.querySelector(
+                              `#otp-input-${i - 1}`
+                            ) as HTMLInputElement;
+                            if (prevInput) prevInput.focus();
+                            const next = [...otp];
+                            next[i - 1] = "";
+                            setOtp(next);
+                          }
+                        } else if (e.key === "ArrowLeft" && i > 0) {
+                          const prevInput = document.querySelector(
+                            `#otp-input-${i - 1}`
+                          ) as HTMLInputElement;
+                          if (prevInput) prevInput.focus();
+                        } else if (e.key === "ArrowRight" && i < 5) {
+                          const nextInput = document.querySelector(
+                            `#otp-input-${i + 1}`
+                          ) as HTMLInputElement;
+                          if (nextInput) nextInput.focus();
+                        }
+                      }}
+                      onPaste={
+                        i === 0
+                          ? (e) => {
+                              e.preventDefault();
+                              const pasted = e.clipboardData
+                                .getData("text")
+                                .replace(/\D/g, "")
+                                .slice(0, 6);
+                              setOtp(
+                                pasted
+                                  .split("")
+                                  .concat(Array(6 - pasted.length).fill(""))
+                              );
+                              setTimeout(() => {
+                                const nextInput = document.querySelector(
+                                  `#otp-input-${pasted.length}`
+                                ) as HTMLInputElement;
+                                if (nextInput) nextInput.focus();
+                              }, 10);
+                            }
+                          : undefined
+                      }
+                      autoFocus={i === 0}
+                    />
+                  ))}
+                </div>
                 {error && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-
-                <Button
-                  disabled={
-                    isLoading ||
-                    (detectedUserType === "user"
-                      ? otp.length !== 6
-                      : !recoveryCode)
-                  }
-                  className="w-full h-11"
-                >
-                  {isLoading ? "Verifying..." : "Verify"}
+                <Button disabled={isLoading} className="w-full h-11">
+                  {isLoading ? "Verifying..." : "Verify OTP"}
                 </Button>
               </form>
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                disabled={resendLoading}
+                className="w-full text-sm text-primary font-semibold mt-2"
+              >
+                {resendLoading ? "Resending..." : "Resend OTP"}
+              </button>
             </>
           )}
 
@@ -221,27 +296,96 @@ const ForgotPasswordPage: React.FC = () => {
               <h1 className="text-3xl font-bold text-primary text-center mb-2">
                 Set New Password
               </h1>
-
               <form onSubmit={handleResetPassword} className="space-y-4">
-                <Input
-                  type="password"
-                  placeholder="New password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-                <Input
-                  type="password"
-                  placeholder="Confirm password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                />
-
+                <div className="space-y-1">
+                  <Label>New Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="New password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((v) => !v)}
+                      className="absolute right-3 top-2.5 text-muted-foreground"
+                      tabIndex={-1}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
+                  <ul className="text-sm mt-2 space-y-1">
+                    <li
+                      className={
+                        passwordChecklist.length
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }
+                    >
+                      • At least 8 characters
+                    </li>
+                    <li
+                      className={
+                        passwordChecklist.upper
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }
+                    >
+                      • One uppercase letter
+                    </li>
+                    <li
+                      className={
+                        passwordChecklist.number
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }
+                    >
+                      • One number
+                    </li>
+                    <li
+                      className={
+                        passwordChecklist.special
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }
+                    >
+                      • One special character
+                    </li>
+                  </ul>
+                </div>
+                <div className="space-y-1">
+                  <Label>Confirm Password</Label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="Confirm password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((v) => !v)}
+                      className="absolute right-3 top-2.5 text-muted-foreground"
+                      tabIndex={-1}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff size={18} />
+                      ) : (
+                        <Eye size={18} />
+                      )}
+                    </button>
+                  </div>
+                </div>
                 {error && (
                   <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                     <p className="text-sm text-red-600">{error}</p>
                   </div>
                 )}
-
                 <Button disabled={isLoading} className="w-full h-11">
                   {isLoading ? "Updating..." : "Update Password"}
                 </Button>
@@ -251,7 +395,7 @@ const ForgotPasswordPage: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default ForgotPasswordPage
+export default ForgotPasswordPage;
