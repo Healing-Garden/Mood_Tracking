@@ -76,8 +76,6 @@ const recentUsers = [
   { id: 4, name: "Alex Martinez", email: "alex@example.com", joinDate: "2024-01-22", status: "Active" },
 ]
 
-/* -------------------- COMPONENT -------------------- */
-
 export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedUser, setSelectedUser] = useState<number | null>(null)

@@ -98,7 +98,6 @@ const RegisterPage: React.FC = () => {
   const handleResendOtp = async () => {
     setResendLoading(true);
     setOtpError("");
-
     try {
       await authApi.register({
         fullName,
