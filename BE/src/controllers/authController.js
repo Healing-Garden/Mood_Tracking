@@ -101,7 +101,6 @@ module.exports = {
 
   forgotPassword: async (req, res) => {
     const { email } = req.body;
-
     if (!(await Users.findOne({ email })))
       return res.status(404).json({ message: "Email not found" });
 
@@ -114,13 +113,19 @@ module.exports = {
   },
 
   verifyForgotOtp: async (req, res) => {
-    const { email, otp, newPassword } = req.body;
+    const { email, otp } = req.body;
 
     await otpService.verifyOtp({
       email,
       type: "FORGOT_PASSWORD",
       otp,
     });
+
+    res.json({ message: "OTP verified" });
+  },
+
+  resetForgotPassword: async (req, res) => {
+    const { email, newPassword } = req.body;
 
     await authService.resetPassword(email, newPassword);
 

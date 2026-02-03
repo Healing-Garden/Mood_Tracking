@@ -27,6 +27,15 @@ export interface VerifyRegisterOtpRequest {
   otp: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+export interface VerifyForgotOtpRequest {
+  email: string;
+  otp: string;
+  newPassword: string;
+}
+
 export const authApi = {
   register(data: RegisterRequest) {
     return http.post("/auth/register", data);
@@ -46,5 +55,15 @@ export const authApi = {
 
   refreshToken(): Promise<{ accessToken: string }> {
     return http.post("/auth/refresh-token") as Promise<{ accessToken: string }>;
+  },
+
+  forgotPassword(data: { email: string }) {
+    return http.post("/auth/forgot-password", data);
+  },
+  verifyForgotOtp(data: { email: string; otp: string }) {
+    return http.post("/auth/forgot-password/verify-otp", data);
+  },
+  resetForgotPassword(data: { email: string; newPassword: string }) {
+    return http.post("/auth/forgot-password/reset", data);
   },
 };

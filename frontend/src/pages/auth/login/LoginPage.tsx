@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { AxiosError } from 'axios'
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
