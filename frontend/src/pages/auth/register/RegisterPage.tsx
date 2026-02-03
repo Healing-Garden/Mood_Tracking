@@ -1,67 +1,93 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Leaf, X } from "lucide-react";
+import { X, Eye, EyeOff, Leaf } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { authApi } from "../../../api/authApi";
 
+/* ================== HELPERS ================== */
+const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const passwordRules = {
+  length: (v: string) => v.length >= 8,
+  upper: (v: string) => /[A-Z]/.test(v),
+  number: (v: string) => /\d/.test(v),
+  special: (v: string) => /[^A-Za-z0-9]/.test(v),
+};
+
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
 
-  // ===== FORM DATA =====
+  /* ================= FORM ================= */
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [age, setAge] = useState("");
-  const [weight, setWeight] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  // ===== OTP =====
-  const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
-  const [showOtpModal, setShowOtpModal] = useState(false);
-
-  // ===== UI =====
+  /* ================= UI ================= */
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  /* ================= OTP ================= */
+  const [otp, setOtp] = useState<string[]>(Array(6).fill(""));
+  const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpError, setOtpError] = useState("");
   const [resendLoading, setResendLoading] = useState(false);
+
+  /* ================= VALIDATION ================= */
+  const passwordChecklist = {
+    length: passwordRules.length(password),
+    upper: passwordRules.upper(password),
+    number: passwordRules.number(password),
+    special: passwordRules.special(password),
+  };
+
+  const isPasswordValid = Object.values(passwordChecklist).every(Boolean);
 
   /* ================= REGISTER ================= */
   const handleRegister = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    setEmailError("");
+    setPasswordError("");
+    setConfirmPasswordError("");
 
-    if (!fullName || !email || !age || !weight || !password) {
+    if (!fullName || !email || !password || !confirmPassword) {
       setError("Please fill all required fields");
       return;
     }
 
-    if (password !== confirmPassword) {
-      setError("Passwords do not match");
+    if (!emailRegex.test(email)) {
+      setEmailError("Invalid email format");
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (!isPasswordValid) {
+      setPasswordError(
+        "Password must be at least 8 characters, include uppercase letter, number and special character"
+      );
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setConfirmPasswordError("Passwords do not match");
       return;
     }
 
     setLoading(true);
     try {
-      await authApi.register({
-        fullName,
-        email,
-        password,
-        age: Number(age),
-        weight: Number(weight),
-      });
-
-      // ✅ mở popup OTP
+      await authApi.register({ fullName, email, password });
       setShowOtpModal(true);
     } catch (err: any) {
-      setError(err || "Register failed");
+      setError(err?.response?.data?.message || "Register failed");
     } finally {
       setLoading(false);
     }
@@ -69,8 +95,6 @@ const RegisterPage: React.FC = () => {
 
   /* ================= VERIFY OTP ================= */
   const handleVerifyOtp = async () => {
-    setOtpError("");
-
     const otpCode = otp.join("");
     if (otpCode.length !== 6) {
       setOtpError("OTP must be 6 digits");
@@ -80,15 +104,19 @@ const RegisterPage: React.FC = () => {
     setLoading(true);
     try {
       await authApi.verifyRegisterOtp({ email, otp: otpCode });
-
       const loginRes = await authApi.login({ email, password });
-
       localStorage.setItem("accessToken", loginRes.accessToken);
       localStorage.setItem("user", JSON.stringify(loginRes.user));
-
-      navigate("/app/dashboard");
+      navigate("/user/dashboard");
     } catch (err: any) {
-      setOtpError(err || "OTP invalid");
+      setOtp(Array(6).fill("")); // Reset OTP input on error
+      setOtpError(err?.response?.data?.message || "OTP invalid");
+      setTimeout(() => {
+        const firstInput = document.querySelector(
+          "#otp-input-0"
+        ) as HTMLInputElement;
+        if (firstInput) firstInput.focus();
+      }, 100);
     } finally {
       setLoading(false);
     }
@@ -97,17 +125,12 @@ const RegisterPage: React.FC = () => {
   /* ================= RESEND OTP ================= */
   const handleResendOtp = async () => {
     setResendLoading(true);
+    setOtp(Array(6).fill("")); // Reset OTP input on resend
     setOtpError("");
     try {
-      await authApi.register({
-        fullName,
-        email,
-        password,
-        age: Number(age),
-        weight: Number(weight),
-      });
-    } catch (err: any) {
-      setOtpError(err || "Cannot resend OTP");
+      await authApi.register({ fullName, email, password });
+    } catch {
+      setOtpError("Cannot resend OTP");
     } finally {
       setResendLoading(false);
     }
@@ -116,16 +139,15 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30 flex items-center justify-center px-4 relative overflow-hidden">
       {/* Decorative leaves */}
-      <div className="absolute top-10 right-10 opacity-20 animate-pulse">
+      <div className="absolute top-10 right-10 opacity-20 animate-pulse pointer-events-none select-none">
         <Leaf size={60} className="text-primary" />
       </div>
       <div
-        className="absolute bottom-10 left-10 opacity-20 animate-pulse"
+        className="absolute bottom-10 left-10 opacity-20 animate-pulse pointer-events-none select-none"
         style={{ animationDelay: "1s" }}
       >
         <Leaf size={80} className="text-primary" />
       </div>
-
       <div className="w-full max-w-md z-10">
         {/* Logo */}
         <div className="flex justify-center mb-8">
@@ -137,7 +159,6 @@ const RegisterPage: React.FC = () => {
             className="rounded-lg shadow-lg"
           />
         </div>
-
         <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
           <h1 className="text-3xl font-bold text-primary mb-2 text-center">
             Create Your Account
@@ -147,6 +168,7 @@ const RegisterPage: React.FC = () => {
           </p>
 
           <form onSubmit={handleRegister} className="space-y-4">
+            {/* Full name */}
             <div className="space-y-2">
               <Label>Full Name</Label>
               <Input
@@ -155,51 +177,109 @@ const RegisterPage: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
+            {/* Email */}
+            <div className="space-y-1">
               <Label>Email</Label>
               <Input
-                type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError("");
+                }}
               />
+              {emailError && (
+                <p className="text-sm text-red-600">{emailError}</p>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Age</Label>
-                <Input
-                  type="number"
-                  value={age}
-                  onChange={(e) => setAge(e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Weight (kg)</Label>
-                <Input
-                  type="number"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
+            {/* Password */}
+            <div className="space-y-1">
               <Label>Password</Label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    setPasswordError("");
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-muted-foreground"
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+
+              <ul className="text-sm mt-2 space-y-1">
+                <li
+                  className={
+                    passwordChecklist.length ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  • At least 8 characters
+                </li>
+                <li
+                  className={
+                    passwordChecklist.upper ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  • One uppercase letter
+                </li>
+                <li
+                  className={
+                    passwordChecklist.number ? "text-green-600" : "text-red-600"
+                  }
+                >
+                  • One number
+                </li>
+                <li
+                  className={
+                    passwordChecklist.special
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                >
+                  • One special character
+                </li>
+              </ul>
+
+              {passwordError && (
+                <p className="text-sm text-red-600">{passwordError}</p>
+              )}
             </div>
 
-            <div className="space-y-2">
+            {/* Confirm password */}
+            <div className="space-y-1">
               <Label>Confirm Password</Label>
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  value={confirmPassword}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                    setConfirmPasswordError("");
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-2.5 text-muted-foreground"
+                >
+                  {showConfirmPassword ? (
+                    <EyeOff size={18} />
+                  ) : (
+                    <Eye size={18} />
+                  )}
+                </button>
+              </div>
+
+              {/* ✅ ĐÚNG CHỖ */}
+              {confirmPasswordError && (
+                <p className="text-sm text-red-600">{confirmPasswordError}</p>
+              )}
             </div>
 
             {error && (
@@ -228,17 +308,14 @@ const RegisterPage: React.FC = () => {
           <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative">
             <button
               onClick={() => setShowOtpModal(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-4 text-gray-400"
             >
               <X size={20} />
             </button>
 
-            <h2 className="text-xl font-bold text-center mb-2">
+            <h2 className="text-xl font-bold text-center mb-4">
               Verify your email
             </h2>
-            <p className="text-sm text-center text-muted-foreground mb-6">
-              Enter the 6-digit code sent to {email}
-            </p>
 
             <div className="flex justify-between gap-2 mb-4">
               {otp.map((v, i) => (
@@ -249,10 +326,71 @@ const RegisterPage: React.FC = () => {
                   value={v}
                   onChange={(e) => {
                     const digit = e.target.value.replace(/\D/g, "");
+                    if (!digit) return;
                     const next = [...otp];
                     next[i] = digit;
                     setOtp(next);
+                    setOtpError(""); // Xóa thông báo lỗi khi nhập lại
+                    // Auto focus next
+                    if (digit && i < 5) {
+                      const nextInput = document.querySelector(
+                        `#otp-input-${i + 1}`
+                      ) as HTMLInputElement | null;
+                      if (nextInput) nextInput.focus();
+                    }
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Backspace") {
+                      if (otp[i]) {
+                        const next = [...otp];
+                        next[i] = "";
+                        setOtp(next);
+                      } else if (i > 0) {
+                        const prevInput = document.querySelector(
+                          `#otp-input-${i - 1}`
+                        ) as HTMLInputElement;
+                        if (prevInput) prevInput.focus();
+                        const next = [...otp];
+                        next[i - 1] = "";
+                        setOtp(next);
+                      }
+                    } else if (e.key === "ArrowLeft" && i > 0) {
+                      const prevInput = document.querySelector(
+                        `#otp-input-${i - 1}`
+                      ) as HTMLInputElement;
+                      if (prevInput) prevInput.focus();
+                    } else if (e.key === "ArrowRight" && i < 5) {
+                      const nextInput = document.querySelector(
+                        `#otp-input-${i + 1}`
+                      ) as HTMLInputElement;
+                      if (nextInput) nextInput.focus();
+                    }
+                  }}
+                  onPaste={
+                    i === 0
+                      ? (e) => {
+                          e.preventDefault();
+                          const pasted = e.clipboardData
+                            .getData("text")
+                            .replace(/\D/g, "")
+                            .slice(0, 6);
+                          setOtp(
+                            pasted
+                              .split("")
+                              .concat(Array(6 - pasted.length).fill(""))
+                          );
+                          // focus next empty input
+                          setTimeout(() => {
+                            const nextInput = document.querySelector(
+                              `#otp-input-${pasted.length}`
+                            ) as HTMLInputElement;
+                            if (nextInput) nextInput.focus();
+                          }, 10);
+                        }
+                      : undefined
+                  }
+                  id={`otp-input-${i}`}
+                  autoFocus={i === 0 && showOtpModal && otp.every((d) => !d)}
                 />
               ))}
             </div>
@@ -263,12 +401,8 @@ const RegisterPage: React.FC = () => {
               </p>
             )}
 
-            <Button
-              className="w-full mb-3"
-              disabled={loading}
-              onClick={handleVerifyOtp}
-            >
-              {loading ? "Verifying..." : "Verify OTP"}
+            <Button className="w-full mb-3" onClick={handleVerifyOtp}>
+              Verify OTP
             </Button>
 
             <button

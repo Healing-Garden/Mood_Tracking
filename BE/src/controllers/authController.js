@@ -21,28 +21,33 @@ module.exports = {
   },
 
   verifyRegisterOtp: async (req, res) => {
-    const { email, otp } = req.body;
+    try {
+      const { email, otp } = req.body;
 
-    const payload = await otpService.verifyOtp({
-      email,
-      type: "REGISTER",
-      otp,
-    });
+      const payload = await otpService.verifyOtp({
+        email,
+        type: "REGISTER",
+        otp,
+      });
 
-    const hashedPassword = await bcrypt.hash(payload.password, 10);
+      const hashedPassword = await bcrypt.hash(payload.password, 10);
 
-    await Users.create({
-      fullName: payload.fullName,
-      age: payload.age,
-      weight: payload.weight,
-      email,
-      password: hashedPassword,
-      role: "user",
-      authProvider: "local",
-      accountStatus: "active",
-    });
+      await Users.create({
+        fullName: payload.fullName,
+        email,
+        password: hashedPassword,
+        role: "user",
+        authProvider: "local",
+        accountStatus: "active",
+      });
 
-    res.json({ message: "Register success. Redirect to login" });
+      res.json({ message: "Register success. Redirect to login" });
+    } catch (err) {
+      // ✅ QUAN TRỌNG
+      res.status(400).json({
+        message: err.message || "OTP invalid",
+      });
+    }
   },
 
   resendRegisterOtp: async (req, res) => {
@@ -80,8 +85,7 @@ module.exports = {
   refreshToken: async (req, res) => {
     try {
       const token = req.cookies.refreshToken;
-      if (!token)
-        return res.status(401).json({ message: "No refresh token" });
+      if (!token) return res.status(401).json({ message: "No refresh token" });
 
       const data = await authService.refreshToken(token);
       res.json(data);
