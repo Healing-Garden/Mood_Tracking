@@ -16,7 +16,28 @@ export interface LoginResponse {
   };
 }
 
+export interface RegisterRequest {
+  fullName: string;
+  email: string;
+  password: string;
+  age: number;
+  weight: number;
+}
+
+export interface VerifyRegisterOtpRequest {
+  email: string;
+  otp: string;
+}
+
 export const authApi = {
+  register(data: RegisterRequest) {
+    return http.post("/auth/register", data);
+  },
+
+  verifyRegisterOtp(data: VerifyRegisterOtpRequest) {
+    return http.post("/auth/register/verify-otp", data);
+  },
+
   login(data: LoginRequest): Promise<LoginResponse> {
     return http.post("/auth/login", data) as Promise<LoginResponse>;
   },

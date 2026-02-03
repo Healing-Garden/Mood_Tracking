@@ -19,18 +19,15 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("CLICK LOGIN", email, password); // 👈 THÊM
+    console.log("CLICK LOGIN", email, password);
 
     setIsLoading(true);
     setError("");
 
     try {
       const res = await authApi.login({ email, password });
-      console.log("LOGIN RESPONSE", res); // 👈 THÊM
 
       const { accessToken, user } = res;
-      localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("user", JSON.stringify(user));
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
 
@@ -47,16 +44,10 @@ export default function LoginPage() {
           navigate("/user/dashboard");
         }, 100);
       }
-    } catch (err: unknown) {
-        console.log('LOGIN ERROR', err)
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Login failed");
+    } finally {
 
-        if (err instanceof Error && 'response' in err) {
-          const axiosError = err as AxiosError<{ message?: string }>
-          setError(axiosError.response?.data?.message || 'Login failed')
-        } else {
-          setError('Login failed')
-        }
-      } finally {
       setIsLoading(false);
     }
   };

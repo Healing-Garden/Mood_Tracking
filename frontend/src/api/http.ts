@@ -41,9 +41,7 @@ http.interceptors.response.use(
     };
 
     if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(
-        (error.response?.data as any)?.message || "API Error"
-      );
+      return Promise.reject(error);
     }
 
     if (isRefreshing) {
