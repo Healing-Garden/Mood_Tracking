@@ -3,6 +3,7 @@ import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { useDailyCheckInStore, type MoodLevel } from '../../store/dailyCheckInStore'
+import { dailyCheckInApi } from '../../api/dailyCheckInApi'
 
 type MoodEmoji = {
   level: MoodLevel
@@ -19,7 +20,7 @@ const MOOD_EMOJIS: MoodEmoji[] = [
 ]
 
 const DailyCheckInModal: React.FC = () => {
-  const { showModal, submitCheckIn, getThemeByMood } =
+  const { showModal, submitCheckIn, getThemeByMood, setShowModal } =
     useDailyCheckInStore()
 
   const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(null)
@@ -32,19 +33,29 @@ const DailyCheckInModal: React.FC = () => {
 
     setIsSubmitting(true)
 
-    // giả lập API
-    await new Promise((resolve) => setTimeout(resolve, 300))
+    try {
+      // Gửi dữ liệu check-in lên backend để lưu trữ lâu dài
+      await dailyCheckInApi.submit({
+        mood: selectedMood,
+        energy: energyLevel,
+        note: note.trim() || undefined,
+      })
+    } catch (error) {
+      console.error('Failed to submit daily check-in:', error)
+      // TODO: có thể hiển thị toast thông báo lỗi sau
+    } finally {
+      // Luôn cập nhật state local (Zustand) và đóng modal
+      submitCheckIn({
+        mood: selectedMood,
+        energy: energyLevel,
+        note: note.trim() || undefined,
+      })
 
-    submitCheckIn({
-      mood: selectedMood,
-      energy: energyLevel,
-      note: note.trim() || undefined,
-    })
-
-    setIsSubmitting(false)
-    setSelectedMood(null)
-    setEnergyLevel(5)
-    setNote('')
+      setIsSubmitting(false)
+      setSelectedMood(null)
+      setEnergyLevel(5)
+      setNote('')
+    }
   }
 
   const getThemeClasses = (): string => {
@@ -73,11 +84,22 @@ const DailyCheckInModal: React.FC = () => {
       >
         <div className="p-8 space-y-6">
           {/* Header */}
-          <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold">How are you feeling?</h2>
-            <p className="text-sm text-muted-foreground">
-              Take a moment to check in with yourself
-            </p>
+          <div className="flex items-start justify-between">
+            <div className="text-center flex-1 space-y-2">
+              <h2 className="text-2xl font-bold">How are you feeling?</h2>
+              <p className="text-sm text-muted-foreground">
+                Take a moment to check in with yourself
+              </p>
+            </div>
+
+            {/* Close / skip button */}
+            <button
+              type="button"
+              onClick={() => setShowModal(false)}
+              className="ml-4 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Skip
+            </button>
           </div>
 
           {/* Mood selector */}
@@ -125,6 +147,8 @@ const DailyCheckInModal: React.FC = () => {
               value={energyLevel}
               onChange={(e) => setEnergyLevel(Number(e.target.value))}
               className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-border/30 accent-primary"
+              title="Energy Level"
+              aria-label="Energy Level"
             />
 
             <div className="flex justify-between text-xs text-muted-foreground">

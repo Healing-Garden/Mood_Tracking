@@ -29,15 +29,37 @@ export default function LoginPage() {
       console.log("LOGIN RESPONSE", res); // 👈 THÊM
 
       const { accessToken, user } = res;
+      // Lưu token cho cả frontend và axios client
       localStorage.setItem("accessToken", accessToken);
-      localStorage.setItem("user", JSON.stringify(user));
-      localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("access_token", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
 
       if (user.role === "admin") {
         navigate("/admin/dashboard");
       } else {
-        // Kiểm tra xem user đã check-in hôm nay chưa
+        // 1) Kiểm tra trạng thái onboarding từ localStorage
+        let shouldRedirectToOnboarding = false;
+        try {
+          const raw = localStorage.getItem("onboarding-storage");
+          if (!raw) {
+            shouldRedirectToOnboarding = true;
+          } else {
+            const parsed = JSON.parse(raw) as { state?: { isOnboarded?: boolean } };
+            const isOnboarded = parsed?.state?.isOnboarded;
+            if (!isOnboarded) {
+              shouldRedirectToOnboarding = true;
+            }
+          }
+        } catch {
+          shouldRedirectToOnboarding = true;
+        }
+
+        if (shouldRedirectToOnboarding) {
+          navigate("/onboarding/step-1");
+          return;
+        }
+
+        // 2) Nếu đã onboarding rồi: kiểm tra xem user đã check-in hôm nay chưa
         // Đợi store hydrate từ localStorage
         setTimeout(() => {
           if (!hasCheckedInToday()) {

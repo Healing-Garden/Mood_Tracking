@@ -57,7 +57,7 @@ const RegisterPage: React.FC = () => {
       setIsLoading(false)
       // Auto-navigate after 2 seconds
       setTimeout(() => {
-        navigate('/onboarding/Step1')
+        navigate('/onboarding/step-1')
       }, 2000)
     }, 1000)
   }
@@ -226,7 +226,7 @@ const RegisterPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => navigate('/onboarding/Step1')}
+                  onClick={() => navigate('/onboarding/step-1')}
                   className="w-full"
                 >
                   <Button className="w-full h-11">
