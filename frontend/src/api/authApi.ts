@@ -20,8 +20,6 @@ export interface RegisterRequest {
   fullName: string;
   email: string;
   password: string;
-  age: number;
-  weight: number;
 }
 
 export interface VerifyRegisterOtpRequest {
