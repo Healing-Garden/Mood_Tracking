@@ -3,11 +3,16 @@ const mongoose = require("mongoose");
 const notificationSchema = new mongoose.Schema(
   {
     enabled: { type: Boolean, default: true },
-    reminderTimes: [{ type: String }],
-    frequency: {
-      type: String,
-      enum: ["daily", "weekly"],
-      default: "daily",
+
+    dailyTimes: {
+      type: [String],
+      default: [],
+    },
+
+    types: {
+      moodCheck: { type: Boolean, default: true },
+      journalReminder: { type: Boolean, default: true },
+      dailyTip: { type: Boolean, default: true },
     },
   },
   { _id: false }
