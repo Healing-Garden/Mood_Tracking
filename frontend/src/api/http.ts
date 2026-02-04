@@ -5,9 +5,6 @@ const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   timeout: 10000,
   withCredentials: true, // 👈 để gửi refresh token cookie
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 let isRefreshing = false;
@@ -25,9 +22,12 @@ const processQueue = (error: any, token: string | null) => {
 
 // Gắn access token
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token = localStorage.getItem("accessToken");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (config.data instanceof FormData && config.headers) {
+    delete (config.headers as any)["Content-Type"];
   }
   return config;
 });
@@ -67,14 +67,15 @@ http.interceptors.response.use(
       );
 
       const newToken = res.data.accessToken;
-      localStorage.setItem("access_token", newToken);
+      localStorage.setItem("accessToken", newToken);
       processQueue(null, newToken);
 
       original.headers.Authorization = `Bearer ${newToken}`;
       return http(original);
     } catch (err) {
       processQueue(err, null);
-      localStorage.removeItem("access_token");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
       window.location.href = "/login";
       return Promise.reject(err);
     } finally {
