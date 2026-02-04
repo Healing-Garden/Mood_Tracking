@@ -18,6 +18,13 @@ export interface DailyCheckInResponse {
   updatedAt: string;
 }
 
+export interface MoodFlowResponse {
+  period: "week" | "month" | "year";
+  from: string;
+  to: string;
+  items: DailyCheckInResponse[];
+}
+
 export const dailyCheckInApi = {
   submit(
     payload: DailyCheckInPayload
@@ -27,6 +34,10 @@ export const dailyCheckInApi = {
 
   getToday(): Promise<DailyCheckInResponse> {
     return http.get("/user/checkins/today") as Promise<DailyCheckInResponse>;
+  },
+
+  getFlow(period: "week" | "month" | "year" = "week"): Promise<MoodFlowResponse> {
+    return http.get(`/user/checkins/flow?period=${period}`) as Promise<MoodFlowResponse>;
   },
 };
 

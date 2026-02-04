@@ -10,15 +10,13 @@ import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
 
-const moodTrendData = [
-  { day: 'Mon', mood: 7, energy: 6 },
-  { day: 'Tue', mood: 6, energy: 7 },
-  { day: 'Wed', mood: 8, energy: 5 },
-  { day: 'Thu', mood: 7, energy: 8 },
-  { day: 'Fri', mood: 9, energy: 7 },
-  { day: 'Sat', mood: 8, energy: 8 },
-  { day: 'Sun', mood: 7, energy: 6 },
-]
+type MoodFlowPeriod = 'week' | 'month' | 'year'
+
+type MoodTrendPoint = {
+  label: string
+  mood: number
+  energy: number
+}
 
 const emotionBreakdownData = [
   { name: 'Happy', value: 35, fill: '#52b788' },
@@ -27,17 +25,18 @@ const emotionBreakdownData = [
   { name: 'Sad', value: 19, fill: '#8b5cf6' },
 ]
 
-const weeklyStatsData = {
-  checkIns: 7,
-  avgMood: 7.7,
-  journalEntries: 5,
-  insightsGenerated: 3,
-}
-
 const UserDashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [selectedMood, setSelectedMood] = useState<number | null>(null)
   const [energyLevel, setEnergyLevel] = useState<number>(5)
+  const [period, setPeriod] = useState<MoodFlowPeriod>('week')
+  const [moodTrendData, setMoodTrendData] = useState<MoodTrendPoint[]>([])
+  const [weeklyStats, setWeeklyStats] = useState({
+    checkIns: 0,
+    avgMood: 0,
+    journalEntries: 0,
+    insightsGenerated: 0,
+  })
 
   const { setShowModal } = useDailyCheckInStore()
 
@@ -60,6 +59,48 @@ const UserDashboardPage = () => {
 
     checkTodayFromServer()
   }, [setShowModal])
+
+  // Tải dữ liệu mood flow cho biểu đồ
+  useEffect(() => {
+    const loadMoodFlow = async () => {
+      try {
+        const res = await dailyCheckInApi.getFlow(period)
+
+        // Map từng bản ghi thành điểm trên chart
+        const points: MoodTrendPoint[] = res.items.map((item) => ({
+          label: item.date,
+          mood: item.mood,
+          energy: item.energy,
+        }))
+
+        setMoodTrendData(points)
+
+        setWeeklyStats((prev) => {
+          if (points.length === 0) {
+            return {
+              ...prev,
+              checkIns: 0,
+              avgMood: 0,
+            }
+          }
+
+          const totalMood = points.reduce((sum, p) => sum + p.mood, 0)
+          const avgMood = totalMood / points.length
+
+          return {
+            ...prev,
+            checkIns: points.length,
+            avgMood: Number(avgMood.toFixed(1)),
+          }
+        })
+      } catch (error) {
+        console.error('Failed to load mood flow:', error)
+      }
+    }
+
+    void loadMoodFlow()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period])
 
   const handleQuickCheckin = () => {
     if (selectedMood !== null) {
@@ -177,16 +218,53 @@ const UserDashboardPage = () => {
               {/* Mood Trend Chart */}
               <Card className="border-border/50 shadow-md">
                 <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp size={20} className="text-primary" />
-                    Weekly Mood Trend
-                  </CardTitle>
+                  <div className="flex items-center justify-between gap-4">
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp size={20} className="text-primary" />
+                      Mood Flow
+                    </CardTitle>
+                    <div className="flex gap-2 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => setPeriod('week')}
+                        className={`px-3 py-1 rounded-full border ${
+                          period === 'week'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-transparent text-foreground border-border hover:bg-muted'
+                        }`}
+                      >
+                        7 days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPeriod('month')}
+                        className={`px-3 py-1 rounded-full border ${
+                          period === 'month'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-transparent text-foreground border-border hover:bg-muted'
+                        }`}
+                      >
+                        30 days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPeriod('year')}
+                        className={`px-3 py-1 rounded-full border ${
+                          period === 'year'
+                            ? 'bg-primary text-white border-primary'
+                            : 'bg-transparent text-foreground border-border hover:bg-muted'
+                        }`}
+                      >
+                        1 year
+                      </button>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <ComposedChart data={moodTrendData}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                      <XAxis dataKey="day" stroke="var(--color-muted-foreground)" />
+                      <XAxis dataKey="label" stroke="var(--color-muted-foreground)" />
                       <YAxis stroke="var(--color-muted-foreground)" />
                       <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid var(--color-border)' }} />
                       <Legend />
@@ -230,19 +308,19 @@ const UserDashboardPage = () => {
                 <CardContent className="space-y-4">
                   <div className="bg-muted/50 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground">Check-ins</p>
-                    <p className="text-2xl font-bold text-primary">{weeklyStatsData.checkIns}</p>
+                    <p className="text-2xl font-bold text-primary">{weeklyStats.checkIns}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground">Avg Mood</p>
-                    <p className="text-2xl font-bold text-primary">{weeklyStatsData.avgMood}/10</p>
+                    <p className="text-2xl font-bold text-primary">{weeklyStats.avgMood}/5</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground">Journal Entries</p>
-                    <p className="text-2xl font-bold text-primary">{weeklyStatsData.journalEntries}</p>
+                    <p className="text-2xl font-bold text-primary">{weeklyStats.journalEntries}</p>
                   </div>
                   <div className="bg-muted/50 rounded-lg p-4">
                     <p className="text-sm text-muted-foreground">AI Insights</p>
-                    <p className="text-2xl font-bold text-primary">{weeklyStatsData.insightsGenerated}</p>
+                    <p className="text-2xl font-bold text-primary">{weeklyStats.insightsGenerated}</p>
                   </div>
                 </CardContent>
               </Card>

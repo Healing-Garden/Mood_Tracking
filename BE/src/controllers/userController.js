@@ -137,5 +137,45 @@ module.exports = {
       return res.status(500).json({ message: "Internal server error" });
     }
   },
+
+  // GET /api/user/checkins/flow?period=week|month|year
+  getMoodFlow: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const period = req.query.period || "week";
+
+      const today = new Date();
+      let start = new Date(today);
+
+      if (period === "year") {
+        start.setFullYear(start.getFullYear() - 1);
+      } else if (period === "month") {
+        start.setMonth(start.getMonth() - 1);
+      } else {
+        // default: week (7 days)
+        start.setDate(start.getDate() - 6);
+      }
+
+      const toStr = today.toISOString().split("T")[0];
+      const fromStr = start.toISOString().split("T")[0];
+
+      const entries = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: fromStr, $lte: toStr },
+      })
+        .sort({ date: 1 })
+        .lean();
+
+      return res.json({
+        period,
+        from: fromStr,
+        to: toStr,
+        items: entries,
+      });
+    } catch (err) {
+      console.error("getMoodFlow error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
 };
 

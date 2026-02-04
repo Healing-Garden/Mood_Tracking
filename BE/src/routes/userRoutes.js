@@ -13,6 +13,7 @@ router.post("/onboarding", userController.saveOnboardingPreferences);
 // Daily check-ins
 router.get("/checkins/today", userController.getTodayCheckIn);
 router.post("/checkins", userController.saveDailyCheckIn);
+router.get("/checkins/flow", userController.getMoodFlow);
 
 module.exports = router;
 
