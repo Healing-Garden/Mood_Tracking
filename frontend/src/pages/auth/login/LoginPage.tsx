@@ -43,8 +43,13 @@ export default function LoginPage() {
           navigate("/user/dashboard");
         }, 100);
       }
-    } catch (err: any) {
-      setError(err.response?.data?.message || "Login failed");
+    } catch (err) {
+      type ErrorResponse = { response?: { data?: { message?: string } } };
+      if (typeof err === "object" && err !== null && "response" in err && typeof (err as ErrorResponse).response === "object") {
+        setError((err as ErrorResponse).response?.data?.message || "Login failed");
+      } else {
+        setError("Login failed");
+      }
     } finally {
 
       setIsLoading(false);
