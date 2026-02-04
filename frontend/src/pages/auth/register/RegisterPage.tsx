@@ -86,8 +86,18 @@ const RegisterPage: React.FC = () => {
     try {
       await authApi.register({ fullName, email, password });
       setShowOtpModal(true);
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Register failed");
+    } catch (err) {
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: unknown }).response === "object"
+      ) {
+        const errorObj = err as { response?: { data?: { message?: string } } };
+        setError(errorObj.response?.data?.message || "Register failed");
+      } else {
+        setError("Register failed");
+      }
     } finally {
       setLoading(false);
     }
@@ -108,9 +118,19 @@ const RegisterPage: React.FC = () => {
       localStorage.setItem("accessToken", loginRes.accessToken);
       localStorage.setItem("user", JSON.stringify(loginRes.user));
       navigate("/user/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setOtp(Array(6).fill("")); // Reset OTP input on error
-      setOtpError(err?.response?.data?.message || "OTP invalid");
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as { response?: unknown }).response === "object"
+      ) {
+        const errorObj = err as { response?: { data?: { message?: string } } };
+        setOtpError(errorObj.response?.data?.message || "OTP invalid");
+      } else {
+        setOtpError("OTP invalid");
+      }
       setTimeout(() => {
         const firstInput = document.querySelector(
           "#otp-input-0"

@@ -43,8 +43,13 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await authApi.forgotPassword({ email });
       setStep("verify");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to send OTP");
+    } catch (err) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(axiosErr.response?.data?.message || "Failed to send OTP");
+      } else {
+        setError("Failed to send OTP");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -63,8 +68,20 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await authApi.verifyForgotOtp({ email, otp: otpCode });
       setStep("reset");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "OTP invalid or expired");
+    } catch (err: unknown) {
+      if (
+        err &&
+        typeof err === "object" &&
+        "response" in err &&
+        (err as { response?: { data?: { message?: string } } }).response?.data?.message
+      ) {
+        setError(
+          (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
+            "OTP invalid or expired"
+        );
+      } else {
+        setError("OTP invalid or expired");
+      }
       setOtp(Array(6).fill(""));
       setTimeout(() => {
         const firstInput = document.querySelector(
@@ -95,8 +112,15 @@ const ForgotPasswordPage: React.FC = () => {
     try {
       await authApi.resetForgotPassword({ email, newPassword });
       navigate("/login");
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Failed to reset password");
+    } catch (err) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(
+          axiosErr.response?.data?.message || "Failed to reset password"
+        );
+      } else {
+        setError("Failed to reset password");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -108,8 +132,13 @@ const ForgotPasswordPage: React.FC = () => {
     setError("");
     try {
       await authApi.forgotPassword({ email });
-    } catch (err: any) {
-      setError(err?.response?.data?.message || "Cannot resend OTP");
+    } catch (err) {
+      if (err && typeof err === "object" && "response" in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(axiosErr.response?.data?.message || "Cannot resend OTP");
+      } else {
+        setError("Cannot resend OTP");
+      }
     } finally {
       setResendLoading(false);
       setTimeout(() => {
