@@ -10,6 +10,23 @@ const getThemeByMood = (mood) => {
 };
 
 module.exports = {
+  // GET /api/user/onboarding/status
+  getOnboardingStatus: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const onboarding = await Onboarding.findOne({ user: userId }).select(
+        "isOnboarded"
+      );
+      if (!onboarding) {
+        return res.json({ isOnboarded: false });
+      }
+      return res.json({ isOnboarded: onboarding.isOnboarded || false });
+    } catch (err) {
+      console.error("getOnboardingStatus error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
   // GET /api/user/onboarding
   getOnboardingPreferences: async (req, res) => {
     try {

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Button } from '../../../components/ui/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts'
 import { Heart, Brain, BookOpen, TrendingUp, Plus, Menu, X } from 'lucide-react'
+
+import { Button } from '../../../components/ui/Button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
+import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
 
 const moodTrendData = [
   { day: 'Mon', mood: 7, energy: 6 },
@@ -37,21 +39,27 @@ const UserDashboardPage = () => {
   const [selectedMood, setSelectedMood] = useState<number | null>(null)
   const [energyLevel, setEnergyLevel] = useState<number>(5)
 
-  const { setShowModal, hasCheckedInToday } = useDailyCheckInStore()
+  const { setShowModal } = useDailyCheckInStore()
 
-  // Kiểm tra và hiển thị modal check-in nếu chưa check-in hôm nay
+  // Kiểm tra trạng thái check-in hôm nay từ database khi mở dashboard
   useEffect(() => {
-    const hydrateStore = async () => {
-      // Đợi store hydrate từ localStorage
-      await new Promise((resolve) => setTimeout(resolve, 100))
-      
-      if (!hasCheckedInToday()) {
-        setShowModal(true)
+    const checkTodayFromServer = async () => {
+      try {
+        await dailyCheckInApi.getToday()
+        // Đã có bản ghi check-in hôm nay -> không mở modal
+      } catch (error: any) {
+        const status = error?.response?.status
+        if (status === 404) {
+          // Chưa check-in hôm nay -> mở modal
+          setShowModal(true)
+        } else {
+          console.error('Failed to fetch today check-in:', error)
+        }
       }
     }
 
-    hydrateStore()
-  }, [])
+    checkTodayFromServer()
+  }, [setShowModal])
 
   const handleQuickCheckin = () => {
     if (selectedMood !== null) {
@@ -143,12 +151,15 @@ const UserDashboardPage = () => {
                       <span className="text-sm text-primary font-semibold">{energyLevel}/10</span>
                     </div>
                     <input
+                      id="energy-level-slider"
                       type="range"
                       min="1"
                       max="10"
                       value={energyLevel}
                       onChange={(e) => setEnergyLevel(Number(e.target.value))}
                       className="w-full h-2 bg-border/30 rounded-lg appearance-none cursor-pointer accent-primary"
+                      title="Energy Level"
+                      aria-label="Energy Level"
                     />
                   </div>
 

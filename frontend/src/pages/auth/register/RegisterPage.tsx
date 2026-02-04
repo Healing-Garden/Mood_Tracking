@@ -6,6 +6,9 @@ import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
 import { authApi } from "../../../api/authApi";
+import { userApi } from "../../../api/userApi";
+import { useOnboardingStore } from "../../../store/onboardingStore";
+import { useDailyCheckInStore } from "../../../store/dailyCheckInStore";
 
 /* ================== HELPERS ================== */
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -94,6 +97,9 @@ const RegisterPage: React.FC = () => {
   };
 
   /* ================= VERIFY OTP ================= */
+  const { resetOnboarding } = useOnboardingStore();
+  const { resetStore: resetDailyStore } = useDailyCheckInStore();
+
   const handleVerifyOtp = async () => {
     const otpCode = otp.join("");
     if (otpCode.length !== 6) {
@@ -107,7 +113,27 @@ const RegisterPage: React.FC = () => {
       const loginRes = await authApi.login({ email, password });
       localStorage.setItem("accessToken", loginRes.accessToken);
       localStorage.setItem("user", JSON.stringify(loginRes.user));
-      navigate("/user/dashboard");
+
+      // Reset persisted stores so they scope to the newly logged-in user
+      try {
+        resetOnboarding()
+      } catch {}
+      try {
+        resetDailyStore()
+      } catch {}
+
+      // Check if user has completed onboarding
+      try {
+        const statusRes = await userApi.getOnboardingStatus();
+        if (statusRes.isOnboarded) {
+          navigate("/user/dashboard");
+        } else {
+          navigate("/onboarding/step-1");
+        }
+      } catch {
+        // If status check fails, default to onboarding
+        navigate("/onboarding/step-1");
+      }
     } catch (err: any) {
       setOtp(Array(6).fill("")); // Reset OTP input on error
       setOtpError(err?.response?.data?.message || "OTP invalid");
@@ -206,10 +232,11 @@ const RegisterPage: React.FC = () => {
                   }}
                 />
                 <button
-
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-2.5 text-muted-foreground"
+                  // aria-label={showPassword ? "Hide password" : "Show password"}
+                  // title={showPassword ? "Hide password" : "Show password"}
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
@@ -269,6 +296,12 @@ const RegisterPage: React.FC = () => {
                   type="button"
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="absolute right-3 top-2.5 text-muted-foreground"
+                  // aria-label={
+                  //   showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                  // }
+                  // title={
+                  //   showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                  // }
                 >
                   {showConfirmPassword ? (
                     <EyeOff size={18} />
@@ -309,8 +342,11 @@ const RegisterPage: React.FC = () => {
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative">
             <button
+              // type="button"
               onClick={() => setShowOtpModal(false)}
               className="absolute right-4 top-4 text-gray-400"
+              // aria-label="Close dialog"
+              // title="Close dialog"
             >
               <X size={20} />
             </button>
@@ -371,24 +407,24 @@ const RegisterPage: React.FC = () => {
                   onPaste={
                     i === 0
                       ? (e) => {
-                          e.preventDefault();
-                          const pasted = e.clipboardData
-                            .getData("text")
-                            .replace(/\D/g, "")
-                            .slice(0, 6);
-                          setOtp(
-                            pasted
-                              .split("")
-                              .concat(Array(6 - pasted.length).fill(""))
-                          );
-                          // focus next empty input
-                          setTimeout(() => {
-                            const nextInput = document.querySelector(
-                              `#otp-input-${pasted.length}`
-                            ) as HTMLInputElement;
-                            if (nextInput) nextInput.focus();
-                          }, 10);
-                        }
+                        e.preventDefault();
+                        const pasted = e.clipboardData
+                          .getData("text")
+                          .replace(/\D/g, "")
+                          .slice(0, 6);
+                        setOtp(
+                          pasted
+                            .split("")
+                            .concat(Array(6 - pasted.length).fill(""))
+                        );
+                        // focus next empty input
+                        setTimeout(() => {
+                          const nextInput = document.querySelector(
+                            `#otp-input-${pasted.length}`
+                          ) as HTMLInputElement;
+                          if (nextInput) nextInput.focus();
+                        }, 10);
+                      }
                       : undefined
                   }
                   id={`otp-input-${i}`}

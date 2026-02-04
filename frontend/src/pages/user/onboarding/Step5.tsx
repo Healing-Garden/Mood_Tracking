@@ -26,8 +26,11 @@ export default function Step5Complete() {
 
   const handleDone = async () => {
     try {
-      // Persist onboarding preferences to backend
-      await onboardingApi.save(preferences)
+      // Persist onboarding preferences to backend (including isOnboarded: true)
+      await onboardingApi.save({
+        ...preferences,
+        isOnboarded: true,
+      })
     } catch (error) {
       // In trường hợp backend lỗi, vẫn cho phép user tiếp tục
       console.error('Failed to save onboarding preferences:', error)

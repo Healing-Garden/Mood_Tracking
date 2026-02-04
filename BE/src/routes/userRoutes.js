@@ -6,6 +6,7 @@ const userController = require("../controllers/userController");
 router.use(authMiddleware);
 
 // Onboarding preferences
+router.get("/onboarding/status", userController.getOnboardingStatus);
 router.get("/onboarding", userController.getOnboardingPreferences);
 router.post("/onboarding", userController.saveOnboardingPreferences);
 

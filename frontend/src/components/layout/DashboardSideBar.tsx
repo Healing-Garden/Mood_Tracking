@@ -1,6 +1,9 @@
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import { authApi } from "../../api/authApi";
+
 import { Button } from "../../components/ui/Button";
+import { authApi } from "../../api/authApi";
+import { useDailyCheckInStore } from "../../store/dailyCheckInStore";
+import { useOnboardingStore } from "../../store/onboardingStore";
 import {
   Home,
   User,
@@ -38,7 +41,11 @@ export default function DashboardSidebar({
       console.error("Logout error", err);
     } finally {
       localStorage.removeItem("accessToken");
+      localStorage.removeItem("access_token");
       localStorage.removeItem("user");
+      // Xoá luôn state liên quan tới user hiện tại trong các store
+      useDailyCheckInStore.getState().resetStore();
+      useOnboardingStore.getState().resetOnboarding();
       navigate("/", { replace: true });
     }
   };
