@@ -38,7 +38,7 @@ const UserDashboardPage = () => {
     insightsGenerated: 0,
   })
 
-  const { setShowModal } = useDailyCheckInStore()
+  const { setShowModal, lastCheckInDate } = useDailyCheckInStore()
 
   // Kiểm tra trạng thái check-in hôm nay từ database khi mở dashboard
   useEffect(() => {
@@ -99,8 +99,7 @@ const UserDashboardPage = () => {
     }
 
     void loadMoodFlow()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period])
+  }, [period, lastCheckInDate])
 
   const handleQuickCheckin = () => {
     if (selectedMood !== null) {
