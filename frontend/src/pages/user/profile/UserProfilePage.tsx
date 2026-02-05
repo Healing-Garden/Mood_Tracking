@@ -25,6 +25,8 @@ const UserProfilePage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>("")
   const [showPasswords, setShowPasswords] = useState<boolean>(false)
   const [showPasswordSuccess, setShowPasswordSuccess] = useState<boolean>(false)
+  const [showProfileSuccess, setShowProfileSuccess] = useState<boolean>(false)
+  const [passwordError, setPasswordError] = useState<string>("")
 
   const [showPinForm, setShowPinForm] = useState<boolean>(false)
   const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(""))
@@ -51,6 +53,7 @@ const UserProfilePage: React.FC = () => {
         heightCm: height ? parseInt(height) : undefined,
         weight: weight ? parseInt(weight) : undefined,
       })
+      setShowProfileSuccess(true)
     } catch (error) {
       console.error("Error updating profile:", error)
     } finally {
@@ -58,10 +61,26 @@ const UserProfilePage: React.FC = () => {
     }
   }
 
+  const isStrongPassword = (value: string) => {
+    if (value.length < 8) return false
+    if (!/[A-Z]/.test(value)) return false
+    if (!/[a-z]/.test(value)) return false
+    if (!/\d/.test(value)) return false
+    if (!/[^A-Za-z0-9]/.test(value)) return false
+    return true
+  }
+
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
+    setPasswordError("")
     if (newPassword !== confirmPassword) {
       alert("New passwords do not match")
+      return
+    }
+    if (!isStrongPassword(newPassword)) {
+      setPasswordError(
+        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
+      )
       return
     }
     setIsLoading(true)
@@ -334,6 +353,10 @@ const UserProfilePage: React.FC = () => {
                     />
                   </div>
 
+                  {passwordError && (
+                    <p className="text-sm text-red-600">{passwordError}</p>
+                  )}
+
                   <Button
                     type="submit"
                     disabled={isLoading}
@@ -453,6 +476,28 @@ const UserProfilePage: React.FC = () => {
                 type="button"
                 className="w-full bg-primary text-white hover:bg-primary/90"
                 onClick={() => setShowPasswordSuccess(false)}
+              >
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProfileSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-foreground">
+              Profile updated
+            </h3>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Your profile has been updated successfully.
+            </p>
+            <div className="mt-6">
+              <Button
+                type="button"
+                className="w-full bg-primary text-white hover:bg-primary/90"
+                onClick={() => setShowProfileSuccess(false)}
               >
                 OK
               </Button>
