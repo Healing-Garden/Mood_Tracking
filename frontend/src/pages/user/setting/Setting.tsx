@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { useOnboarding } from '../../../hooks/useOnboarding'
-import { Settings, RotateCcw, Lock, Bell, Palette, LogOut } from 'lucide-react'
+import { RotateCcw, Lock, Bell, Palette, LogOut, Menu, X } from 'lucide-react'
+import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 
 type SettingsCategory = {
   title: string
@@ -15,6 +16,7 @@ type SettingsCategory = {
 
 export default function SettingsPage() {
   const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
 
   const {
     goalsSelected,
@@ -56,18 +58,39 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="max-w-4xl mx-auto px-4 py-12">
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
+        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
         {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Settings size={32} className="text-primary" />
-            <h1 className="text-4xl font-bold">Settings</h1>
+        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-primary">Settings</h1>
+
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-muted rounded-lg"
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
           </div>
-          <p className="text-muted-foreground">
-            Customize your Healing Garden experience
-          </p>
-        </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="max-w-4xl mx-auto">
 
         <div className="space-y-6">
           {/* Personalization */}
@@ -189,7 +212,9 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </div>
-      </main>
+        </div>
+        </main>
+      </div>
     </div>
   )
 }

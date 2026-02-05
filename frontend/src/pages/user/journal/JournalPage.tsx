@@ -5,7 +5,8 @@ import { Textarea } from '../../../components/ui/Textarea'
 import { Input } from '../../../components/ui/Input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
-import { Save, Plus, Trash2, Calendar, BookOpen } from 'lucide-react'
+import { Save, Plus, Trash2, Calendar, BookOpen, Menu, X } from 'lucide-react'
+import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 
 interface JournalEntry {
   id: number
@@ -17,6 +18,7 @@ interface JournalEntry {
 }
 
 const JournalPage: React.FC = () => {
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'write' | 'entries'>('write')
   const [title, setTitle] = useState<string>('')
   const [content, setContent] = useState<string>('')
@@ -106,25 +108,40 @@ const JournalPage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
-      {/* Header */}
-      <header className="border-b border-border bg-white/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
-          <img
-            src="/healing-garden-logo.png"
-            alt="Healing Garden Logo"
-            width={40}
-            height={40}
-            className="rounded-lg"
-          />
-          <div>
-            <h1 className="text-2xl font-bold text-primary">My Journal</h1>
-            <p className="text-xs text-muted-foreground">Write, reflect, and grow</p>
-          </div>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
+        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold text-primary">My Journal</h1>
+            </div>
+
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-muted rounded-lg"
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs
             value={activeTab}
             onValueChange={(value) => setActiveTab(value as 'write' | 'entries')}
@@ -343,7 +360,8 @@ const JournalPage: React.FC = () => {
             )}
           </TabsContent>
         </Tabs>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }
