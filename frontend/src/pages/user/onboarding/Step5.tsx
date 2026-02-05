@@ -4,6 +4,7 @@ import { Button } from '../../../components/ui/Button'
 import { Card, CardContent } from '../../../components/ui/Card'
 import { useOnboarding } from '../../../hooks/useOnboarding'
 import { Sparkles, CheckCircle2, Brain } from 'lucide-react'
+import { onboardingApi } from '../../../api/onboardingApi'
 
 export default function Step5Complete() {
   const navigate = useNavigate()
@@ -13,6 +14,7 @@ export default function Step5Complete() {
     sensitivity,
     tone,
     theme,
+    preferences,
     completeOnboarding,
   } = useOnboarding()
 
@@ -22,7 +24,18 @@ export default function Step5Complete() {
     return () => clearTimeout(timer)
   }, [])
 
-  const handleDone = () => {
+  const handleDone = async () => {
+    try {
+      // Persist onboarding preferences to backend (including isOnboarded: true)
+      await onboardingApi.save({
+        ...preferences,
+        isOnboarded: true,
+      })
+    } catch (error) {
+      // In trường hợp backend lỗi, vẫn cho phép user tiếp tục
+      console.error('Failed to save onboarding preferences:', error)
+    }
+
     completeOnboarding()
     navigate('/user/dashboard')
   }

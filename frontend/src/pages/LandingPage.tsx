@@ -221,6 +221,73 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Explore System Features - Mood Tracking / AI Technology / Data Security */}
+      <section className="relative z-10 bg-white/70 border-t border-border">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+          <div className="text-center mb-10 space-y-3">
+            <p className="inline-flex items-center gap-2 rounded-full bg-primary/5 px-4 py-1 text-xs font-medium text-primary border border-primary/10">
+              Explore System Features
+            </p>
+            <h3 className="text-2xl md:text-3xl font-bold text-foreground">
+              Understand how Healing Garden supports you
+            </h3>
+            <p className="text-sm md:text-base text-foreground/60 max-w-2xl mx-auto">
+              Three pillars work together to help you track emotions like a journal, receive gentle AI guidance, and keep all your data safe.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {/* Mood Tracking */}
+            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:border-primary/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Heart size={22} className="text-primary" />
+                </div>
+                <h4 className="text-lg font-semibold text-foreground">Mood Tracking</h4>
+              </div>
+              <p className="text-sm text-foreground/65 leading-relaxed mb-3">
+                Log your feelings through quick check-ins and deeper journal entries, then see how your mood flows over days, weeks, and months.
+              </p>
+              <p className="text-xs text-foreground/50">
+                Daily entries are stored like a gentle diary so you can look back and notice patterns, triggers, and small improvements over time.
+              </p>
+            </div>
+
+            {/* AI Technology */}
+            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:border-primary/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Brain size={22} className="text-primary" />
+                </div>
+                <h4 className="text-lg font-semibold text-foreground">AI Thought Partner</h4>
+              </div>
+              <p className="text-sm text-foreground/65 leading-relaxed mb-3">
+                Let AI gently surface guiding questions, daily summaries, and CBT-inspired reflections based on what you share in your journal.
+              </p>
+              <p className="text-xs text-foreground/50">
+                Search past entries by meaning, explore emotional themes, and receive suggestions that respect your pace and personal context.
+              </p>
+            </div>
+
+            {/* Data Security */}
+            <div className="bg-white rounded-2xl p-6 border border-border shadow-sm hover:shadow-lg transition-all duration-300 hover:border-primary/30">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Shield size={22} className="text-primary" />
+                </div>
+                <h4 className="text-lg font-semibold text-foreground">Data Security</h4>
+              </div>
+              <p className="text-sm text-foreground/65 leading-relaxed mb-3">
+                Your emotions and stories stay private with strong protection, so you can write honestly without worrying who might see it.
+              </p>
+              <p className="text-xs text-foreground/50">
+                Healing Garden is designed with encryption, access control, and clear ownership — your data belongs to you, not to algorithms.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Features Grid - Designed for Your Wellness */}
       <section className="relative z-10 bg-white/60 py-16 border-t border-border">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">

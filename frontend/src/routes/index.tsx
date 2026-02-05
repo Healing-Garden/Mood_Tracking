@@ -37,7 +37,7 @@ const routes = [
     element: <ForgotPasswordPage />,
   },
   {
-    path: "/onboarding/Step1",
+    path: "/onboarding/step-1",
     element: (
       <ProtectedRoute role="user">
         <Step1 />
@@ -45,7 +45,7 @@ const routes = [
     ),
   },
   {
-    path: "/onboarding/Step2",
+    path: "/onboarding/step-2",
     element: (
       <ProtectedRoute role="user">
         <Step2 />
@@ -53,7 +53,7 @@ const routes = [
     ),
   },
   {
-    path: "/onboarding/Step3",
+    path: "/onboarding/step-3",
     element: (
       <ProtectedRoute role="user">
         <Step3 />
@@ -61,7 +61,7 @@ const routes = [
     ),
   },
   {
-    path: "/onboarding/Step4",
+    path: "/onboarding/step-4",
     element: (
       <ProtectedRoute role="user">
         <Step4 />
@@ -69,7 +69,7 @@ const routes = [
     ),
   },
   {
-    path: "/onboarding/Step5",
+    path: "/onboarding/step-5",
     element: (
       <ProtectedRoute role="user">
         <Step5 />

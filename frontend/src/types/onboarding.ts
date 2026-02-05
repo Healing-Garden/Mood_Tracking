@@ -14,6 +14,9 @@ export interface OnboardingPreferences {
 
   // Step 4: Theme preference
   themePreference: ThemePreference
+
+  // Completion status
+  isOnboarded?: boolean
 }
 
 export interface OnboardingState extends OnboardingPreferences {
