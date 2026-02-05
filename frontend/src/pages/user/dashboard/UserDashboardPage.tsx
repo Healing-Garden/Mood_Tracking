@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts'
-import { Heart, Brain, BookOpen, TrendingUp, Plus, Menu, X } from 'lucide-react'
-
+import { Brain, BookOpen, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
@@ -27,8 +27,6 @@ const emotionBreakdownData = [
 
 const UserDashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [selectedMood, setSelectedMood] = useState<number | null>(null)
-  const [energyLevel, setEnergyLevel] = useState<number>(5)
   const [period, setPeriod] = useState<MoodFlowPeriod>('week')
   const [moodTrendData, setMoodTrendData] = useState<MoodTrendPoint[]>([])
   const [weeklyStats, setWeeklyStats] = useState({
@@ -45,20 +43,27 @@ const UserDashboardPage = () => {
     const checkTodayFromServer = async () => {
       try {
         await dailyCheckInApi.getToday()
-        // Đã có bản ghi check-in hôm nay -> không mở modal
-      } catch (error: any) {
-        const status = error?.response?.status
-        if (status === 404) {
-          // Chưa check-in hôm nay -> mở modal
-          setShowModal(true)
+        // Đã có check-in hôm nay
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status
+
+          if (status === 404) {
+            // Chưa check-in hôm nay -> mở modal
+            setShowModal(true)
+          } else {
+            console.error('Failed to fetch today check-in:', error.message)
+          }
         } else {
-          console.error('Failed to fetch today check-in:', error)
+          // Lỗi không phải từ Axios
+          console.error('Unexpected error:', error)
         }
       }
     }
 
     checkTodayFromServer()
   }, [setShowModal])
+
 
   // Tải dữ liệu mood flow cho biểu đồ
   useEffect(() => {
@@ -102,14 +107,6 @@ const UserDashboardPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [period])
 
-  const handleQuickCheckin = () => {
-    if (selectedMood !== null) {
-      console.log('Quick check-in:', { mood: selectedMood, energy: energyLevel })
-      setSelectedMood(null)
-      setEnergyLevel(5)
-    }
-  }
-
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
@@ -147,73 +144,9 @@ const UserDashboardPage = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Welcome Section */}
               <div className="bg-gradient-to-r from-muted to-muted/50 rounded-2xl p-8 border border-border/30">
-                <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back! 👋</h2>
+                <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>
                 <p className="text-muted-foreground">You're on day 7 of your wellness journey. Keep going!</p>
               </div>
-
-              {/* Quick Check-in */}
-              <Card className="border-border/50 shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart size={20} className="text-primary" />
-                    Today's Check-in
-                  </CardTitle>
-                  <CardDescription>How are you feeling today?</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* Mood Selector */}
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">Mood (1-5)</p>
-                    <div className="flex gap-2 justify-between">
-                      {[1, 2, 3, 4, 5].map((mood) => (
-                        <button
-                          key={mood}
-                          onClick={() => setSelectedMood(mood)}
-                          className={`flex-1 py-3 rounded-lg border-2 transition-all text-lg font-semibold ${
-                            selectedMood === mood
-                              ? 'border-primary bg-primary text-white'
-                              : 'border-border/30 hover:border-primary/50'
-                          }`}
-                        >
-                          {['😢', '😟', '😐', '😊', '😄'][mood - 1]}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Very Bad</span>
-                      <span>Very Good</span>
-                    </div>
-                  </div>
-
-                  {/* Energy Level */}
-                  <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                      <p className="text-sm font-semibold text-foreground">Energy Level</p>
-                      <span className="text-sm text-primary font-semibold">{energyLevel}/10</span>
-                    </div>
-                    <input
-                      id="energy-level-slider"
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={energyLevel}
-                      onChange={(e) => setEnergyLevel(Number(e.target.value))}
-                      className="w-full h-2 bg-border/30 rounded-lg appearance-none cursor-pointer accent-primary"
-                      title="Energy Level"
-                      aria-label="Energy Level"
-                    />
-                  </div>
-
-                  <Button
-                    onClick={handleQuickCheckin}
-                    disabled={selectedMood === null}
-                    className="w-full bg-primary hover:bg-primary/90 text-white h-11"
-                  >
-                    <Plus size={18} className="mr-2" />
-                    Save Check-in
-                  </Button>
-                </CardContent>
-              </Card>
 
               {/* Mood Trend Chart */}
               <Card className="border-border/50 shadow-md">

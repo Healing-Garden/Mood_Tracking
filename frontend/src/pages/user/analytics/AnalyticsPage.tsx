@@ -19,7 +19,8 @@ import {
   Area,
   AreaChart,
 } from 'recharts'
-import { Download } from 'lucide-react'
+import { Download, Menu, X, Lightbulb } from 'lucide-react'
+import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 
 const moodTrendData = [
   { week: 'Week 1', mood: 3.2, energy: 2.8, stress: 3.5 },
@@ -62,6 +63,7 @@ const COLORS = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-char
 type TimeRange = 'week' | 'month' | 'quarter' | 'year'
 
 const AnalyticsPage = () => {
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [timeRange, setTimeRange] = useState<TimeRange>('month')
   const [isExporting, setIsExporting] = useState(false)
 
@@ -75,36 +77,51 @@ const AnalyticsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
-      {/* Header */}
-      <header className="border-b border-border bg-white/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img
-              src="/healing-garden-logo.png"
-              alt="Healing Garden Logo"
-              width={40}
-              height={40}
-              className="rounded-lg"
-            />
-            <div>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
+        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
+      </div>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold text-primary">Analytics & Insights</h1>
-              <p className="text-xs text-muted-foreground">Track your wellness journey</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="bg-primary hover:bg-primary/90 text-white gap-2 h-10"
+              >
+                <Download size={18} />
+                {isExporting ? 'Exporting...' : 'Export Report'}
+              </Button>
+
+              <button 
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="lg:hidden p-2 hover:bg-muted rounded-lg"
+              >
+                {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </div>
+        </header>
 
-          <Button
-            onClick={handleExport}
-            disabled={isExporting}
-            className="bg-primary hover:bg-primary/90 text-white gap-2 h-10"
-          >
-            <Download size={18} />
-            {isExporting ? 'Exporting...' : 'Export Report'}
-          </Button>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Time Range Selector */}
         <div className="mb-8 flex flex-wrap gap-3">
           {(['week', 'month', 'quarter', 'year'] as TimeRange[]).map(range => (
@@ -430,7 +447,8 @@ const AnalyticsPage = () => {
             </div>
           </CardContent>
         </Card>
-      </main>
+        </main>
+      </div>
     </div>
   )
 }

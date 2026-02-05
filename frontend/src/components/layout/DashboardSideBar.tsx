@@ -14,6 +14,7 @@ import {
   Users,
   BarChart3,
   LogOut,
+  Bell,           // ← added
 } from "lucide-react";
 
 interface MenuItem {
@@ -53,18 +54,15 @@ export default function DashboardSidebar({
   const location = useLocation();
 
   const userMenuItems: MenuItem[] = [
-    { label: "Dashboard", icon: <Home size={20} />, href: "/user/dashboard" },
-    { label: "Check-ins", icon: <Brain size={20} />, href: "/user/journal" },
-    { label: "Journal", icon: <BookOpen size={20} />, href: "/user/journal" },
-    {
-      label: "Analytics",
-      icon: <TrendingUp size={20} />,
-      href: "/user/analytics",
-    },
+    { label: "Home", icon: <Home size={20} />, href: "/user/dashboard" },
+    { label: "Journal",    icon: <BookOpen size={20} />, href: "/user/journal" },
+    { label: "Analytics",  icon: <TrendingUp size={20} />, href: "/user/analytics" },
+    { label: "AI Partner", icon: <Brain size={20} />, href: "/user/ai-partner" },
+    { label: "Notifications", icon: <Bell size={20} />, href: "/user/notifications" }, 
   ];
 
   const adminMenuItems: MenuItem[] = [
-    { label: "Dashboard", icon: <Home size={20} />, href: "/admin/dashboard" },
+    { label: "Home", icon: <Home size={20} />, href: "/admin/dashboard" },
     {
       label: "Users",
       icon: <Users size={20} />,
@@ -81,7 +79,7 @@ export default function DashboardSidebar({
       icon: <TrendingUp size={20} />,
       href: "/admin/reports",
     },
-    { label: "System", icon: <Settings size={20} />, href: "/admin/settings" },
+    { label: "Notifications", icon: <Bell size={20} />, href: "/admin/notifications" },
   ];
 
   const menuItems = userType === "user" ? userMenuItems : adminMenuItems;
