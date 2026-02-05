@@ -1,15 +1,21 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Leaf } from "lucide-react";
+
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
-import { Leaf } from "lucide-react";
+
 import { authApi } from "../../../api/authApi";
+import { userApi } from "../../../api/userApi";
+import { dailyCheckInApi } from "../../../api/dailyCheckInApi";
 import { useDailyCheckInStore } from "../../../store/dailyCheckInStore";
+import { useOnboardingStore } from "../../../store/onboardingStore";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { setShowModal, hasCheckedInToday } = useDailyCheckInStore();
+  const { setShowModal, resetStore: resetDailyStore } = useDailyCheckInStore();
+  const { resetOnboarding } = useOnboardingStore();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
@@ -18,8 +24,6 @@ export default function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("CLICK LOGIN", email, password);
-
     setIsLoading(true);
     setError("");
 
@@ -28,20 +32,44 @@ export default function LoginPage() {
 
       const { accessToken, user } = res;
       localStorage.setItem("accessToken", accessToken);
+      localStorage.setItem("access_token", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
+
+      resetDailyStore();
+      resetOnboarding();
 
       if (user.role === "admin") {
         navigate("/admin/dashboard");
-      } else {
-        // Kiểm tra xem user đã check-in hôm nay chưa
-        // Đợi store hydrate từ localStorage
-        setTimeout(() => {
-          if (!hasCheckedInToday()) {
-            // Chưa check-in, modal sẽ được hiển thị trên dashboard
-            setShowModal(true);
-          }
+        return;
+      }
+
+      // Kiểm tra user đã hoàn thành onboarding chưa
+      let isOnboarded = false;
+      try {
+        const statusRes = await userApi.getOnboardingStatus();
+        isOnboarded = !!statusRes.isOnboarded;
+      } catch {
+        isOnboarded = false;
+      }
+
+      if (!isOnboarded) {
+        navigate("/onboarding/step-1");
+        return;
+      }
+
+      // Kiểm tra daily check-in
+      try {
+        await dailyCheckInApi.getToday();
+        navigate("/user/dashboard");
+      } catch (err: any) {
+        const status = err?.response?.status;
+        if (status === 404) {
+          setShowModal(true);
           navigate("/user/dashboard");
-        }, 100);
+        } else {
+          console.error("Failed to check today check-in:", err);
+          navigate("/user/dashboard");
+        }
       }
     } catch (err) {
       type ErrorResponse = { response?: { data?: { message?: string } } };
@@ -51,7 +79,6 @@ export default function LoginPage() {
         setError("Login failed");
       }
     } finally {
-
       setIsLoading(false);
     }
   };

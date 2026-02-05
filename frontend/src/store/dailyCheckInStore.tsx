@@ -21,6 +21,7 @@ export interface DailyCheckInState {
   submitCheckIn: (entry: Omit<DailyCheckInEntry, 'date'>) => void
   hasCheckedInToday: () => boolean
   getThemeByMood: (mood: MoodLevel) => 'low' | 'neutral' | 'positive'
+  resetStore: () => void
 }
 
 export const useDailyCheckInStore = create<DailyCheckInState>()(
@@ -53,10 +54,46 @@ export const useDailyCheckInStore = create<DailyCheckInState>()(
         if (mood === 3) return 'neutral'
         return 'positive'
       },
+      // Reset store (useful when switching user accounts)
+      resetStore: () =>
+        set({
+          lastCheckInDate: null,
+          currentCheckIn: null,
+          showModal: false,
+        }),
     }),
     {
       name: 'daily-checkin-storage',
       skipHydration: true,
+      storage: {
+        getItem: (name: string): Promise<any> => {
+          try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const key = user?.id ? `${name}:${user.id}` : `${name}:anon`;
+            return Promise.resolve(localStorage.getItem(key));
+          } catch {
+            return Promise.resolve(localStorage.getItem(`${name}:anon`));
+          }
+        },
+        setItem: (name: string, value: any) => {
+          try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const key = user?.id ? `${name}:${user.id}` : `${name}:anon`;
+            localStorage.setItem(key, value);
+          } catch {
+            localStorage.setItem(`${name}:anon`, value);
+          }
+        },
+        removeItem: (name: string) => {
+          try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const key = user?.id ? `${name}:${user.id}` : `${name}:anon`;
+            localStorage.removeItem(key);
+          } catch {
+            localStorage.removeItem(`${name}:anon`);
+          }
+        },
+      },
     }
   )
 )

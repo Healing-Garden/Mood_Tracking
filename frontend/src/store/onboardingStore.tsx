@@ -13,11 +13,10 @@ export const useOnboardingStore = create<OnboardingState>()(
 
       // Actions
       setGoals: (goals) => set({ goals }),
-      setEmotionalSensitivity: (emotionalSensitivity: EmotionalSensitivity) => 
+      setEmotionalSensitivity: (emotionalSensitivity: EmotionalSensitivity) =>
         set({ emotionalSensitivity }),
-      setReminderTone: (reminderTone: ReminderTone) => 
-        set({ reminderTone }),
-      setThemePreference: (themePreference: ThemePreference) => 
+      setReminderTone: (reminderTone: ReminderTone) => set({ reminderTone }),
+      setThemePreference: (themePreference: ThemePreference) =>
         set({ themePreference }),
       setCurrentStep: (currentStep) => set({ currentStep }),
 
@@ -48,6 +47,36 @@ export const useOnboardingStore = create<OnboardingState>()(
     {
       name: 'onboarding-storage',
       skipHydration: true,
+      // Scope persisted key by logged-in user id (falls back to 'anon')
+      storage: {
+        getItem: (name: string): Promise<any> => {
+          try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const key = user?.id ? `${name}:${user.id}` : `${name}:anon`;
+            return Promise.resolve(localStorage.getItem(key) as any);
+          } catch {
+            return Promise.resolve(localStorage.getItem(`${name}:anon`) as any);
+          }
+        },
+        setItem: (name: string, value: any) => {
+          try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const key = user?.id ? `${name}:${user.id}` : `${name}:anon`;
+            localStorage.setItem(key, value);
+          } catch {
+            localStorage.setItem(`${name}:anon`, value);
+          }
+        },
+        removeItem: (name: string) => {
+          try {
+            const user = JSON.parse(localStorage.getItem('user') || 'null');
+            const key = user?.id ? `${name}:${user.id}` : `${name}:anon`;
+            localStorage.removeItem(key);
+          } catch {
+            localStorage.removeItem(`${name}:anon`);
+          }
+        },
+      },
     }
   )
 )

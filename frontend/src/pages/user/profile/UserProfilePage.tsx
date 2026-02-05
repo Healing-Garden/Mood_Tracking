@@ -152,8 +152,12 @@ const UserProfilePage: React.FC = () => {
             <div className="bg-white rounded-2xl shadow-lg p-6 border border-border flex flex-col items-center">
               <AvatarUpload
                 currentAvatar={avatarUrl}
-                onAvatarChange={(file) => uploadAvatar(file).catch(console.error)}
-                onAvatarRemove={() => deleteAvatar().catch(console.error)}
+                onAvatarChange={async (file) => {
+                  await uploadAvatar(file).catch(console.error)
+                }}
+                onAvatarRemove={async () => {
+                  await deleteAvatar().catch(console.error)
+                }}
               />
               <div className="mt-6 pt-4 border-t border-border w-full text-center">
                 <p className="text-sm font-semibold text-primary mb-1">Member Since</p>
