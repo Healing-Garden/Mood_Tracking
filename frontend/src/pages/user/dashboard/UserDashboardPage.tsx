@@ -101,14 +101,6 @@ const UserDashboardPage = () => {
     void loadMoodFlow()
   }, [period, lastCheckInDate])
 
-  const handleQuickCheckin = () => {
-    if (selectedMood !== null) {
-      console.log('Quick check-in:', { mood: selectedMood, energy: energyLevel })
-      setSelectedMood(null)
-      setEnergyLevel(5)
-    }
-  }
-
   return (
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
