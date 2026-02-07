@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { Link } from 'react-router-dom'
 import { Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts'
-import { Heart, Brain, BookOpen, TrendingUp, Plus, Menu, X } from 'lucide-react'
-
+import { Brain, BookOpen, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
@@ -27,8 +27,6 @@ const emotionBreakdownData = [
 
 const UserDashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [selectedMood, setSelectedMood] = useState<number | null>(null)
-  const [energyLevel, setEnergyLevel] = useState<number>(5)
   const [period, setPeriod] = useState<MoodFlowPeriod>('week')
   const [moodTrendData, setMoodTrendData] = useState<MoodTrendPoint[]>([])
   const [weeklyStats, setWeeklyStats] = useState({
@@ -45,20 +43,27 @@ const UserDashboardPage = () => {
     const checkTodayFromServer = async () => {
       try {
         await dailyCheckInApi.getToday()
-        // Đã có bản ghi check-in hôm nay -> không mở modal
-      } catch (error: any) {
-        const status = error?.response?.status
-        if (status === 404) {
-          // Chưa check-in hôm nay -> mở modal
-          setShowModal(true)
+        // Đã có check-in hôm nay
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          const status = error.response?.status
+
+          if (status === 404) {
+            // Chưa check-in hôm nay -> mở modal
+            setShowModal(true)
+          } else {
+            console.error('Failed to fetch today check-in:', error.message)
+          }
         } else {
-          console.error('Failed to fetch today check-in:', error)
+          // Lỗi không phải từ Axios
+          console.error('Unexpected error:', error)
         }
       }
     }
 
     checkTodayFromServer()
   }, [setShowModal])
+
 
   // Tải dữ liệu mood flow cho biểu đồ
   useEffect(() => {
@@ -138,7 +143,7 @@ const UserDashboardPage = () => {
             <div className="lg:col-span-2 space-y-6">
               {/* Welcome Section */}
               <div className="bg-gradient-to-r from-muted to-muted/50 rounded-2xl p-8 border border-border/30">
-                <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back! 👋</h2>
+                <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>
                 <p className="text-muted-foreground">You're on day 7 of your wellness journey. Keep going!</p>
               </div>
 
