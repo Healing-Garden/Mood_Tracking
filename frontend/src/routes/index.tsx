@@ -13,6 +13,8 @@ import Step2 from "../pages/user/onboarding/Step2";
 import Step3 from "../pages/user/onboarding/Step3";
 import Step4 from "../pages/user/onboarding/Step4";
 import Step5 from "../pages/user/onboarding/Step5";
+import NotificationsPage from "../pages/user/notifications/NotificationPage";
+import ChatBot from "../pages/user/ai-partner/ChatBot";
 import AdminDashboardPage from "../pages/admin/dashboard/AdminDashboardPage";
 import AdminProfilePage from "../pages/admin/profile/AdminProfilePage";
 import AdminSetupPinPage from "../pages/admin/setup-pin/AdminSetupPinPage";
@@ -91,6 +93,14 @@ const routes = [
   {
     path: "/user/analytics",
     element: <AnalyticsPage />,
+  },
+  {
+    path: "/user/notifications",
+    element: <NotificationsPage />,
+  },
+  {
+    path: "/user/ai-partner",
+    element: <ChatBot />,
   },
   {
     path: "/user/profile",
