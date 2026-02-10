@@ -58,7 +58,6 @@ module.exports = {
 
     let user = await User.findOne({ email });
 
-    // First Google login
     if (!user) {
       user = await User.create({
         fullName: name,
@@ -74,17 +73,15 @@ module.exports = {
       return issueJwt(user);
     }
 
-    // Local account exists → require link
     if (user.authProvider === "local") {
-      const err = new Error("LINK_GOOGLE_REQUIRED");
-      err.code = "LINK_GOOGLE_REQUIRED";
-      err.email = email;
-      err.googleId = googleId;
-      err.avatarUrl = picture;
-      throw err;
+      user.googleId = googleId;
+      user.authProvider = "both";
+      if (!user.avatarUrl) user.avatarUrl = picture;
+      await user.save();
+
+      return issueJwt(user);
     }
 
-    // Link google if not linked yet
     if (!user.googleId) {
       user.googleId = googleId;
       user.authProvider = "both";
