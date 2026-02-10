@@ -52,32 +52,63 @@ export default function TriggerHeatmap() {
   const maxNeutral = Math.max(1, ...rows.map((r) => r.neutral))
   const maxPositive = Math.max(1, ...rows.map((r) => r.positive))
   const hasData = rows.some((r) => r.negative + r.neutral + r.positive > 0)
+  const triggers = rows.map((r) => r.trigger)
+
+  const moodRows = [
+    {
+      label: 'Negative',
+      kind: 'negative' as const,
+      values: rows.map((r) => r.negative),
+      max: maxNegative,
+    },
+    {
+      label: 'Neutral',
+      kind: 'neutral' as const,
+      values: rows.map((r) => r.neutral),
+      max: maxNeutral,
+    },
+    {
+      label: 'Positive',
+      kind: 'positive' as const,
+      values: rows.map((r) => r.positive),
+      max: maxPositive,
+    },
+  ]
 
   return (
     <Card className="border-border shadow-md">
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-primary">Trigger × Mood Heatmap</CardTitle>
-            <CardDescription>
-              Correlation between trigger tags and negative / neutral / positive moods. Add triggers when you check in to see patterns.
-            </CardDescription>
+            <CardTitle className="text-primary">Trigger Heatmap</CardTitle>
+            <CardDescription>Emotional frequency by trigger and mood quality.</CardDescription>
           </div>
-          <div className="flex gap-2">
-            {(['week', 'month', 'year'] as Period[]).map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => setPeriod(p)}
-                className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${
-                  period === p
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span>Rare</span>
+              <div className="flex gap-1">
+                <span className="h-3 w-3 rounded-md bg-green-50" />
+                <span className="h-3 w-3 rounded-md bg-green-200" />
+                <span className="h-3 w-3 rounded-md bg-green-400" />
+                <span className="h-3 w-3 rounded-md bg-green-600" />
+              </div>
+              <span>Frequent</span>
+            </div>
+            <div className="flex gap-2">
+              {(['week', 'month', 'year'] as Period[]).map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  onClick={() => setPeriod(p)}
+                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${period === p
                     ? 'bg-primary text-white'
                     : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}
-              </button>
-            ))}
+                    }`}
+                >
+                  {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </CardHeader>
@@ -99,66 +130,56 @@ export default function TriggerHeatmap() {
         )}
         {!loading && !error && hasData && (
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[320px] border-collapse text-sm">
-              <thead>
-                <tr>
-                  <th className="border border-border bg-muted/50 px-3 py-2 text-left font-semibold text-foreground">
-                    Trigger
-                  </th>
-                  <th className="border border-border bg-red-50 px-3 py-2 text-center font-semibold text-red-800">
-                    Negative
-                  </th>
-                  <th className="border border-border bg-gray-100 px-3 py-2 text-center font-semibold text-gray-700">
-                    Neutral
-                  </th>
-                  <th className="border border-border bg-green-50 px-3 py-2 text-center font-semibold text-green-800">
-                    Positive
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.trigger}>
-                    <td className="border border-border px-3 py-2 font-medium text-foreground">
-                      {row.trigger}
-                    </td>
-                    <td
-                      className="border border-border px-3 py-2 text-center transition-colors"
+            <div
+              className="grid gap-2"
+              style={{
+                gridTemplateColumns: `96px repeat(${triggers.length}, minmax(48px, 1fr))`,
+              }}
+            >
+              {/* Header: Trigger */}
+              <div />
+              {triggers.map((t) => (
+                <div
+                  key={t}
+                  className="text-xs text-muted-foreground text-center truncate"
+                  title={t}
+                >
+                  {t}
+                </div>
+              ))}
+
+              {/* Rows: Mood */}
+              {moodRows.map((row) => (
+                <div key={row.label} className="contents">
+                  {/* Mood label */}
+                  <div className="flex items-center text-sm font-medium">
+                    {row.label}
+                  </div>
+
+                  {/* Cells */}
+                  {row.values.map((value, idx) => (
+                    <div
+                      key={idx}
+                      className="
+                        aspect-square
+                        w-full
+                        rounded-full
+                        flex items-center justify-center
+                        text-[11px] font-semibold
+                        shadow-sm
+                      "
                       style={{
-                        backgroundColor: getHeatColor(row.negative, maxNegative, 'negative'),
-                        color: row.negative > maxNegative / 2 ? 'white' : 'inherit',
+                        backgroundColor: getHeatColor(value, row.max, row.kind),
+                        color: value > row.max / 2 ? 'white' : 'inherit',
                       }}
-                      title={`Negative: ${row.negative}`}
+                      title={`${row.label} • ${triggers[idx]}: ${value}`}
                     >
-                      {row.negative}
-                    </td>
-                    <td
-                      className="border border-border px-3 py-2 text-center transition-colors"
-                      style={{
-                        backgroundColor: getHeatColor(row.neutral, maxNeutral, 'neutral'),
-                        color: row.neutral > maxNeutral / 2 ? 'white' : 'inherit',
-                      }}
-                      title={`Neutral: ${row.neutral}`}
-                    >
-                      {row.neutral}
-                    </td>
-                    <td
-                      className="border border-border px-3 py-2 text-center transition-colors"
-                      style={{
-                        backgroundColor: getHeatColor(row.positive, maxPositive, 'positive'),
-                        color: row.positive > maxPositive / 2 ? 'white' : 'inherit',
-                      }}
-                      title={`Positive: ${row.positive}`}
-                    >
-                      {row.positive}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="mt-3 text-xs text-muted-foreground">
-              Darker cells = higher count. Compare across columns to see which triggers tend to go with negative vs positive moods.
-            </p>
+                      {value || ''}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </CardContent>

@@ -119,7 +119,13 @@ module.exports = {
       const allowedTriggers = ["Family", "Work", "Health", "Relationships", "Finance", "Sleep", "Social", "Self-care", "Other"];
       const sanitizedTriggers = Array.isArray(triggers)
         ? triggers.filter((t) => allowedTriggers.includes(String(t)))
-        : undefined;
+        : [];
+
+      if (!sanitizedTriggers.length) {
+        return res
+          .status(400)
+          .json({ message: "At least one trigger is required" });
+      }
 
       const payload = {
         user: userId,
@@ -128,7 +134,7 @@ module.exports = {
         note: note && String(note).trim() ? note : undefined,
         date: today,
         theme,
-        ...(sanitizedTriggers && sanitizedTriggers.length > 0 ? { triggers: sanitizedTriggers } : {}),
+        triggers: sanitizedTriggers,
       };
 
       const entry = await DailyCheckIn.findOneAndUpdate(

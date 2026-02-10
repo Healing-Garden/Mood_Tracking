@@ -36,7 +36,7 @@ const DailyCheckInModal: React.FC = () => {
   }
 
   const handleSubmit = async (): Promise<void> => {
-    if (selectedMood === null) return
+    if (selectedMood === null || selectedTriggers.length === 0) return
 
     setIsSubmitting(true)
 
@@ -166,10 +166,10 @@ const DailyCheckInModal: React.FC = () => {
             </div>
           </div>
 
-          {/* Triggers (optional) - for heatmap analytics */}
+          {/* Triggers - required, for heatmap analytics */}
           <div className="space-y-2">
             <p className="text-sm font-semibold">
-              What triggered this mood? <span className="text-xs text-muted-foreground">(optional)</span>
+              What triggered this mood? <span className="text-red-500">*</span>
             </p>
             <div className="flex flex-wrap gap-2">
               {TRIGGER_OPTIONS.map((tag) => {
@@ -215,7 +215,7 @@ const DailyCheckInModal: React.FC = () => {
           {/* Submit */}
           <Button
             onClick={handleSubmit}
-            disabled={selectedMood === null || isSubmitting}
+            disabled={selectedMood === null || selectedTriggers.length === 0 || isSubmitting}
             className="h-11 w-full font-semibold"
           >
             {isSubmitting ? 'Saving...' : 'Check In'}
