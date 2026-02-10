@@ -82,6 +82,47 @@ module.exports = {
     }
   },
 
+  googleLogin: async (req, res) => {
+    try {
+      const { credential } = req.body;
+      const data = await authService.googleLogin(credential);
+
+      res.cookie("refreshToken", data.refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json(data);
+    } catch (err) {
+      if (err.code === "LINK_GOOGLE_REQUIRED") {
+        return res.status(409).json({
+          code: "LINK_GOOGLE_REQUIRED",
+          email: err.email,
+          googleId: err.googleId,
+          avatarUrl: err.avatarUrl,
+        });
+      }
+      res.status(400).json({ message: err.message });
+    }
+  },
+
+  linkGoogleAccount: async (req, res) => {
+    try {
+      const data = await authService.linkGoogleAccount(req.body);
+
+      res.cookie("refreshToken", data.refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json(data);
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  },
+
   refreshToken: async (req, res) => {
     try {
       const token = req.cookies.refreshToken;
