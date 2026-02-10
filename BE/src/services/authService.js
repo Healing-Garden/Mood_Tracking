@@ -1,41 +1,121 @@
 const User = require("../models/users");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const googleAuthService = require("./googleAuthService");
+
+const issueJwt = (user) => {
+  const accessToken = jwt.sign(
+    { id: user._id, role: user.role },
+    process.env.JWT_ACCESS_SECRET,
+    { expiresIn: "15m" }
+  );
+
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_SECRET,
+    { expiresIn: "7d" }
+  );
+
+  return {
+    accessToken,
+    refreshToken,
+    user: {
+      id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      avatarUrl: user.avatarUrl,
+    },
+  };
+};
 
 module.exports = {
   login: async ({ email, password }) => {
     const user = await User.findOne({ email });
     if (!user) throw new Error("User not found");
+    if (user.accountStatus === "banned") throw new Error("Account is banned");
 
-    if (user.accountStatus === "banned")
-      throw new Error("Account is banned");
+    if (!user.password) {
+      throw new Error("Please set password before using email login");
+    }
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) throw new Error("Invalid password");
 
-    const accessToken = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_ACCESS_SECRET,
-      { expiresIn: "15m" }
+    return issueJwt(user);
+  },
+
+  googleLogin: async (accessToken) => {
+    const payload = await googleAuthService.verifyGoogleAccessToken(
+      accessToken
     );
 
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET,
-      { expiresIn: "7d" }
-    );
+    const { email, name, picture, sub: googleId, email_verified } = payload;
 
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl,
-      },
-    };
+    if (!email_verified) {
+      throw new Error("Google email not verified");
+    }
+
+    let user = await User.findOne({ email });
+
+    // First Google login
+    if (!user) {
+      user = await User.create({
+        fullName: name,
+        email,
+        avatarUrl: picture,
+        googleId,
+        authProvider: "google",
+        role: "user",
+        accountStatus: "active",
+        password: null,
+      });
+
+      return issueJwt(user);
+    }
+
+    // Local account exists → require link
+    if (user.authProvider === "local") {
+      const err = new Error("LINK_GOOGLE_REQUIRED");
+      err.code = "LINK_GOOGLE_REQUIRED";
+      err.email = email;
+      err.googleId = googleId;
+      err.avatarUrl = picture;
+      throw err;
+    }
+
+    // Link google if not linked yet
+    if (!user.googleId) {
+      user.googleId = googleId;
+      user.authProvider = "both";
+      if (!user.avatarUrl) user.avatarUrl = picture;
+      await user.save();
+    }
+
+    return issueJwt(user);
+  },
+
+  linkGoogleAccount: async ({ email, password, googleId, avatarUrl }) => {
+    const user = await User.findOne({ email });
+    if (!user) throw new Error("User not found");
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) throw new Error("Invalid password");
+
+    user.googleId = googleId;
+    user.authProvider = "both";
+    if (!user.avatarUrl) user.avatarUrl = avatarUrl;
+
+    await user.save();
+    return issueJwt(user);
+  },
+
+  setPassword: async (userId, newPassword) => {
+    const hash = await bcrypt.hash(newPassword, 10);
+    await User.updateOne(
+      { _id: userId },
+      { password: hash, authProvider: "both" }
+    );
   },
 
   refreshToken: async (token) => {
@@ -48,10 +128,5 @@ module.exports = {
     );
 
     return { accessToken };
-  },
-
-  resetPassword: async (email, newPassword) => {
-    const hash = await bcrypt.hash(newPassword, 10);
-    await User.updateOne({ email }, { password: hash });
   },
 };
