@@ -15,5 +15,8 @@ router.get("/checkins/today", userController.getTodayCheckIn);
 router.post("/checkins", userController.saveDailyCheckIn);
 router.get("/checkins/flow", userController.getMoodFlow);
 
+// Analytics
+router.get("/analytics/trigger-heatmap", userController.getTriggerHeatmap);
+
 module.exports = router;
 

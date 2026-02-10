@@ -19,8 +19,9 @@ import {
   Area,
   AreaChart,
 } from 'recharts'
-import { Download, Menu, X, Lightbulb } from 'lucide-react'
+import { Download, Menu, X } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 
 const moodTrendData = [
   { week: 'Week 1', mood: 3.2, energy: 2.8, stress: 3.5 },
@@ -39,13 +40,6 @@ const emotionData = [
   { emotion: 'Sad', count: 28 },
 ]
 
-const triggerData = [
-  { trigger: 'Work', positive: 35, negative: 22 },
-  { trigger: 'Family', positive: 42, negative: 15 },
-  { trigger: 'Health', positive: 28, negative: 38 },
-  { trigger: 'Social', positive: 48, negative: 12 },
-  { trigger: 'Personal', positive: 55, negative: 18 },
-]
 
 const dailyMoodData = [
   { date: 'Jan 15', mood: 3.5 },
@@ -333,35 +327,9 @@ const AnalyticsPage = () => {
             </div>
           </TabsContent>
 
-          {/* Triggers */}
+          {/* Triggers - UC-25 Trigger Heatmap */}
           <TabsContent value="triggers">
-            <Card className="border-border shadow-md">
-              <CardHeader>
-                <CardTitle className="text-primary">Triggers Impact Analysis</CardTitle>
-                <CardDescription>How different triggers affect your mood</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="h-80">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={triggerData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                      <XAxis dataKey="trigger" stroke="var(--color-muted-foreground)" />
-                      <YAxis stroke="var(--color-muted-foreground)" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'var(--color-card)',
-                          border: '1px solid var(--color-border)',
-                          borderRadius: '0.5rem',
-                        }}
-                      />
-                      <Legend />
-                      <Bar dataKey="positive" fill="var(--color-primary)" name="Positive Impact" />
-                      <Bar dataKey="negative" fill="var(--color-destructive)" name="Negative Impact" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
+            <TriggerHeatmap />
           </TabsContent>
 
           {/* Daily */}

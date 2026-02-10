@@ -105,7 +105,7 @@ module.exports = {
   saveDailyCheckIn: async (req, res) => {
     try {
       const userId = req.user.id;
-      const { mood, energy, note } = req.body || {};
+      const { mood, energy, note, triggers } = req.body || {};
 
       if (!mood || !energy) {
         return res
@@ -116,6 +116,11 @@ module.exports = {
       const today = new Date().toISOString().split("T")[0];
       const theme = getThemeByMood(Number(mood));
 
+      const allowedTriggers = ["Family", "Work", "Health", "Relationships", "Finance", "Sleep", "Social", "Self-care", "Other"];
+      const sanitizedTriggers = Array.isArray(triggers)
+        ? triggers.filter((t) => allowedTriggers.includes(String(t)))
+        : undefined;
+
       const payload = {
         user: userId,
         mood,
@@ -123,6 +128,7 @@ module.exports = {
         note: note && String(note).trim() ? note : undefined,
         date: today,
         theme,
+        ...(sanitizedTriggers && sanitizedTriggers.length > 0 ? { triggers: sanitizedTriggers } : {}),
       };
 
       const entry = await DailyCheckIn.findOneAndUpdate(
@@ -174,6 +180,71 @@ module.exports = {
       });
     } catch (err) {
       console.error("getMoodFlow error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
+  // GET /api/user/analytics/trigger-heatmap?period=week|month|year
+  getTriggerHeatmap: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const period = req.query.period || "month";
+
+      const today = new Date();
+      let start = new Date(today);
+      if (period === "year") {
+        start.setFullYear(start.getFullYear() - 1);
+      } else if (period === "month") {
+        start.setMonth(start.getMonth() - 1);
+      } else {
+        start.setDate(start.getDate() - 6);
+      }
+      const toStr = today.toISOString().split("T")[0];
+      const fromStr = start.toISOString().split("T")[0];
+
+      const entries = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: fromStr, $lte: toStr },
+        triggers: { $exists: true, $ne: [] },
+      })
+        .select("triggers theme")
+        .lean();
+
+      const triggerOrder = ["Family", "Work", "Health", "Relationships", "Finance", "Sleep", "Social", "Self-care", "Other"];
+      const mapTheme = (theme) => {
+        if (theme === "low") return "negative";
+        if (theme === "neutral") return "neutral";
+        return "positive";
+      };
+
+      const counts = {};
+      triggerOrder.forEach((t) => {
+        counts[t] = { negative: 0, neutral: 0, positive: 0 };
+      });
+
+      entries.forEach((entry) => {
+        const moodKey = mapTheme(entry.theme);
+        (entry.triggers || []).forEach((t) => {
+          if (counts[t]) counts[t][moodKey] += 1;
+        });
+      });
+
+      const rows = triggerOrder.map((trigger) => ({
+        trigger,
+        negative: counts[trigger].negative,
+        neutral: counts[trigger].neutral,
+        positive: counts[trigger].positive,
+      }));
+
+      return res.json({
+        period,
+        from: fromStr,
+        to: toStr,
+        moodLevels: ["negative", "neutral", "positive"],
+        rows,
+      });
+    } catch (err) {
+      console.error("getTriggerHeatmap error:", err);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
