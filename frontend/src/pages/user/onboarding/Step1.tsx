@@ -154,19 +154,11 @@ export default function Step1Goals() {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4 pt-4">
-          <Button
-            variant="outline"
-            className="flex-1 border-border/50 bg-transparent"
-            onClick={() => navigate('/')}
-          >
-            Skip for Now
-          </Button>
-
+        <div className="flex justify-end pt-4">
           <Button
             onClick={handleContinue}
             disabled={selectedGoals.length === 0}
-            className="flex-1 bg-primary hover:bg-primary/90 text-white gap-2"
+            className="min-w-[160px] bg-primary hover:bg-primary/90 text-white gap-2"
           >
             Continue <ArrowRight size={18} />
           </Button>

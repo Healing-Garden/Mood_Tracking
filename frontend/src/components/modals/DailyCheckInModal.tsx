@@ -3,7 +3,7 @@ import { Button } from '../ui/Button'
 import { Card } from '../ui/Card'
 import { Input } from '../ui/Input'
 import { useDailyCheckInStore, type MoodLevel } from '../../store/dailyCheckInStore'
-import { dailyCheckInApi } from '../../api/dailyCheckInApi'
+import { dailyCheckInApi, TRIGGER_OPTIONS } from '../../api/dailyCheckInApi'
 
 type MoodEmoji = {
   level: MoodLevel
@@ -26,10 +26,17 @@ const DailyCheckInModal: React.FC = () => {
   const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(null)
   const [energyLevel, setEnergyLevel] = useState<number>(5)
   const [note, setNote] = useState<string>('')
+  const [selectedTriggers, setSelectedTriggers] = useState<string[]>([])
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
 
+  const toggleTrigger = (tag: string) => {
+    setSelectedTriggers((prev) =>
+      prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]
+    )
+  }
+
   const handleSubmit = async (): Promise<void> => {
-    if (selectedMood === null) return
+    if (selectedMood === null || selectedTriggers.length === 0) return
 
     setIsSubmitting(true)
 
@@ -39,6 +46,7 @@ const DailyCheckInModal: React.FC = () => {
         mood: selectedMood,
         energy: energyLevel,
         note: note.trim() || undefined,
+        triggers: selectedTriggers.length > 0 ? selectedTriggers : undefined,
       })
     } catch (error) {
       console.error('Failed to submit daily check-in:', error)
@@ -55,6 +63,7 @@ const DailyCheckInModal: React.FC = () => {
       setSelectedMood(null)
       setEnergyLevel(5)
       setNote('')
+      setSelectedTriggers([])
     }
   }
 
@@ -157,6 +166,32 @@ const DailyCheckInModal: React.FC = () => {
             </div>
           </div>
 
+          {/* Triggers - required, for heatmap analytics */}
+          <div className="space-y-2">
+            <p className="text-sm font-semibold">
+              What triggered this mood? <span className="text-red-500">*</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {TRIGGER_OPTIONS.map((tag) => {
+                const isSelected = selectedTriggers.includes(tag)
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTrigger(tag)}
+                    className={`rounded-full px-3 py-1.5 text-xs font-medium transition-all ${
+                      isSelected
+                        ? 'bg-primary text-white ring-2 ring-primary ring-offset-2'
+                        : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           {/* Note */}
           <div className="space-y-2">
             <label className="flex items-center gap-2 text-sm font-semibold">
@@ -180,7 +215,7 @@ const DailyCheckInModal: React.FC = () => {
           {/* Submit */}
           <Button
             onClick={handleSubmit}
-            disabled={selectedMood === null || isSubmitting}
+            disabled={selectedMood === null || selectedTriggers.length === 0 || isSubmitting}
             className="h-11 w-full font-semibold"
           >
             {isSubmitting ? 'Saving...' : 'Check In'}
