@@ -1,27 +1,37 @@
 import axios from "axios";
-import type { AxiosError, InternalAxiosRequestConfig } from "axios";
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+
+interface FailedQueueItem {
+  resolve: (value: AxiosResponse) => void;
+  reject: (reason?: AxiosError) => void;
+}
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   timeout: 10000,
-  withCredentials: true, // 👈 để gửi refresh token cookie
+  withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
 let isRefreshing = false;
-let failedQueue: {
-  resolve: (token: string) => void;
-  reject: (err: any) => void;
-}[] = [];
+let failedQueue: FailedQueueItem[] = [];
 
-const processQueue = (error: any, token: string | null) => {
-  failedQueue.forEach((p) => {
-    error ? p.reject(error) : p.resolve(token!);
-  });
-  failedQueue = [];
+const processQueue = (
+    error: AxiosError | null,
+    token: string | null
+  ) => {
+    failedQueue.forEach((p) => {
+      if (error) {
+        p.reject(error);
+      } else {
+        p.resolve(token as unknown as AxiosResponse);
+      }
+    });
+    failedQueue = [];
 };
+
 
 // Gắn access token
 http.interceptors.request.use((config) => {
@@ -45,12 +55,9 @@ http.interceptors.response.use(
     }
 
     if (isRefreshing) {
-      return new Promise((resolve, reject) => {
+      return new Promise<AxiosResponse>((resolve, reject) => {
         failedQueue.push({
-          resolve: (token) => {
-            original.headers.Authorization = `Bearer ${token}`;
-            resolve(http(original));
-          },
+          resolve: () => resolve(http(original)),
           reject,
         });
       });
@@ -60,7 +67,7 @@ http.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const res = await axios.post(
+      const res = await axios.post<{ accessToken: string }>(
         `${http.defaults.baseURL}/auth/refresh-token`,
         {},
         { withCredentials: true }
@@ -68,12 +75,13 @@ http.interceptors.response.use(
 
       const newToken = res.data.accessToken;
       localStorage.setItem("access_token", newToken);
+
       processQueue(null, newToken);
 
       original.headers.Authorization = `Bearer ${newToken}`;
       return http(original);
     } catch (err) {
-      processQueue(err, null);
+      processQueue(err as AxiosError, null);
       localStorage.removeItem("access_token");
       window.location.href = "/login";
       return Promise.reject(err);

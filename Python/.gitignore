@@ -4,6 +4,7 @@ env/
 ENV/
 
 # Python
+models_cache/
 __pycache__/
 *.py[cod]
 *$py.class

@@ -1,48 +1,77 @@
-from fastapi import FastAPI, Depends
+import os
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
-
+import logging
 from src.config import settings
-from src.api.routes import router as api_router
-from src.utils.logger import setup_logger
-from src.database.mongodb import connect_to_mongo, close_mongo_connection
-from src.database.redis_client import redis_client
-from src.ml_models.model_manager import ModelManager
+from src.api.router import router as api_router
+from src.database import mongodb, redis_client, vector_store
+from src.core.embeddings import embedding_service
+from src.core.sentiment import sentiment_analyzer
+from src.core.summarization import summarization_service
 
-logger = setup_logger(__name__)
+os.makedirs(settings.logs_dir, exist_ok=True)
+
+# Setup logging
+logging.basicConfig(
+    level=logging.DEBUG if settings.debug else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(f"{settings.logs_dir}/app.log"),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup/shutdown events"""
     # Startup
-    logger.info("Starting up Mental Health AI Service...")
+    logger.info("Starting Mental Health AI Service...")
     
-    # Connect to databases
-    await connect_to_mongo()
-    await redis_client.connect()
+    try:
+        # Connect to databases
+        await mongodb.connect()
+        await redis_client.connect()
+        await vector_store.connect()
+        
+        # Initialize AI services
+        await embedding_service.initialize()
+        await sentiment_analyzer.initialize()
+        await summarization_service.initialize()
+        
+        logger.info("All services initialized successfully")
+        
+        yield
+        
+    except Exception as e:
+        logger.error(f"Startup failed: {e}")
+        raise
     
-    # Load ML models
-    ModelManager.get_instance().load_models()
-    
-    yield
-    
-    # Shutdown
-    logger.info("Shutting down...")
-    await close_mongo_connection()
-    await redis_client.disconnect()
+    finally:
+        # Shutdown
+        logger.info("Shutting down...")
+        await mongodb.disconnect()
+        await redis_client.disconnect()
+        await vector_store.disconnect()
+        logger.info("Shutdown complete")
 
+# Create FastAPI app
 app = FastAPI(
-    title=settings.APP_NAME,
+    title=settings.app_name,
     version="1.0.0",
+    description="AI Service for Mental Health Tracking & Analytics",
     lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG else None,
-    redoc_url="/redoc" if settings.DEBUG else None
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None
 )
 
 # Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -50,33 +79,42 @@ app.add_middleware(
 
 app.add_middleware(
     TrustedHostMiddleware,
-    allowed_hosts=["*"] if settings.DEBUG else ["your-domain.com"]
+    allowed_hosts=["*"] if settings.debug else [
+        "localhost",
+        "127.0.0.1",
+        # Add production domains here
+    ]
 )
 
-# Include routers
-app.include_router(api_router, prefix=settings.API_PREFIX)
+# Include API routes
+app.include_router(api_router, prefix=settings.api_prefix)
 
 @app.get("/")
 async def root():
+    """Root endpoint"""
     return {
-        "message": f"Welcome to {settings.APP_NAME}",
+        "message": f"Welcome to {settings.app_name}",
         "version": "1.0.0",
-        "docs": "/docs" if settings.DEBUG else None
+        "docs": "/docs" if settings.debug else None,
+        "environment": settings.environment
     }
 
-@app.get("/health")
-async def health_check():
-    from src.models import HealthCheck
-    
-    # Check database connections
-    mongo_status = "connected"  # Implement actual check
-    redis_status = "connected" if redis_client.is_connected() else "disconnected"
-    
+@app.get("/info")
+async def info():
+    """Service information"""
     return {
-        **HealthCheck().dict(),
-        "services": {
-            "mongodb": mongo_status,
-            "redis": redis_status,
-            "ml_models": ModelManager.get_instance().get_model_status()
+        "name": settings.app_name,
+        "version": "1.0.0",
+        "environment": settings.environment,
+        "debug": settings.debug,
+        "models": {
+            "embedding": settings.embedding_model,
+            "sentiment": settings.sentiment_model,
+            "summarization": settings.summarization_model
+        },
+        "databases": {
+            "mongodb": settings.mongodb_db_name,
+            "redis": "connected" if redis_client.client else "disconnected",
+            "vector_store": settings.vector_store_type
         }
     }
