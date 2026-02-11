@@ -59,6 +59,10 @@ export const dailyCheckInApi = {
   getTriggerHeatmap(period: "week" | "month" | "year" = "month"): Promise<TriggerHeatmapResponse> {
     return http.get(`/user/analytics/trigger-heatmap?period=${period}`) as Promise<TriggerHeatmapResponse>;
   },
+
+  getWordCloud(period: "week" | "month" | "year" = "month"): Promise<WordCloudResponse> {
+    return http.get(`/user/analytics/word-cloud?period=${period}`) as Promise<WordCloudResponse>;
+  },
 };
 
 export interface TriggerHeatmapRow {
@@ -74,5 +78,17 @@ export interface TriggerHeatmapResponse {
   to: string;
   moodLevels: ["negative", "neutral", "positive"];
   rows: TriggerHeatmapRow[];
+}
+
+export interface WordCloudWord {
+  text: string;
+  value: number;
+}
+
+export interface WordCloudResponse {
+  period: string;
+  from: string;
+  to: string;
+  words: WordCloudWord[];
 }
 

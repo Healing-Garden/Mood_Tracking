@@ -1,58 +1,12 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
-import {
-  Line,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  ComposedChart,
-  Area,
-  AreaChart,
-} from 'recharts'
 import { Download, Menu, X } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
-
-const moodTrendData = [
-  { week: 'Week 1', mood: 3.2, energy: 2.8, stress: 3.5 },
-  { week: 'Week 2', mood: 3.5, energy: 3.0, stress: 3.2 },
-  { week: 'Week 3', mood: 3.8, energy: 3.3, stress: 2.8 },
-  { week: 'Week 4', mood: 4.1, energy: 3.6, stress: 2.4 },
-  { week: 'Week 5', mood: 4.3, energy: 3.8, stress: 2.1 },
-  { week: 'Week 6', mood: 4.4, energy: 3.9, stress: 2.0 },
-]
-
-const emotionData = [
-  { emotion: 'Happy', count: 128 },
-  { emotion: 'Calm', count: 105 },
-  { emotion: 'Grateful', count: 92 },
-  { emotion: 'Anxious', count: 45 },
-  { emotion: 'Sad', count: 28 },
-]
-
-
-const dailyMoodData = [
-  { date: 'Jan 15', mood: 3.5 },
-  { date: 'Jan 16', mood: 3.7 },
-  { date: 'Jan 17', mood: 3.9 },
-  { date: 'Jan 18', mood: 4.0 },
-  { date: 'Jan 19', mood: 4.2 },
-  { date: 'Jan 20', mood: 4.1 },
-  { date: 'Jan 21', mood: 4.3 },
-  { date: 'Jan 22', mood: 4.4 },
-]
-
-const COLORS = ['var(--color-primary)', 'var(--color-accent)', 'var(--color-chart-3)', 'var(--color-chart-4)']
+import MoodFlow from '../../../components/features/MoodFlow'
+import WordCloud from '../../../components/features/WordCloud'
 
 type TimeRange = 'week' | 'month' | 'quarter' | 'year'
 
@@ -179,18 +133,12 @@ const AnalyticsPage = () => {
 
           {/* Charts Tabs */}
           <Tabs defaultValue="mood" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-4 bg-secondary/50 rounded-lg p-1">
+            <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg p-1">
               <TabsTrigger
                 value="mood"
                 className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
               >
-                Mood Trend
-              </TabsTrigger>
-              <TabsTrigger
-                value="emotions"
-                className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
-              >
-                Emotions
+                Mood Flow
               </TabsTrigger>
               <TabsTrigger
                 value="triggers"
@@ -199,135 +147,24 @@ const AnalyticsPage = () => {
                 Triggers
               </TabsTrigger>
               <TabsTrigger
-                value="daily"
+                value="wordcloud"
                 className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
               >
-                Daily
+                Word Cloud
               </TabsTrigger>
             </TabsList>
 
             {/* Mood Trend */}
             <TabsContent value="mood">
-              <Card className="border-border shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-primary">Mood Trend Over Time</CardTitle>
-                  <CardDescription>Your mood, energy, and stress levels across weeks</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <ComposedChart data={moodTrendData}>
-                        <defs>
-                          <linearGradient id="stressGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--color-destructive)" stopOpacity={0.3} />
-                            <stop offset="95%" stopColor="var(--color-destructive)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                        <XAxis dataKey="week" stroke="var(--color-muted-foreground)" />
-                        <YAxis stroke="var(--color-muted-foreground)" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'var(--color-card)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: '0.5rem',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                          }}
-                          labelStyle={{ color: 'var(--color-foreground)', fontWeight: 'bold' }}
-                        />
-                        <Legend />
-                        <Area
-                          type="monotone"
-                          dataKey="stress"
-                          fill="url(#stressGradient)"
-                          stroke="var(--color-destructive)"
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="mood"
-                          stroke="var(--color-primary)"
-                          strokeWidth={2.5}
-                          dot={{ fill: 'var(--color-primary)', strokeWidth: 2 }}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="energy"
-                          stroke="var(--color-accent)"
-                          strokeWidth={2.5}
-                          dot={{ fill: 'var(--color-accent)', strokeWidth: 2 }}
-                        />
-                      </ComposedChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
+              <MoodFlow defaultPeriod="month" />
             </TabsContent>
 
-            {/* Emotions */}
-            <TabsContent value="emotions">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <Card className="border-border shadow-md">
-                  <CardHeader>
-                    <CardTitle className="text-primary">Most Tracked Emotions</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={emotionData}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                          <XAxis dataKey="emotion" stroke="var(--color-muted-foreground)" />
-                          <YAxis stroke="var(--color-muted-foreground)" />
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'var(--color-card)',
-                              border: '1px solid var(--color-border)',
-                              borderRadius: '0.5rem',
-                            }}
-                          />
-                          <Bar dataKey="count" fill="var(--color-primary)" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-border shadow-md">
-                  <CardHeader>
-                    <CardTitle className="text-primary">Emotion Distribution</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={emotionData}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            label={({ payload }) => `${payload.emotion}: ${payload.count}`}
-                            outerRadius={100}
-                            dataKey="count"
-                          >
-                            {emotionData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                          </Pie>
-                          <Tooltip
-                            contentStyle={{
-                              backgroundColor: 'var(--color-card)',
-                              border: '1px solid var(--color-border)',
-                              borderRadius: '0.5rem',
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+            {/* Word Cloud */}
+            <TabsContent value="wordcloud">
+              <WordCloud defaultPeriod="month" />
             </TabsContent>
 
-            {/* Triggers - UC-25 Trigger Heatmap */}
+            {/* Trigger Heatmap */}
             <TabsContent value="triggers">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -375,47 +212,6 @@ const AnalyticsPage = () => {
               </div>
             </TabsContent>
 
-
-            {/* Daily */}
-            <TabsContent value="daily">
-              <Card className="border-border shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-primary">Daily Mood Pattern</CardTitle>
-                  <CardDescription>Your mood over the past week</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={dailyMoodData}>
-                        <defs>
-                          <linearGradient id="colorMood" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.8} />
-                            <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                        <XAxis dataKey="date" stroke="var(--color-muted-foreground)" />
-                        <YAxis stroke="var(--color-muted-foreground)" />
-                        <Tooltip
-                          contentStyle={{
-                            backgroundColor: 'var(--color-card)',
-                            border: '1px solid var(--color-border)',
-                            borderRadius: '0.5rem',
-                          }}
-                        />
-                        <Area
-                          type="monotone"
-                          dataKey="mood"
-                          stroke="var(--color-primary)"
-                          fillOpacity={1}
-                          fill="url(#colorMood)"
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
           </Tabs>
 
           {/* AI Insights */}
