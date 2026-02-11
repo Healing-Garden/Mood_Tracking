@@ -23,27 +23,16 @@ class JSONFormatter(logging.Formatter):
         if record.exc_info:
             log_object["exception"] = self.formatException(record.exc_info)
         
-        # Add extra fields
-        if hasattr(record, "extra"):
-            log_object.update(record.extra)
-        
         return json.dumps(log_object)
 
 def setup_logger(name: str = "mental_health_ai") -> logging.Logger:
-    """
-    Setup logger with appropriate configuration
+    """Setup logger with appropriate configuration"""
     
-    Args:
-        name: Logger name
-    
-    Returns:
-        Configured logger instance
-    """
     # Create logger
     logger = logging.getLogger(name)
     
     # Set log level based on environment
-    if settings.DEBUG:
+    if settings.debug:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.INFO)
@@ -55,7 +44,7 @@ def setup_logger(name: str = "mental_health_ai") -> logging.Logger:
     console_handler = logging.StreamHandler(sys.stdout)
     
     # Set formatter based on environment
-    if settings.ENVIRONMENT == "production":
+    if settings.environment == "production":
         console_handler.setFormatter(JSONFormatter())
     else:
         console_handler.setFormatter(
@@ -72,49 +61,3 @@ def setup_logger(name: str = "mental_health_ai") -> logging.Logger:
     logger.propagate = False
     
     return logger
-
-def log_extra(extra: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Add extra fields to log record
-    
-    Args:
-        extra: Extra fields to add
-    
-    Returns:
-        Dictionary with extra fields
-    """
-    return {"extra": extra}
-
-# Create default logger
-logger = setup_logger()
-
-# Convenience functions
-def log_request(request_info: Dict[str, Any]):
-    """Log HTTP request information"""
-    logger.info(
-        "HTTP Request",
-        extra=log_extra({
-            "type": "http_request",
-            **request_info
-        })
-    )
-
-def log_ai_interaction(interaction_info: Dict[str, Any]):
-    """Log AI interaction"""
-    logger.info(
-        "AI Interaction",
-        extra=log_extra({
-            "type": "ai_interaction",
-            **interaction_info
-        })
-    )
-
-def log_model_usage(model_info: Dict[str, Any]):
-    """Log model usage for monitoring"""
-    logger.debug(
-        "Model Usage",
-        extra=log_extra({
-            "type": "model_usage",
-            **model_info
-        })
-    )

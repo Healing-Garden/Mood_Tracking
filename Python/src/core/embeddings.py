@@ -1,137 +1,114 @@
 import numpy as np
 from typing import List, Dict, Any, Optional
-from datetime import datetime, timedelta
 import logging
-from src.ml_models.model_manager import ModelManager
-from src.database.mongodb import get_database
+from sentence_transformers import SentenceTransformer
+import torch
+from src.config import settings
 from src.database.redis_client import redis_client
 
 logger = logging.getLogger(__name__)
 
 class EmbeddingService:
+    """Service for text embeddings using Sentence Transformers"""
+    
     def __init__(self):
-        self.model_manager = ModelManager.get_instance()
-        self.embedding_dimension = 384  # For all-MiniLM-L6-v2
+        self.model: Optional[SentenceTransformer] = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        
+    async def initialize(self):
+        """Initialize embedding model"""
+        try:
+            logger.info(f"Loading embedding model: {settings.embedding_model}")
+            
+            self.model = SentenceTransformer(
+                settings.embedding_model,
+                device=self.device,
+                cache_folder=settings.models_cache_dir
+            )
+            
+            # Test the model
+            test_embedding = self.model.encode(["test"], show_progress_bar=False)
+            logger.info(f"Embedding model loaded. Dimension: {test_embedding.shape[1]}")
+            
+        except Exception as e:
+            logger.error(f"Failed to load embedding model: {e}")
+            raise
     
-    async def create_embedding(self, text: str, metadata: Optional[Dict] = None) -> Dict[str, Any]:
-        """Create embedding for text and cache it"""
+    def encode(self, texts: List[str], batch_size: int = None) -> np.ndarray:
+        """Encode texts to embeddings"""
+        if not self.model:
+            raise RuntimeError("Embedding model not initialized")
         
-        # Check cache first
-        cache_key = f"embedding:{hash(text)}"
-        cached = await redis_client.get(cache_key)
+        if batch_size is None:
+            batch_size = settings.embedding_batch_size
         
-        if cached:
-            logger.debug("Embedding retrieved from cache")
-            return cached
-        
-        # Generate embedding
-        vector = self.model_manager.get_embedding(text)
-        vector_list = vector.tolist()
-        
-        result = {
-            "vector": vector_list,
-            "dimension": self.embedding_dimension,
-            "model": "all-MiniLM-L6-v2",
-            "created_at": datetime.now().isoformat()
-        }
-        
-        # Cache for 24 hours
-        await redis_client.set(cache_key, result, expire=86400)
-        
-        return result
+        return self.model.encode(
+            texts,
+            batch_size=batch_size,
+            show_progress_bar=False,
+            convert_to_numpy=True
+        )
     
-    async def batch_create_embeddings(self, texts: List[str]) -> List[List[float]]:
-        """Create embeddings for multiple texts efficiently"""
-        vectors = self.model_manager.get_batch_embeddings(texts)
-        return vectors.tolist()
-    
-    async def search_similar(self, query: str, user_id: str, limit: int = 10) -> List[Dict[str, Any]]:
-        """Search for similar journal entries using semantic search"""
-        
-        # Get query embedding
-        query_embedding = self.model_manager.get_embedding(query)
-        
-        # Get user's journal entries with embeddings from MongoDB
-        db = await get_database()
-        collection = db.journal_entries
-        
-        # Find entries with embeddings
-        entries = await collection.find({
-            "user_id": user_id,
-            "embedding": {"$exists": True},
-            "deleted_at": None
-        }).sort("created_at", -1).limit(100).to_list(length=100)
-        
-        if not entries:
+    async def encode_with_cache(
+        self, 
+        texts: List[str], 
+        cache_key_prefix: str = "embedding",
+        expire: int = 86400  # 24 hours
+    ) -> List[List[float]]:
+        """Encode texts with Redis caching"""
+        if not texts:
             return []
         
-        # Calculate similarities
-        results = []
-        for entry in entries:
-            if "embedding" not in entry:
-                continue
+        embeddings = []
+        texts_to_encode = []
+        cache_keys = []
+        
+        # Check cache for each text
+        for text in texts:
+            cache_key = f"{cache_key_prefix}:{hash(text)}"
+            cached = await redis_client.get(cache_key)
             
-            entry_embedding = np.array(entry["embedding"])
-            similarity = self._cosine_similarity(query_embedding, entry_embedding)
+            if cached:
+                embeddings.append(cached)
+            else:
+                texts_to_encode.append(text)
+                cache_keys.append(cache_key)
+        
+        # Encode texts not in cache
+        if texts_to_encode:
+            new_embeddings = self.encode(texts_to_encode)
             
-            results.append({
-                "entry_id": str(entry["_id"]),
-                "text": entry.get("text", "")[:200],  # Preview
-                "mood": entry.get("mood"),
-                "similarity": float(similarity),
-                "created_at": entry.get("created_at")
-            })
+            # Cache new embeddings
+            for text, embedding, cache_key in zip(texts_to_encode, new_embeddings, cache_keys):
+                embedding_list = embedding.tolist()
+                await redis_client.set(cache_key, embedding_list, expire)
+                embeddings.append(embedding_list)
         
-        # Sort by similarity and limit
-        results.sort(key=lambda x: x["similarity"], reverse=True)
-        return results[:limit]
+        return embeddings
     
-    async def update_user_embedding_profile(self, user_id: str):
-        """Update user's embedding profile (average of recent embeddings)"""
-        db = await get_database()
-        collection = db.journal_entries
-        
-        # Get recent entries with embeddings
-        entries = await collection.find({
-            "user_id": user_id,
-            "embedding": {"$exists": True},
-            "deleted_at": None,
-            "created_at": {
-                "$gte": datetime.now() - timedelta(days=30)
-            }
-        }).sort("created_at", -1).limit(50).to_list(length=50)
-        
-        if not entries:
-            return None
-        
-        # Calculate average embedding
-        embeddings = [np.array(entry["embedding"]) for entry in entries]
-        avg_embedding = np.mean(embeddings, axis=0).tolist()
-        
-        # Store in user profile or separate collection
-        profile_collection = db.user_vector_profiles
-        await profile_collection.update_one(
-            {"user_id": user_id},
-            {
-                "$set": {
-                    "user_id": user_id,
-                    "profile_vector": avg_embedding,
-                    "embeddings_count": len(embeddings),
-                    "last_updated": datetime.now()
-                }
-            },
-            upsert=True
-        )
-        
-        return avg_embedding
+    def similarity(self, embedding1: np.ndarray, embedding2: np.ndarray) -> float:
+        """Calculate cosine similarity between two embeddings"""
+        from numpy.linalg import norm
+        return np.dot(embedding1, embedding2) / (norm(embedding1) * norm(embedding2))
     
-    def _cosine_similarity(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
-        """Calculate cosine similarity between two vectors"""
-        dot_product = np.dot(vec1, vec2)
-        norm1 = np.linalg.norm(vec1)
-        norm2 = np.linalg.norm(vec2)
+    async def batch_similarity(
+        self, 
+        query_embedding: np.ndarray, 
+        target_embeddings: np.ndarray
+    ) -> np.ndarray:
+        """Calculate similarities between query and multiple targets"""
+        query_norm = np.linalg.norm(query_embedding)
+        target_norms = np.linalg.norm(target_embeddings, axis=1)
+        dot_products = np.dot(target_embeddings, query_embedding)
         
-        if norm1 == 0 or norm2 == 0:
-            return 0
+        # Avoid division by zero
+        nonzero_norms = target_norms > 0
+        similarities = np.zeros(len(target_embeddings))
         
-        return dot_product / (norm1 * norm2)
+        if query_norm > 0 and np.any(nonzero_norms):
+            similarities[nonzero_norms] = dot_products[nonzero_norms] / (target_norms[nonzero_norms] * query_norm)
+        
+        return similarities
+
+# Global embedding service instance
+embedding_service = EmbeddingService()
