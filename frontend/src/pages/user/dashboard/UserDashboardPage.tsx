@@ -43,7 +43,6 @@ const UserDashboardPage = () => {
 
           if (status === 404) {
             // Chưa check-in hôm nay
-            // Reset store để xóa cache localStorage cũ (nếu có)
             resetStore()
             // Mở modal
             setShowModal(true)
@@ -51,7 +50,6 @@ const UserDashboardPage = () => {
             console.error('Failed to fetch today check-in:', error.message)
           }
         } else {
-          // Lỗi không phải từ Axios
           console.error('Unexpected error:', error)
         }
       }
