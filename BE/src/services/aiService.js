@@ -1,11 +1,13 @@
-// services/ai-service.js
 const axios = require('axios');
 
 class AIServiceClient {
     constructor(config = {}) {
         this.baseURL = config.baseURL || process.env.AI_SERVICE_URL || 'http://localhost:8000';
-        this.apiKey = config.apiKey || process.env.AI_SERVICE_API_KEY || 'your-secret-key-change-in-production';
-        this.timeout = config.timeout || 30000; // 30 seconds
+        this.apiKey = config.apiKey || process.env.AI_SERVICE_API_KEY;
+        if (!this.apiKey) {
+            throw new Error('AI_SERVICE_API_KEY is required');
+        }
+        this.timeout = config.timeout || 30000;
         
         this.client = axios.create({
             baseURL: this.baseURL,

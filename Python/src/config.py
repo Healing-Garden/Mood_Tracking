@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     
     # Security
     secret_key: str
+    service_api_key: str = Field(default="")
     api_key_header: str = Field(default="X-API-Key")
     
     # Limits

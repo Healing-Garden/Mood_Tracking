@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from contextlib import asynccontextmanager
@@ -27,7 +27,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup/shutdown events"""
     # Startup
     logger.info("Starting Mental Health AI Service...")
     
@@ -51,10 +50,9 @@ async def lifespan(app: FastAPI):
         raise
     
     finally:
-        # Shutdown
         logger.info("Shutting down...")
         await mongodb.disconnect()
-        await redis_client.disconnect()
+        # await redis_client.disconnect()
         await vector_store.disconnect()
         logger.info("Shutdown complete")
 
@@ -86,6 +84,32 @@ app.add_middleware(
     ]
 )
 
+@app.middleware("http")
+async def api_key_middleware(request: Request, call_next):
+    public_paths = [
+        "/",
+        "/info",
+        f"{settings.api_prefix}/health",  
+        "/docs",
+        "/redoc",
+        "/openapi.json"
+    ]
+    
+    if request.url.path in public_paths:
+        return await call_next(request)
+    
+    api_key = request.headers.get(settings.api_key_header)
+    
+    if not api_key:
+        logger.warning(f"Missing API key for {request.url.path}")
+        raise HTTPException(status_code=401, detail="API key required")
+    
+    if api_key != settings.service_api_key:
+        logger.warning(f"Invalid API key for {request.url.path}")
+        raise HTTPException(status_code=403, detail="Invalid API key")
+    
+    return await call_next(request)
+
 # Include API routes
 app.include_router(api_router, prefix=settings.api_prefix)
 
@@ -101,7 +125,6 @@ async def root():
 
 @app.get("/info")
 async def info():
-    """Service information"""
     return {
         "name": settings.app_name,
         "version": "1.0.0",
