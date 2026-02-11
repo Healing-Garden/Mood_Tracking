@@ -58,3 +58,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+data/vector_store/
+*.sqlite3
