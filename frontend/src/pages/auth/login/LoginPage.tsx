@@ -11,6 +11,8 @@ import { userApi } from "../../../api/userApi";
 import { dailyCheckInApi } from "../../../api/dailyCheckInApi";
 import { useDailyCheckInStore } from "../../../store/dailyCheckInStore";
 import { useOnboardingStore } from "../../../store/onboardingStore";
+import { AxiosError } from "axios";
+import GoogleLogin from "../login/GoogleLogin";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -43,7 +45,6 @@ export default function LoginPage() {
         return;
       }
 
-      // Kiểm tra user đã hoàn thành onboarding chưa
       let isOnboarded = false;
       try {
         const statusRes = await userApi.getOnboardingStatus();
@@ -57,12 +58,12 @@ export default function LoginPage() {
         return;
       }
 
-      // Kiểm tra daily check-in
       try {
         await dailyCheckInApi.getToday();
         navigate("/user/dashboard");
-      } catch (err: any) {
-        const status = err?.response?.status;
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } }).response
+          ?.status;
         if (status === 404) {
           setShowModal(true);
           navigate("/user/dashboard");
@@ -73,8 +74,15 @@ export default function LoginPage() {
       }
     } catch (err) {
       type ErrorResponse = { response?: { data?: { message?: string } } };
-      if (typeof err === "object" && err !== null && "response" in err && typeof (err as ErrorResponse).response === "object") {
-        setError((err as ErrorResponse).response?.data?.message || "Login failed");
+      if (
+        typeof err === "object" &&
+        err !== null &&
+        "response" in err &&
+        typeof (err as ErrorResponse).response === "object"
+      ) {
+        setError(
+          (err as ErrorResponse).response?.data?.message || "Login failed"
+        );
       } else {
         setError("Login failed");
       }
@@ -83,16 +91,29 @@ export default function LoginPage() {
     }
   };
 
-  const handleGoogleLogin = () => {
-    setIsLoading(true);
+  const handleGoogleSuccess = async (accessToken: string) => {
+    try {
+      setIsLoading(true);
 
-    // TODO: Implement Google OAuth
-    console.log("Google OAuth login");
+      const res = await authApi.googleLogin({
+        credential: accessToken, // giờ là access token
+      });
 
-    setTimeout(() => {
+      localStorage.setItem("accessToken", res.accessToken);
+      localStorage.setItem("user", JSON.stringify(res.user));
+
+      navigate("/user/dashboard");
+    } catch (err: unknown) {
+      if (err instanceof AxiosError) {
+        if (err.response?.data?.code === "LINK_GOOGLE_REQUIRED") {
+          // show link account modal
+          return;
+        }
+      }
+      setError("Google login failed");
+    } finally {
       setIsLoading(false);
-      navigate("/dashboard");
-    }, 500);
+    }
   };
 
   return (
@@ -192,16 +213,9 @@ export default function LoginPage() {
           </div>
 
           {/* Google login */}
-          <Button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={isLoading}
-            variant="outline"
-            className="w-full border-border/50 text-foreground hover:bg-muted/50 h-11 font-medium bg-white flex items-center justify-center gap-2"
-          >
-            <span className="font-semibold">G</span>
-            Login with Google
-          </Button>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+          />
 
           {/* Links */}
           <div className="mt-6 text-center text-sm space-y-3">

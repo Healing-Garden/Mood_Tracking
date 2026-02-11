@@ -16,6 +16,10 @@ export interface LoginResponse {
   };
 }
 
+export interface GoogleLoginRequest {
+  credential: string;
+}
+
 export interface RegisterRequest {
   fullName: string;
   email: string;
@@ -47,6 +51,14 @@ export const authApi = {
 
   login(data: LoginRequest): Promise<LoginResponse> {
     return http.post("/auth/login", data) as Promise<LoginResponse>;
+  },
+
+  googleLogin(data: GoogleLoginRequest): Promise<LoginResponse> {
+    return http.post("/auth/google-login", data) as Promise<LoginResponse>;
+  },
+
+  linkGoogleAccount(data: GoogleLoginRequest): Promise<LoginResponse> {
+    return http.post("/auth/google-link", data) as Promise<LoginResponse>;
   },
 
   logout(): Promise<void> {
