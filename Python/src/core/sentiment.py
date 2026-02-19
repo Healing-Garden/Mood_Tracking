@@ -141,6 +141,20 @@ class SentimentAnalyzer:
                 "confidence": 0.0,
                 "raw": {"fallback": True, "error": "analysis_failed"}
             }
+        
+    def _vietnamese_sentiment_analysis(self, text: str) -> Dict:
+        # Simple rule-based for Vietnamese: check keywords
+        positive_keywords = ['vui', 'hạnh phúc', 'tốt', 'tuyệt', 'cảm ơn', 'yêu']
+        negative_keywords = ['buồn', 'chán', 'mệt', 'đau', 'khổ', 'sợ', 'lo lắng', 'tức giận']
+        text_lower = text.lower()
+        pos_count = sum(1 for kw in positive_keywords if kw in text_lower)
+        neg_count = sum(1 for kw in negative_keywords if kw in text_lower)
+        if pos_count > neg_count:
+            return {"sentiment": "positive", "score": 0.5, "confidence": 0.6}
+        elif neg_count > pos_count:
+            return {"sentiment": "negative", "score": -0.5, "confidence": 0.6}
+        else:
+            return {"sentiment": "neutral", "score": 0, "confidence": 0.5}
     
     def _fallback_emotion_analysis(self, text: str, top_k: int = 3) -> List[Dict[str, Any]]:
         """Simple emotion detection as fallback"""

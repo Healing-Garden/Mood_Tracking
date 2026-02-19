@@ -17,19 +17,19 @@ class SentimentResponse(BaseModel):
 
 @router.post("/analyze")
 async def analyze_sentiment(request: SentimentRequest):
-    """Analyze sentiment of text"""
     try:
-        result = sentiment_analyzer.analyze_sentiment(request.text)
-        
+        result = sentiment_analyzer.analyze_journal_entry(request.text)  
         return SentimentResponse(
-            sentiment=result["sentiment"],
-            score=result["score"],
-            confidence=result["confidence"]
+            sentiment=result["sentiment"]["sentiment"],   
+            score=result["sentiment"]["score"],
+            confidence=result["sentiment"]["confidence"],
+            emotions=result["emotions"]                  
         )
     except Exception as e:
         logger.error(f"Sentiment analysis failed: {e}")
         return SentimentResponse(
             sentiment="neutral",
             score=0.0,
-            confidence=0.0
+            confidence=0.0,
+            emotions=[]
         )

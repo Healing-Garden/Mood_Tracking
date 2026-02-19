@@ -10,6 +10,7 @@ from src.database import mongodb, redis_client, vector_store
 from src.core.embeddings import embedding_service
 from src.core.sentiment import sentiment_analyzer
 from src.core.summarization import summarization_service
+from src.core.cbt_knowledge import cbt_kb
 
 os.makedirs(settings.logs_dir, exist_ok=True)
 
@@ -40,6 +41,8 @@ async def lifespan(app: FastAPI):
         await embedding_service.initialize()
         await sentiment_analyzer.initialize()
         await summarization_service.initialize()
+
+        await cbt_kb.ensure_collection()
         
         logger.info("All services initialized successfully")
         
@@ -52,7 +55,7 @@ async def lifespan(app: FastAPI):
     finally:
         logger.info("Shutting down...")
         await mongodb.disconnect()
-        # await redis_client.disconnect()
+        await redis_client.disconnect()
         await vector_store.disconnect()
         logger.info("Shutdown complete")
 
@@ -90,6 +93,7 @@ async def api_key_middleware(request: Request, call_next):
         "/",
         "/info",
         f"{settings.api_prefix}/health",  
+        f"{settings.api_prefix}/process_message",
         "/docs",
         "/redoc",
         "/openapi.json"
@@ -110,7 +114,6 @@ async def api_key_middleware(request: Request, call_next):
     
     return await call_next(request)
 
-# Include API routes
 app.include_router(api_router, prefix=settings.api_prefix)
 
 @app.get("/")
@@ -133,7 +136,8 @@ async def info():
         "models": {
             "embedding": settings.embedding_model,
             "sentiment": settings.sentiment_model,
-            "summarization": settings.summarization_model
+            "summarization": settings.summarization_model,
+            "gemini": settings.gemini_model
         },
         "databases": {
             "mongodb": settings.mongodb_db_name,
