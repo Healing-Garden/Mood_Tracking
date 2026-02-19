@@ -22,7 +22,7 @@ class AIController {
                     success: false,
                     error: result.error,
                     data: {
-                        questions: result.questions // Fallback questions
+                        questions: result.questions 
                     }
                 });
             }

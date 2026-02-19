@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Settings(BaseSettings):
-    # Cấu hình model - thay thế cho class Config
+    # Cấu hình model
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     
     # Vector Database
     chromadb_host: str = Field(default="localhost")
-    chromadb_port: int = Field(default=8000)
+    chromadb_port: int = Field(default=8001)
     chromadb_persist_directory: str = Field(default="./data/vector_store")
     vector_store_type: str = Field(default="chroma")
     
@@ -44,10 +44,19 @@ class Settings(BaseSettings):
     sentiment_model: str = Field(default="cardiffnlp/twitter-roberta-base-sentiment-latest")
     emotion_model: str = Field(default="j-hartmann/emotion-english-distilroberta-base")
     summarization_model: str = Field(default="facebook/bart-large-cnn")
-    
-    # OpenAI - sử dụng SecretStr cho các giá trị bí mật
+
+    # OpenAI 
     openai_api_key: Optional[SecretStr] = Field(default=None)
     openai_model: str = Field(default="gpt-4-1106-preview")
+
+    # Gemini
+    gemini_api_key: Optional[SecretStr] = Field(default=None)
+    gemini_model: str = Field(default="gemini-2.0-flash")
+    gemini_fallback_models: List[str] = Field(
+        default=["gemini-2.0-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"]
+    )
+    gemini_temperature: float = Field(default=0.7)
+    gemini_max_tokens: int = Field(default=500)
     
     # Security
     secret_key: str
@@ -80,10 +89,14 @@ class Settings(BaseSettings):
             return secrets.token_hex(32)
         return v
     
-    # Phương thức để lấy giá trị OpenAI API key an toàn
     def get_openai_api_key(self) -> Optional[str]:
         if self.openai_api_key:
             return self.openai_api_key.get_secret_value()
+        return None
+    
+    def get_gemini_api_key(self) -> Optional[str]:
+        if self.gemini_api_key:
+            return self.gemini_api_key.get_secret_value()
         return None
 
 settings = Settings()

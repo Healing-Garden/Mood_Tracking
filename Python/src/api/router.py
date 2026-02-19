@@ -9,6 +9,7 @@ from .search import router as search_router
 from .trends import router as trends_router
 from .actions import router as actions_router
 from .sentiment import router as sentiment_router
+from .chat import router as chat_router
 
 router.include_router(health_router, tags=["health"])
 router.include_router(questions_router, prefix="/questions", tags=["questions"])
@@ -17,3 +18,4 @@ router.include_router(search_router, prefix="/search", tags=["search"])
 router.include_router(trends_router, prefix="/trends", tags=["trends"])
 router.include_router(actions_router, prefix="/actions", tags=["actions"])
 router.include_router(sentiment_router, prefix="/sentiment", tags=["sentiment"])
+router.include_router(chat_router, prefix="/chat", tags=["chat"])

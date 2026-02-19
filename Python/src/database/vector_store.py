@@ -9,7 +9,6 @@ logger = logging.getLogger(__name__)
 
 class VectorStore:
     """ChromaDB vector store for semantic search"""
-    
     def __init__(self):
         self.client: Optional[chromadb.HttpClient] = None
         self.collections: Dict[str, chromadb.Collection] = {}
