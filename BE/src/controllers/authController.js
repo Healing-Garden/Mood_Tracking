@@ -14,7 +14,7 @@ module.exports = {
     await otpService.createOtp({
       email,
       type: "REGISTER",
-      payload: req.body, // fullName, age, weight, password
+      payload: req.body,
     });
 
     res.json({ message: "OTP sent to email" });
@@ -43,7 +43,6 @@ module.exports = {
 
       res.json({ message: "Register success. Redirect to login" });
     } catch (err) {
-      // ✅ QUAN TRỌNG
       res.status(400).json({
         message: err.message || "OTP invalid",
       });
@@ -77,6 +76,47 @@ module.exports = {
         accessToken: data.accessToken,
         user: data.user,
       });
+    } catch (err) {
+      res.status(400).json({ message: err.message });
+    }
+  },
+
+  googleLogin: async (req, res) => {
+    try {
+      const { credential } = req.body;
+      const data = await authService.googleLogin(credential);
+
+      res.cookie("refreshToken", data.refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json(data);
+    } catch (err) {
+      if (err.code === "LINK_GOOGLE_REQUIRED") {
+        return res.status(409).json({
+          code: "LINK_GOOGLE_REQUIRED",
+          email: err.email,
+          googleId: err.googleId,
+          avatarUrl: err.avatarUrl,
+        });
+      }
+      res.status(400).json({ message: err.message });
+    }
+  },
+
+  linkGoogleAccount: async (req, res) => {
+    try {
+      const data = await authService.linkGoogleAccount(req.body);
+
+      res.cookie("refreshToken", data.refreshToken, {
+        httpOnly: true,
+        sameSite: "strict",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
+      res.json(data);
     } catch (err) {
       res.status(400).json({ message: err.message });
     }

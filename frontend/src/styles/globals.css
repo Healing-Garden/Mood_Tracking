@@ -190,3 +190,43 @@
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(15deg); }
 }
+
+@layer utilities {
+  .animate-in {
+    opacity: 1 !important;
+    transform: translateY(0) !important;
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: blur(6px);
+    transition-property: opacity, transform, filter;
+    transition-duration: 1000ms;
+    transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+    will-change: opacity, transform, filter;
+  }
+
+  .reveal.in-view {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+
+  .reveal[data-reveal='fade-up'] {
+    transform: translateY(28px);
+  }
+
+  .reveal[data-reveal='fade-left'] {
+    transform: translateX(26px);
+  }
+
+  .reveal[data-reveal='fade-right'] {
+    transform: translateX(-26px);
+  }
+
+  .reveal[data-reveal='zoom'] {
+    transform: translateY(14px) scale(0.955);
+  }
+}

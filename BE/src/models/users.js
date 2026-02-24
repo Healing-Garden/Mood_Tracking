@@ -49,7 +49,7 @@ const userSchema = new mongoose.Schema(
 
     password: {
       type: String,
-      required: true,
+      default: null,
     },
 
     role: {
@@ -77,7 +77,7 @@ const userSchema = new mongoose.Schema(
 
     authProvider: {
       type: String,
-      enum: ["local", "google"],
+      enum: ["local", "google", "both"],
       default: "local",
     },
 

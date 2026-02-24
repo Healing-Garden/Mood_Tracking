@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from "react"
-import type { FormEvent, ChangeEvent } from "react"
-import { Button } from "../../../components/ui/Button"
-import { Input } from "../../../components/ui/Input"
-import { Label } from "../../../components/ui/Label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/Tabs"
-import AvatarUpload from "../../../components/profile/AvatarUpload"
-import { Eye, EyeOff, Lock } from "lucide-react"
-import { useProfile } from "../../../hooks/useProfile"
+import React, { useState } from 'react'
+import type { FormEvent, ChangeEvent } from 'react'
+import { Button } from '../../../components/ui/Button'
+import { Input } from '../../../components/ui/Input'
+import { Label } from '../../../components/ui/Label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
+import AvatarUpload from '../../../components/profile/AvatarUpload'
+import { Eye, EyeOff, Lock, Menu, X } from 'lucide-react'
+import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import { Card, CardContent } from '../../../components/ui/Card'
 
 const UserProfilePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"personal" | "password" | "security">("personal")
+  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
+  const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security'>('personal')
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const { profile, updateProfile, uploadAvatar, deleteAvatar, changePassword, setAppLockPin } = useProfile()
 
@@ -149,26 +151,42 @@ const UserProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30">
-      {/* Header */}
-      <header className="border-b border-border bg-white/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
-          <img
-            src="/healing-garden-logo.png"
-            alt="Healing Garden Logo"
-            width={40}
-            height={40}
-            className="rounded-lg"
-          />
-          <h1 className="text-2xl font-bold text-primary">My Profile</h1>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
+        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
+      </div>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Mobile Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
+          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <h1 className="text-2xl font-bold text-primary">My Profile</h1>
+
+            <button 
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="lg:hidden p-2 hover:bg-muted rounded-lg"
+            >
+              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </header>
+
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Avatar & Member Info Sidebar */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-border flex flex-col items-center">
+            <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
               <AvatarUpload
                 currentAvatar={avatarUrl}
                 onAvatarChange={async (file) => {
@@ -190,17 +208,17 @@ const UserProfilePage: React.FC = () => {
                     : "N/A"}
                 </p>
               </div>
-            </div>
+            </Card>
           </div>
 
           {/* Main Tabs Content */}
           <div className="lg:col-span-3">
+            <Card className="bg-white rounded-2xl shadow-lg border-border p-6">
             <Tabs
               value={activeTab}
               onValueChange={(value) =>
                 setActiveTab(value as "personal" | "password" | "security")
               }
-              className="bg-white rounded-2xl shadow-lg border border-border p-6"
             >
               <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg">
                 <TabsTrigger
@@ -458,53 +476,11 @@ const UserProfilePage: React.FC = () => {
                 )}
               </TabsContent>
             </Tabs>
+            </Card>
           </div>
         </div>
-      </main>
-
-      {showPasswordSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-foreground">
-              Password updated
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your password has been changed successfully.
-            </p>
-            <div className="mt-6">
-              <Button
-                type="button"
-                className="w-full bg-primary text-white hover:bg-primary/90"
-                onClick={() => setShowPasswordSuccess(false)}
-              >
-                OK
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {showProfileSuccess && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-foreground">
-              Profile updated
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Your profile has been updated successfully.
-            </p>
-            <div className="mt-6">
-              <Button
-                type="button"
-                className="w-full bg-primary text-white hover:bg-primary/90"
-                onClick={() => setShowProfileSuccess(false)}
-              >
-                OK
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+        </main>
+      </div>
     </div>
   )
 }

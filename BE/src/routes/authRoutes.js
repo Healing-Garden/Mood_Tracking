@@ -13,4 +13,7 @@ router.post("/login", authController.login);
 router.post("/refresh-token", authController.refreshToken);
 router.post("/logout", authController.logout);
 
+router.post("/google-login", authController.googleLogin);
+router.post("/google-link", authController.linkGoogleAccount);
+
 module.exports = router;

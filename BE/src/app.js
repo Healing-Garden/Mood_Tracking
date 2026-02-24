@@ -1,17 +1,27 @@
 const express = require("express");
+const http = require('http');
 const cors = require("cors");
+const socketIo = require('socket.io');
 const authRouters = require("./routes/authRoutes");
 const profileRouters = require("./routes/profileRoutes");
 const userRouters = require("./routes/userRoutes");
+const aiRoutes = require('./routes/aiRoutes');
+const chatRoutes = require('./routes/chatRoutes');
+const chatHandler = require('./socket/chatHandler');
 const cookieParser = require("cookie-parser");
 
 const app = express();
-app.use(
-  cors({
-    origin: "http://localhost:5173", // Vite default
-    credentials: true,               // cho phép cookie
-  })
-);
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+    credentials: true, 
+  }
+});
+
+const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+app.use(cors({ origin: clientURL, credentials: true }));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -19,5 +29,12 @@ app.use(cookieParser());
 app.use("/api/auth", authRouters);
 app.use("/api/profile", profileRouters);
 app.use("/api/user", userRouters);
+app.use('/api/ai', aiRoutes);
+app.use('/api/chat', chatRoutes);
 
-module.exports = app;
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+  chatHandler(io, socket);
+});
+
+module.exports = { app, server, io };

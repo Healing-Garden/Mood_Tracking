@@ -1,196 +1,197 @@
-import numpy as np
-from typing import List, Dict, Any
-from datetime import datetime, timedelta
-from collections import Counter
+from typing import Dict, Any, List, Tuple
 import logging
-from src.ml_models.model_manager import ModelManager
-from src.database.mongodb import get_database
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+import torch
+from src.config import settings
 
 logger = logging.getLogger(__name__)
 
-class SentimentService:
-    def __init__(self):
-        self.model_manager = ModelManager.get_instance()
+class SentimentAnalyzer:
+    """Sentiment and emotion analysis service"""
     
-    async def analyze_journal_entries(self, entries: List[Dict[str, Any]]) -> Dict[str, Any]:
-        """Analyze sentiment of multiple journal entries"""
-        sentiments = []
-        scores = []
-        
-        for entry in entries:
-            text = entry.get("text", "")
-            if not text:
-                continue
+    def __init__(self):
+        self.sentiment_pipeline = None
+        self.emotion_pipeline = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    
+    async def initialize(self):
+        """Initialize sentiment and emotion models"""
+        try:
+            logger.info("Loading sentiment analysis models...")
             
-            sentiment_result = self.model_manager.analyze_sentiment(text)
-            sentiments.append(sentiment_result["sentiment"])
-            scores.append(sentiment_result["score"])
+            # Sentiment analysis (positive/negative/neutral)
+            self.sentiment_pipeline = pipeline(
+                "sentiment-analysis",
+                model=settings.sentiment_model,
+                device=0 if torch.cuda.is_available() else -1,
+                framework="pt"
+            )
             
-            # Update entry with sentiment if needed
-            entry["sentiment_score"] = sentiment_result["score"]
-            entry["sentiment"] = sentiment_result["sentiment"]
+            # Emotion analysis (multiple emotions)
+            self.emotion_pipeline = pipeline(
+                "text-classification",
+                model=settings.emotion_model,
+                device=0 if torch.cuda.is_available() else -1,
+                top_k=None,
+                framework="pt"
+            )
+            
+            logger.info("Sentiment models loaded")
+            
+        except Exception as e:
+            logger.error(f"Failed to load sentiment models: {e}")
+            # Fallback to simple rule-based analysis
+            self.sentiment_pipeline = None
+            self.emotion_pipeline = None
+    
+    def analyze_sentiment(self, text: str) -> Dict[str, Any]:
+        """Analyze sentiment of text"""
+        if not self.sentiment_pipeline:
+            return self._fallback_sentiment_analysis(text)
         
-        if not scores:
+        try:
+            result = self.sentiment_pipeline(text)[0]
+            
+            # Convert to standardized format
+            label = result['label'].lower()
+            score = result['score']
+            
+            # Map to our sentiment scale (-1 to 1)
+            if 'positive' in label:
+                sentiment_score = score
+            elif 'negative' in label:
+                sentiment_score = -score
+            else:  # neutral
+                sentiment_score = 0
+            
             return {
-                "overall_sentiment": 0,
-                "dominant_sentiment": "neutral",
-                "score_distribution": {"positive": 0, "neutral": 0, "negative": 0}
+                "sentiment": label,
+                "score": float(sentiment_score),
+                "confidence": float(score),
+                "raw": result
+            }
+            
+        except Exception as e:
+            logger.error(f"Sentiment analysis failed: {e}")
+            return self._fallback_sentiment_analysis(text)
+    
+    def analyze_emotions(self, text: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Analyze emotions in text"""
+        if not self.emotion_pipeline:
+            return self._fallback_emotion_analysis(text, top_k)
+        
+        try:
+            results = self.emotion_pipeline(text)[0]
+            
+            # Sort by score and get top_k
+            results.sort(key=lambda x: x['score'], reverse=True)
+            
+            emotions = []
+            for i, emotion in enumerate(results[:top_k]):
+                emotions.append({
+                    "emotion": emotion['label'].lower(),
+                    "score": float(emotion['score']),
+                    "rank": i + 1
+                })
+            
+            return emotions
+            
+        except Exception as e:
+            logger.error(f"Emotion analysis failed: {e}")
+            return self._fallback_emotion_analysis(text, top_k)
+    
+    def analyze_journal_entry(self, text: str) -> Dict[str, Any]:
+        """Comprehensive analysis of journal entry"""
+        sentiment = self.analyze_sentiment(text)
+        emotions = self.analyze_emotions(text)
+        
+        return {
+            "sentiment": sentiment,
+            "emotions": emotions,
+            "overall_score": sentiment["score"],
+            "dominant_emotion": emotions[0]["emotion"] if emotions else "neutral"
+        }
+    
+    def _fallback_sentiment_analysis(self, text: str) -> Dict[str, Any]:
+        """Simple rule-based sentiment analysis as fallback"""
+        from textblob import TextBlob
+        
+        try:
+            blob = TextBlob(text)
+            polarity = blob.sentiment.polarity
+            
+            if polarity > 0.1:
+                sentiment = "positive"
+            elif polarity < -0.1:
+                sentiment = "negative"
+            else:
+                sentiment = "neutral"
+            
+            return {
+                "sentiment": sentiment,
+                "score": float(polarity),
+                "confidence": abs(float(polarity)),
+                "raw": {"fallback": True}
+            }
+            
+        except:
+            return {
+                "sentiment": "neutral",
+                "score": 0.0,
+                "confidence": 0.0,
+                "raw": {"fallback": True, "error": "analysis_failed"}
             }
         
-        # Calculate overall sentiment
-        overall_score = np.mean(scores)
-        
-        # Count sentiment distribution
-        sentiment_counts = Counter(sentiments)
-        total = sum(sentiment_counts.values())
-        distribution = {
-            sentiment: count / total
-            for sentiment, count in sentiment_counts.items()
-        }
-        
-        # Determine dominant sentiment
-        dominant_sentiment = max(sentiment_counts, key=sentiment_counts.get)
-        
-        return {
-            "overall_sentiment": float(overall_score),
-            "dominant_sentiment": dominant_sentiment,
-            "score_distribution": distribution,
-            "entry_count": len(entries)
-        }
-    
-    async def detect_emotional_trends(self, user_id: str, days: int = 30) -> Dict[str, Any]:
-        """Detect emotional trends over time"""
-        db = await get_database()
-        
-        # Get entries for the time period
-        start_date = datetime.now() - timedelta(days=days)
-        
-        entries = await db.journal_entries.find({
-            "user_id": user_id,
-            "created_at": {"$gte": start_date},
-            "deleted_at": None,
-            "text": {"$exists": True, "$ne": ""}
-        }).sort("created_at", 1).to_list(length=None)
-        
-        if not entries:
-            return {"error": "No entries found", "trend": "insufficient_data"}
-        
-        # Analyze sentiment for each entry
-        daily_scores = {}
-        weekly_scores = {}
-        
-        for entry in entries:
-            created_at = entry.get("created_at")
-            if not created_at:
-                continue
-            
-            date_key = created_at.date()
-            week_key = f"{created_at.year}-W{created_at.isocalendar()[1]}"
-            
-            text = entry.get("text", "")
-            sentiment = self.model_manager.analyze_sentiment(text)
-            score = sentiment["score"]
-            
-            # Aggregate daily
-            if date_key not in daily_scores:
-                daily_scores[date_key] = []
-            daily_scores[date_key].append(score)
-            
-            # Aggregate weekly
-            if week_key not in weekly_scores:
-                weekly_scores[week_key] = []
-            weekly_scores[week_key].append(score)
-        
-        # Calculate averages
-        daily_avg = {
-            str(date): np.mean(scores)
-            for date, scores in daily_scores.items()
-        }
-        
-        weekly_avg = {
-            week: np.mean(scores)
-            for week, scores in weekly_scores.items()
-        }
-        
-        # Detect trends
-        trend_analysis = self._analyze_trend_pattern(list(daily_avg.values()))
-        
-        # Check for risk patterns
-        risk_flags = self._detect_risk_patterns(daily_avg)
-        
-        return {
-            "daily_scores": daily_avg,
-            "weekly_scores": weekly_avg,
-            "trend_analysis": trend_analysis,
-            "risk_flags": risk_flags,
-            "total_entries": len(entries),
-            "time_period_days": days
-        }
-    
-    def _analyze_trend_pattern(self, scores: List[float]) -> Dict[str, Any]:
-        """Analyze trend pattern from scores"""
-        if len(scores) < 2:
-            return {"trend": "insufficient_data", "slope": 0}
-        
-        # Simple linear regression
-        x = np.arange(len(scores))
-        y = np.array(scores)
-        
-        # Calculate slope
-        if len(scores) > 1:
-            slope = np.polyfit(x, y, 1)[0]
+    def _vietnamese_sentiment_analysis(self, text: str) -> Dict:
+        # Simple rule-based for Vietnamese: check keywords
+        positive_keywords = ['vui', 'hạnh phúc', 'tốt', 'tuyệt', 'cảm ơn', 'yêu']
+        negative_keywords = ['buồn', 'chán', 'mệt', 'đau', 'khổ', 'sợ', 'lo lắng', 'tức giận']
+        text_lower = text.lower()
+        pos_count = sum(1 for kw in positive_keywords if kw in text_lower)
+        neg_count = sum(1 for kw in negative_keywords if kw in text_lower)
+        if pos_count > neg_count:
+            return {"sentiment": "positive", "score": 0.5, "confidence": 0.6}
+        elif neg_count > pos_count:
+            return {"sentiment": "negative", "score": -0.5, "confidence": 0.6}
         else:
-            slope = 0
-        
-        # Determine trend
-        if slope > 0.01:
-            trend = "improving"
-        elif slope < -0.01:
-            trend = "declining"
-        else:
-            trend = "stable"
-        
-        # Check volatility
-        if len(scores) > 2:
-            volatility = np.std(scores)
-        else:
-            volatility = 0
-        
-        return {
-            "trend": trend,
-            "slope": float(slope),
-            "volatility": float(volatility),
-            "min_score": float(np.min(y)),
-            "max_score": float(np.max(y)),
-            "avg_score": float(np.mean(y))
-        }
+            return {"sentiment": "neutral", "score": 0, "confidence": 0.5}
     
-    def _detect_risk_patterns(self, daily_scores: Dict) -> List[str]:
-        """Detect potential risk patterns"""
-        risk_flags = []
+    def _fallback_emotion_analysis(self, text: str, top_k: int = 3) -> List[Dict[str, Any]]:
+        """Simple emotion detection as fallback"""
+        # Basic keyword matching for common emotions
+        emotion_keywords = {
+            "happy": ["happy", "joy", "excited", "good", "great", "wonderful"],
+            "sad": ["sad", "unhappy", "depressed", "bad", "terrible"],
+            "angry": ["angry", "mad", "frustrated", "annoyed"],
+            "anxious": ["anxious", "worried", "nervous", "stressed"],
+            "calm": ["calm", "peaceful", "relaxed", "chill"],
+            "grateful": ["grateful", "thankful", "appreciate", "blessed"]
+        }
         
-        if not daily_scores:
-            return risk_flags
+        text_lower = text.lower()
+        emotion_scores = []
         
-        scores = list(daily_scores.values())
+        for emotion, keywords in emotion_keywords.items():
+            score = sum(1 for keyword in keywords if keyword in text_lower)
+            if score > 0:
+                emotion_scores.append({
+                    "emotion": emotion,
+                    "score": score / len(keywords),
+                    "rank": 0
+                })
         
-        # Check for prolonged negative scores
-        negative_days = sum(1 for score in scores if score < -0.3)
-        total_days = len(scores)
+        # Sort by score
+        emotion_scores.sort(key=lambda x: x["score"], reverse=True)
         
-        if total_days >= 7 and negative_days / total_days > 0.7:
-            risk_flags.append("prolonged_negative_sentiment")
+        # Add rank
+        for i, emotion in enumerate(emotion_scores[:top_k]):
+            emotion["rank"] = i + 1
         
-        # Check for rapid decline
-        if len(scores) >= 3:
-            recent_scores = scores[-3:]
-            if recent_scores[0] - recent_scores[-1] > 0.5:
-                risk_flags.append("rapid_mood_decline")
-        
-        # Check for extreme volatility
-        if len(scores) >= 5:
-            volatility = np.std(scores[-5:])
-            if volatility > 0.5:
-                risk_flags.append("high_emotional_volatility")
-        
-        return risk_flags
+        return emotion_scores[:top_k] if emotion_scores else [{
+            "emotion": "neutral",
+            "score": 1.0,
+            "rank": 1
+        }]
+
+# Global sentiment analyzer instance
+sentiment_analyzer = SentimentAnalyzer()
