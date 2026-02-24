@@ -4,6 +4,7 @@ const cors = require("cors");
 const socketIo = require('socket.io');
 const authRouters = require("./routes/authRoutes");
 const userRouters = require("./routes/userRoutes");
+const journalRouters = require("./routes/journalRoutes");
 const aiRoutes = require('./routes/aiRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const chatHandler = require('./socket/chatHandler');
@@ -27,6 +28,8 @@ app.use(cookieParser());
 
 app.use("/api/auth", authRouters);
 app.use("/api/user", userRouters);
+app.use("/api/journals", journalRouters);
+
 app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
 

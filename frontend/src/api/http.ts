@@ -1,5 +1,9 @@
 import axios from "axios";
-import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import type {
+  AxiosError,
+  AxiosResponse,
+  InternalAxiosRequestConfig,
+} from "axios";
 
 interface FailedQueueItem {
   resolve: (value: AxiosResponse) => void;
@@ -10,28 +14,21 @@ const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
   timeout: 10000,
   withCredentials: true,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 let isRefreshing = false;
 let failedQueue: FailedQueueItem[] = [];
 
-const processQueue = (
-    error: AxiosError | null,
-    token: string | null
-  ) => {
-    failedQueue.forEach((p) => {
-      if (error) {
-        p.reject(error);
-      } else {
-        p.resolve(token as unknown as AxiosResponse);
-      }
-    });
-    failedQueue = [];
+const processQueue = (error: AxiosError | null, token: string | null) => {
+  failedQueue.forEach((p) => {
+    if (error) {
+      p.reject(error);
+    } else {
+      p.resolve(token as unknown as AxiosResponse);
+    }
+  });
+  failedQueue = [];
 };
-
 
 // Gắn access token
 http.interceptors.request.use((config) => {
