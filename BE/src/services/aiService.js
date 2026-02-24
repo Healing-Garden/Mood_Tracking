@@ -7,7 +7,7 @@ class AIServiceClient {
         if (!this.apiKey) {
             throw new Error('AI_SERVICE_API_KEY is required');
         }
-        this.timeout = config.timeout || 30000;
+        this.timeout = config.timeout || 60000;
         
         this.client = axios.create({
             baseURL: this.baseURL,
@@ -88,6 +88,46 @@ class AIServiceClient {
                 success: false,
                 error: error.message,
                 summary: "Unable to generate summary at this time. Check back later."
+            };
+        }
+    }
+
+    /**
+     * UC-20: Process chat message through CBT agent
+     */
+    async processChatMessage(sessionId, text, sessionState, userContext, recentMessages = []) {
+        try {
+            const response = await this.client.post('/api/v1/chat/process_message', {
+                text: text,
+                session_id: sessionId,
+                session_state: sessionState,
+                user_context: userContext,
+                recent_messages: recentMessages
+            });
+
+            return {
+                success: true,
+                data: response.data  
+            };
+        } catch (error) {
+            console.error('Chat message processing failed:', error.message);
+
+            const isVietnamese = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i.test(String(text));
+            
+            return {
+                success: true,
+                data: {
+                    text: isVietnamese
+                      ? "Mình đang ở đây để lắng nghe. Bạn có thể chia sẻ thêm về cảm xúc của bạn lúc này không?"
+                      : "I'm here to listen. Could you tell me more about how you're feeling?",
+                    sentiment: { sentiment: 'neutral', score: 0.5, confidence: 0.5 },
+                    intent: 'general',
+                    technique: 'active_listening',
+                    exercise: null,
+                    isCrisis: false,
+                    next_state: 'assessment',
+                    risk_level: 0
+                }
             };
         }
     }

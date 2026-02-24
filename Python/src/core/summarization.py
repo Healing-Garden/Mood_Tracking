@@ -87,7 +87,7 @@ class SummarizationService:
         # Summarize each chunk
         chunk_summaries = []
         for chunk in chunks:
-            if len(chunk.split()) > 50:  # Only summarize if chunk is long enough
+            if len(chunk.split()) > 50: 
                 try:
                     summary = self.summarizer(
                         chunk,
@@ -121,12 +121,10 @@ class SummarizationService:
         import string
         
         try:
-            # Download NLTK data if needed
             import nltk
             nltk.download('punkt', quiet=True)
             nltk.download('stopwords', quiet=True)
             
-            # Tokenize sentences
             sentences = sent_tokenize(text)
             
             if len(sentences) <= 3:

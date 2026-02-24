@@ -79,3 +79,31 @@ class UserVectorProfile(BaseModel):
     embeddings_count: int
     last_updated: datetime
     profile_vector: Optional[List[float]] = None
+
+class ChatMessageRequest(BaseModel):
+    text: str
+    session_id: str
+    session_state: Dict[str, Any]
+    user_context: Dict[str, Any]
+    recent_messages: Optional[List[Dict[str, Any]]] = None
+
+class SentimentRequest(BaseModel):
+    text: str
+
+class ChatMessageResponse(BaseModel):
+    text: str
+    is_crisis: bool = False
+    risk_level: int = 0
+    sentiment: Optional[Dict] = None
+    intent: Optional[str] = None
+    technique: Optional[str] = None
+    exercise: Optional[str] = None
+    next_state: str
+
+class ChatSessionCreate(BaseModel):
+    user_id: str
+    mood_context: Optional[Dict] = None
+
+class ChatSessionEnd(BaseModel):
+    session_id: str
+    summary: Optional[str] = None
