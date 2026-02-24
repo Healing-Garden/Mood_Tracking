@@ -13,120 +13,72 @@ const UserProfilePage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security'>('personal')
   const [isLoading, setIsLoading] = useState<boolean>(false)
-  const { profile, updateProfile, uploadAvatar, deleteAvatar, changePassword, setAppLockPin } = useProfile()
 
-  const [name, setName] = useState<string>("")
-  const [age, setAge] = useState<string>("")
-  const [height, setHeight] = useState<string>("")
-  const [weight, setWeight] = useState<string>("")
-  const [email, setEmail] = useState<string>("")
-  const [avatarUrl, setAvatarUrl] = useState<string>("")
+  // Personal Info
+  const [name, setName] = useState<string>('John Doe')
+  const [age, setAge] = useState<string>('28')
+  const [height, setHeight] = useState<string>('175')
+  const [weight, setWeight] = useState<string>('75')
+  const [email, setEmail] = useState<string>('john@example.com')
 
-  const [currentPassword, setCurrentPassword] = useState<string>("")
-  const [newPassword, setNewPassword] = useState<string>("")
-  const [confirmPassword, setConfirmPassword] = useState<string>("")
+  // Password
+  const [currentPassword, setCurrentPassword] = useState<string>('')
+  const [newPassword, setNewPassword] = useState<string>('')
+  const [confirmPassword, setConfirmPassword] = useState<string>('')
   const [showPasswords, setShowPasswords] = useState<boolean>(false)
-  const [showPasswordSuccess, setShowPasswordSuccess] = useState<boolean>(false)
-  const [showProfileSuccess, setShowProfileSuccess] = useState<boolean>(false)
-  const [passwordError, setPasswordError] = useState<string>("")
 
+  // PIN
   const [showPinForm, setShowPinForm] = useState<boolean>(false)
-  const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(""))
-  const [confirmPinDigits, setConfirmPinDigits] = useState<string[]>(Array(6).fill(""))
-
-  useEffect(() => {
-    if (profile) {
-      setName(profile.fullName || "")
-      setAge(profile.age?.toString() || "")
-      setHeight(profile.heightCm?.toString() || "")
-      setWeight(profile.weight?.toString() || "")
-      setEmail(profile.email || "")
-      setAvatarUrl(profile.avatarUrl || "")
-    }
-  }, [profile])
+  const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(''))
+  const [confirmPinDigits, setConfirmPinDigits] = useState<string[]>(Array(6).fill(''))
 
   const handlePersonalInfoSave = async (e: FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    try {
-      await updateProfile({
-        fullName: name,
-        age: age ? parseInt(age) : undefined,
-        heightCm: height ? parseInt(height) : undefined,
-        weight: weight ? parseInt(weight) : undefined,
-      })
-      setShowProfileSuccess(true)
-    } catch (error) {
-      console.error("Error updating profile:", error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const isStrongPassword = (value: string) => {
-    if (value.length < 8) return false
-    if (!/[A-Z]/.test(value)) return false
-    if (!/[a-z]/.test(value)) return false
-    if (!/\d/.test(value)) return false
-    if (!/[^A-Za-z0-9]/.test(value)) return false
-    return true
+    // TODO: API call to save profile
+    console.log('Saving personal info:', { name, age, height, weight, email })
+    await new Promise(resolve => setTimeout(resolve, 1200))
+    setIsLoading(false)
   }
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
-    setPasswordError("")
     if (newPassword !== confirmPassword) {
-      alert("New passwords do not match")
-      return
-    }
-    if (!isStrongPassword(newPassword)) {
-      setPasswordError(
-        "Password must be at least 8 characters and include uppercase, lowercase, number, and special character"
-      )
+      alert('New passwords do not match')
       return
     }
     setIsLoading(true)
-    try {
-      await changePassword({
-        currentPassword,
-        newPassword,
-      })
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-      setShowPasswordSuccess(true)
-    } catch (error) {
-      console.error("Error changing password:", error)
-    } finally {
-      setIsLoading(false)
-    }
+    // TODO: API call to change password
+    console.log('Changing password')
+    await new Promise(resolve => setTimeout(resolve, 1200))
+    setIsLoading(false)
+    setCurrentPassword('')
+    setNewPassword('')
+    setConfirmPassword('')
   }
 
   const handlePinSetup = async (e: FormEvent) => {
     e.preventDefault()
-    const pin = pinDigits.join("")
-    const confirmPin = confirmPinDigits.join("")
+    const pin = pinDigits.join('')
+    const confirmPin = confirmPinDigits.join('')
 
     if (pin !== confirmPin) {
-      alert("PINs do not match")
+      alert('PINs do not match')
       return
     }
     if (pin.length !== 6) {
-      alert("PIN must be 6 digits")
+      alert('PIN must be 6 digits')
       return
     }
 
     setIsLoading(true)
-    try {
-      await setAppLockPin(pin)
-      setShowPinForm(false)
-      setPinDigits(Array(6).fill(""))
-      setConfirmPinDigits(Array(6).fill(""))
-    } catch (error) {
-      console.error("Error setting PIN:", error)
-    } finally {
-      setIsLoading(false)
-    }
+    // TODO: API call to set PIN
+    console.log('Setting PIN:', pin)
+    await new Promise(resolve => setTimeout(resolve, 1200))
+    setIsLoading(false)
+    setShowPinForm(false)
+    setPinDigits(Array(6).fill(''))
+    setConfirmPinDigits(Array(6).fill(''))
   }
 
   const handlePinDigitChange = (
@@ -134,7 +86,7 @@ const UserProfilePage: React.FC = () => {
     value: string,
     isConfirm: boolean = false
   ) => {
-    const digit = value.replace(/[^0-9]/g, "").slice(0, 1)
+    const digit = value.replace(/[^0-9]/g, '').slice(0, 1)
     const target = isConfirm ? [...confirmPinDigits] : [...pinDigits]
     target[index] = digit
 
@@ -188,25 +140,11 @@ const UserProfilePage: React.FC = () => {
           <div className="lg:col-span-1">
             <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
               <AvatarUpload
-                currentAvatar={avatarUrl}
-                onAvatarChange={async (file) => {
-                  await uploadAvatar(file).catch(console.error)
-                }}
-                onAvatarRemove={async () => {
-                  await deleteAvatar().catch(console.error)
-                }}
+                onAvatarChange={(file) => console.log('New avatar file:', file)}
               />
               <div className="mt-6 pt-4 border-t border-border w-full text-center">
                 <p className="text-sm font-semibold text-primary mb-1">Member Since</p>
-                <p className="text-sm text-muted-foreground">
-                  {profile?.createdAt
-                    ? new Date(profile.createdAt).toLocaleDateString("en-US", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })
-                    : "N/A"}
-                </p>
+                <p className="text-sm text-muted-foreground">January 2024</p>
               </div>
             </Card>
           </div>
@@ -217,7 +155,7 @@ const UserProfilePage: React.FC = () => {
             <Tabs
               value={activeTab}
               onValueChange={(value) =>
-                setActiveTab(value as "personal" | "password" | "security")
+                setActiveTab(value as 'personal' | 'password' | 'security')
               }
             >
               <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg">
@@ -314,7 +252,7 @@ const UserProfilePage: React.FC = () => {
                     disabled={isLoading}
                     className="md:col-span-2 w-full h-11 bg-primary hover:bg-primary/90"
                   >
-                    {isLoading ? "Saving..." : "Save Changes"}
+                    {isLoading ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </form>
               </TabsContent>
@@ -329,7 +267,7 @@ const UserProfilePage: React.FC = () => {
                     <div className="relative">
                       <Input
                         id="current-password"
-                        type={showPasswords ? "text" : "password"}
+                        type={showPasswords ? 'text' : 'password'}
                         value={currentPassword}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
                         className="h-11 pr-10"
@@ -338,7 +276,7 @@ const UserProfilePage: React.FC = () => {
                         type="button"
                         onClick={() => setShowPasswords(!showPasswords)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label={showPasswords ? "Hide password" : "Show password"}
+                        aria-label={showPasswords ? 'Hide password' : 'Show password'}
                       >
                         {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
@@ -351,7 +289,7 @@ const UserProfilePage: React.FC = () => {
                     </Label>
                     <Input
                       id="new-password"
-                      type={showPasswords ? "text" : "password"}
+                      type={showPasswords ? 'text' : 'password'}
                       value={newPassword}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                       className="h-11"
@@ -364,23 +302,19 @@ const UserProfilePage: React.FC = () => {
                     </Label>
                     <Input
                       id="confirm-password"
-                      type={showPasswords ? "text" : "password"}
+                      type={showPasswords ? 'text' : 'password'}
                       value={confirmPassword}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                       className="h-11"
                     />
                   </div>
 
-                  {passwordError && (
-                    <p className="text-sm text-red-600">{passwordError}</p>
-                  )}
-
                   <Button
                     type="submit"
                     disabled={isLoading}
                     className="w-full h-11 bg-primary hover:bg-primary/90"
                   >
-                    {isLoading ? "Updating..." : "Change Password"}
+                    {isLoading ? 'Updating...' : 'Change Password'}
                   </Button>
                 </form>
               </TabsContent>
@@ -422,7 +356,7 @@ const UserProfilePage: React.FC = () => {
                             value={digit}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, false)}
                             className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
-                            placeholder="*"
+                            placeholder="•"
                           />
                         ))}
                       </div>
@@ -441,7 +375,7 @@ const UserProfilePage: React.FC = () => {
                             value={digit}
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, true)}
                             className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
-                            placeholder="*"
+                            placeholder="•"
                           />
                         ))}
                       </div>
@@ -453,8 +387,8 @@ const UserProfilePage: React.FC = () => {
                         variant="outline"
                         onClick={() => {
                           setShowPinForm(false)
-                          setPinDigits(Array(6).fill(""))
-                          setConfirmPinDigits(Array(6).fill(""))
+                          setPinDigits(Array(6).fill(''))
+                          setConfirmPinDigits(Array(6).fill(''))
                         }}
                         className="flex-1 h-11"
                       >
@@ -469,7 +403,7 @@ const UserProfilePage: React.FC = () => {
                         }
                         className="flex-1 h-11 bg-primary hover:bg-primary/90"
                       >
-                        {isLoading ? "Setting..." : "Set PIN"}
+                        {isLoading ? 'Setting...' : 'Set PIN'}
                       </Button>
                     </div>
                   </form>
