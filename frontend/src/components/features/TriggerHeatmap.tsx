@@ -60,50 +60,54 @@ export default function TriggerHeatmap() {
       kind: 'negative' as const,
       values: rows.map((r) => r.negative),
       max: maxNegative,
+      emoji: '😔'
     },
     {
       label: 'Neutral',
       kind: 'neutral' as const,
       values: rows.map((r) => r.neutral),
       max: maxNeutral,
+      emoji: '😐'
     },
     {
       label: 'Positive',
       kind: 'positive' as const,
       values: rows.map((r) => r.positive),
       max: maxPositive,
+      emoji: '😊'
     },
   ]
 
   return (
-    <Card className="border-border shadow-md">
-      <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card className="border border-border/50 shadow-sm hover:shadow-md transition-shadow duration-300">
+      <CardHeader className="border-b border-border/30">
+        <div className="space-y-4">
+          {/* Title and Description */}
           <div>
-            <CardTitle className="text-primary">Trigger Heatmap</CardTitle>
-            <CardDescription>Emotional frequency by trigger and mood quality.</CardDescription>
+            <CardTitle className="text-xl text-primary">Trigger Heatmap</CardTitle>
+            <CardDescription className="mt-2 text-sm">
+              Visualize how different triggers affect your mood intensity over time.
+            </CardDescription>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Rare</span>
-              <div className="flex gap-1">
-                <span className="h-3 w-3 rounded-md bg-green-50" />
-                <span className="h-3 w-3 rounded-md bg-green-200" />
-                <span className="h-3 w-3 rounded-md bg-green-400" />
-                <span className="h-3 w-3 rounded-md bg-green-600" />
-              </div>
-              <span>Frequent</span>
-            </div>
-            <div className="flex gap-2">
+
+          {/* Period Selector - Segmented Control Style */}
+          <div className="flex items-center gap-3 pt-2">
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+              Time Period
+            </span>
+            <div className="inline-flex gap-2 p-1 rounded-lg bg-secondary/40">
               {(['week', 'month', 'year'] as Period[]).map((p) => (
                 <button
                   key={p}
                   type="button"
                   onClick={() => setPeriod(p)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${period === p
-                    ? 'bg-primary text-white'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                    }`}
+                  className={`
+                    px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+                    ${period === p
+                      ? 'bg-primary text-white shadow-md'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-secondary/60'
+                    }
+                  `}
                 >
                   {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}
                 </button>
@@ -112,73 +116,126 @@ export default function TriggerHeatmap() {
           </div>
         </div>
       </CardHeader>
-      <CardContent>
+
+      <CardContent className="pt-6">
         {loading && (
-          <div className="flex h-64 items-center justify-center text-muted-foreground">
-            Loading…
+          <div className="flex h-64 items-center justify-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="h-8 w-8 border-3 border-primary/20 border-t-primary rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Loading heatmap…</p>
+            </div>
           </div>
         )}
+
         {error && (
           <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             {error}
           </div>
         )}
+
         {!loading && !error && !hasData && (
-          <div className="rounded-lg border border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
-            No trigger data yet. When you check in, optionally select triggers (e.g. Work, Family) to see correlations here.
+          <div className="rounded-xl border border-dashed border-border/50 bg-secondary/20 px-6 py-12 text-center">
+            <div className="text-3xl mb-3">📊</div>
+            <p className="font-medium text-foreground mb-2">No trigger data yet</p>
+            <p className="text-sm text-muted-foreground">
+              When you check in, select triggers (e.g., Work, Family, Exercise) to see correlations here.
+            </p>
           </div>
         )}
+
         {!loading && !error && hasData && (
-          <div className="overflow-x-auto">
-            <div
-              className="grid gap-2"
-              style={{
-                gridTemplateColumns: `96px repeat(${triggers.length}, minmax(48px, 1fr))`,
-              }}
-            >
-              {/* Header: Trigger */}
-              <div />
-              {triggers.map((t) => (
-                <div
-                  key={t}
-                  className="text-xs text-muted-foreground text-center truncate"
-                  title={t}
-                >
-                  {t}
+          <div className="space-y-6">
+            {/* Legend */}
+            <div className="flex flex-wrap items-center gap-6 pb-4 border-b border-border/30">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground uppercase">Intensity</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground">Low</span>
+                <div className="flex gap-1">
+                  {[0, 0.3, 0.6, 1].map((ratio, i) => {
+                    const color = ratio === 0 
+                      ? 'rgb(220 252 231)' 
+                      : ratio < 0.5 
+                      ? 'rgb(134 239 172)' 
+                      : 'rgb(34 197 94)'
+                    return (
+                      <div
+                        key={i}
+                        className="h-3 w-3 rounded"
+                        style={{ backgroundColor: color }}
+                      />
+                    )
+                  })}
                 </div>
-              ))}
+                <span className="text-xs text-muted-foreground">High</span>
+              </div>
+            </div>
 
-              {/* Rows: Mood */}
-              {moodRows.map((row) => (
-                <div key={row.label} className="contents">
-                  {/* Mood label */}
-                  <div className="flex items-center text-sm font-medium">
-                    {row.label}
+            {/* Heatmap Grid */}
+            <div className="overflow-x-auto -mx-6 px-6">
+              <div
+                className="grid gap-3 min-w-min"
+                style={{
+                  gridTemplateColumns: `120px repeat(${triggers.length}, minmax(56px, 1fr))`,
+                }}
+              >
+                {/* Header: Trigger Names */}
+                <div className="font-medium text-sm text-muted-foreground uppercase text-xs tracking-wider" />
+                {triggers.map((t) => (
+                  <div
+                    key={t}
+                    className="text-xs font-medium text-muted-foreground text-center truncate py-2 px-1"
+                    title={t}
+                  >
+                    {t}
                   </div>
+                ))}
 
-                  {/* Cells */}
-                  {row.values.map((value, idx) => (
-                    <div
-                      key={idx}
-                      className="
-                        aspect-square
-                        w-full
-                        rounded-full
-                        flex items-center justify-center
-                        text-[11px] font-semibold
-                        shadow-sm
-                      "
-                      style={{
-                        backgroundColor: getHeatColor(value, row.max, row.kind),
-                        color: value > row.max / 2 ? 'white' : 'inherit',
-                      }}
-                      title={`${row.label} • ${triggers[idx]}: ${value}`}
-                    >
-                      {value || ''}
+                {/* Rows: Mood */}
+                {moodRows.map((row) => (
+                  <div key={row.label} className="contents">
+                    {/* Mood label with emoji */}
+                    <div className="flex items-center gap-2 font-medium text-sm pr-3">
+                      <span className="text-lg">{row.emoji}</span>
+                      <span className="text-muted-foreground">{row.label}</span>
                     </div>
-                  ))}
-                </div>
-              ))}
+
+                    {/* Cells */}
+                    {row.values.map((value, idx) => (
+                      <div
+                        key={idx}
+                        className="
+                          flex items-center justify-center
+                          rounded-lg
+                          text-[10px] font-bold
+                          transition-all duration-200
+                          hover:ring-2 hover:ring-primary/30 hover:scale-105 cursor-pointer
+                          relative group
+                        "
+                        style={{
+                          backgroundColor: getHeatColor(value, row.max, row.kind),
+                          color: value > row.max / 2 ? 'white' : 'rgb(51 65 85)',
+                          aspectRatio: '1 / 1',
+                          minHeight: '56px'
+                        }}
+                        title={`${row.label} • ${triggers[idx]}: ${value}`}
+                      >
+                        {value > 0 && <span>{value}</span>}
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-slate-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                          {row.label}: {value}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Info Text */}
+            <div className="text-xs text-muted-foreground pt-4 border-t border-border/30">
+              📌 Darker cells indicate higher frequency of that mood-trigger combination.
             </div>
           </div>
         )}
