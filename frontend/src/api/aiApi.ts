@@ -1,6 +1,6 @@
 import http from "./http";
 
-export const aiService = {
+export const aiApi = {
   // Get prompting questions
   getQuestions: (userId, recentMood, count = 3) => {
     return http.post('/ai/questions/suggest', {

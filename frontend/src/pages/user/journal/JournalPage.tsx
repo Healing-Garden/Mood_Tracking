@@ -3,41 +3,24 @@ import type { ChangeEvent } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Textarea } from "../../../components/ui/Textarea";
 import { Input } from "../../../components/ui/Input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../../components/ui/Card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "../../../components/ui/Tabs";
-import {
-  Save,
-  Plus,
-  Trash2,
-  Calendar,
-  BookOpen,
-  Menu,
-  X,
-  Mic,
-  MicOff,
-  Search,
-  Trash,
-  Image as ImageIcon,
-} from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/Card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/Tabs";
+import { Save, Plus, Trash2, Calendar, BookOpen, Menu, X, Mic, MicOff, Search, Trash, Image as ImageIcon } from "lucide-react";
 import DashboardSidebar from "../../../components/layout/DashboardSideBar";
 import { journalApi } from "../../../api/journalApi";
-import type { Journal } from "../../../api/journalApi";
+import { aiApi } from "../../../api/aiApi";
+import { useAuth } from "../../../hooks/useAuth";
+import type { SpeechRecognition, Journal, SpeechRecognitionEvent } from "../../../types/journal";
+import type { SearchResult } from "../../../types/ai";
 
 declare global {
   interface Window {
-    webkitSpeechRecognition: any;
-    SpeechRecognition: any;
+    SpeechRecognition?: {
+      new (): SpeechRecognition;
+    };
+    webkitSpeechRecognition?: {
+      new (): SpeechRecognition;
+    };
   }
 }
 
@@ -72,12 +55,14 @@ const EMOTIONS = [
 const MOODS = ["😊", "😢", "😡", "😠", "😐", "🙂", "🙃", "😍"];
 
 export default function JournalPage() {
+  const { user } = useAuth();
+
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
     "write" | "entries" | "search" | "trash"
   >("entries");
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const speechRecognitionRef = useRef<any>(null);
+  // const [editingId, setEditingId] = useState<string | null>(null);
+  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef<string>(""); // lưu tạm nội dung nói
 
   // Form state
@@ -91,6 +76,10 @@ export default function JournalPage() {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchMeta, setSearchMeta] = useState<{ searchType: string } | null>(null);
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -125,11 +114,46 @@ export default function JournalPage() {
     loadDeletedEntries();
   }, []);
 
-  const filteredEntries = searchQuery
-    ? entries.filter((entry) =>
-        entry.text?.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : entries;
+  // const filteredEntries = searchQuery
+  //   ? entries.filter((entry) =>
+  //       entry.text?.toLowerCase().includes(searchQuery.toLowerCase())
+  //     )
+  //   : entries;
+
+  useEffect(() => {
+    if (!searchQuery.trim() || !user?.id) {
+      setSearchResults([]);
+      setSearchMeta(null);
+      setSearchError(null);
+      return;
+    }
+
+    const handler = setTimeout(async () => {
+      setIsSearching(true);
+      setSearchError(null);
+      try {
+        const response = await aiApi.semanticSearch(user.id, searchQuery, 10);
+        if (response.data?.success) {
+          setSearchResults(response.data.data.results || []);
+          setSearchMeta({ searchType: response.data.data.searchType });
+        } else {
+          setSearchError('Search failed');
+          setSearchResults([]);
+        }
+      } catch (err: unknown) {
+          if (err instanceof Error) {
+            setSearchError(err.message);
+          } else {
+            setSearchError("Search error");
+          }
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(handler);
+  }, [searchQuery, user?.id]);
 
   // Hydration check
   const [hydrated, setHydrated] = useState<boolean>(false);
@@ -138,20 +162,20 @@ export default function JournalPage() {
   }, []);
 
   useEffect(() => {
-    const SpeechRecognition =
-      window.SpeechRecognition || window.webkitSpeechRecognition;
+    const SpeechRecognitionConstructor =
+      window.SpeechRecognition ?? window.webkitSpeechRecognition;
 
-    if (!SpeechRecognition) {
+    if (!SpeechRecognitionConstructor) {
       console.warn("SpeechRecognition not supported");
       return;
     }
 
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionConstructor();
     recognition.lang = "vi-VN";
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       let transcript = "";
 
       for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -205,12 +229,10 @@ export default function JournalPage() {
       mediaRecorderRef.current.stop();
     }
 
-    // 🔥 STOP speech recognition
     if (speechRecognitionRef.current) {
       speechRecognitionRef.current.stop();
     }
 
-    // 🔥 Append text vào content
     if (transcriptRef.current.trim()) {
       setContent((prev) =>
         prev
@@ -253,7 +275,7 @@ export default function JournalPage() {
       formData.append("trigger_tags", JSON.stringify(selectedEmotions));
 
       imageFiles.forEach((file) => {
-        formData.append("files", file); // ⚠ phải là files
+        formData.append("files", file); 
       });
 
       if (audioBlob) {
@@ -361,7 +383,7 @@ export default function JournalPage() {
           <div className="max-w-6xl mx-auto p-6">
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as any)}
+              onValueChange={(v) => setActiveTab(v as "write" | "entries" | "search" | "trash")}
               className="space-y-6"
             >
               <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
@@ -553,71 +575,122 @@ export default function JournalPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-10"
                 />
-                {entries.length === 0 ? (
-                  <Card className="text-center p-12">
-                    <BookOpen
-                      size={48}
-                      className="mx-auto text-muted-foreground mb-4"
-                    />
-                    <p className="text-muted-foreground">
-                      No entries yet. Start writing your first entry!
-                    </p>
-                  </Card>
-                ) : filteredEntries.length === 0 ? (
-                  <Card className="text-center p-12">
-                    <Search
-                      size={48}
-                      className="mx-auto text-muted-foreground mb-4"
-                    />
-                    <p className="text-muted-foreground">
-                      No entries found matching your search
-                    </p>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredEntries.map((entry) => (
-                      <Card
-                        key={entry._id}
-                        className="hover:shadow-lg transition-shadow flex flex-col"
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-2xl">{entry.mood}</span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Calendar size={14} />
-                              {new Date(entry.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <CardTitle className="text-base line-clamp-2">
-                            {entry.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col">
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {entry.text}
-                          </p>
 
-                          <div className="flex gap-2 pt-2 border-t mt-auto">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 bg-transparent h-8"
-                            >
-                              Read
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteEntry(entry._id)}
-                              className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                {searchQuery.trim() ? (
+                  // Kết quả tìm kiếm semantic
+                  isSearching ? (
+                    <div className="flex justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    </div>
+                  ) : searchError ? (
+                    <Card className="text-center p-12 border-red-200">
+                      <p className="text-red-600">{searchError}</p>
+                    </Card>
+                  ) : searchResults.length === 0 ? (
+                    <Card className="text-center p-12">
+                      <Search size={48} className="mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No entries match your search</p>
+                    </Card>
+                  ) : (
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Found {searchResults.length} results
+                        {searchMeta?.searchType && ` (${searchMeta.searchType} search)`}
+                      </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {searchResults.map((result) => (
+                          <Card key={result.entry_id} className="hover:shadow-lg transition-shadow flex flex-col">
+                            <CardHeader className="pb-3">
+                              <div className="flex justify-between items-start mb-2">
+                                <span className="text-2xl">{result.mood || '😐'}</span>
+                                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <Calendar size={14} />
+                                  {new Date(result.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <CardTitle className="text-base line-clamp-2">
+                                Similarity: {(result.similarity * 100).toFixed(1)}%
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-3 flex-1 flex flex-col">
+                              <p
+                                className="text-sm text-muted-foreground line-clamp-3"
+                                dangerouslySetInnerHTML={{
+                                  __html: result.highlighted_text ?? "",
+                                }}
+                              />
+                              <div className="flex gap-2 pt-2 border-t mt-auto">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex-1 bg-transparent h-8"
+                                  onClick={() => {
+                                    // Xử lý xem chi tiết entry, có thể mở modal hoặc chuyển trang
+                                    console.log('View entry', result.entry_id);
+                                  }}
+                                >
+                                  Read
+                                </Button>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  onClick={() => handleDeleteEntry(result.entry_id)} 
+                                  className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
+                                >
+                                  <Trash2 size={14} />
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                ) : (
+                  // Hiển thị tất cả entries khi không tìm kiếm
+                  entries.length === 0 ? (
+                    <Card className="text-center p-12">
+                      <BookOpen size={48} className="mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">No entries yet. Start writing your first entry!</p>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {entries.map((entry) => (
+                        <Card key={entry._id} className="hover:shadow-lg transition-shadow flex flex-col">
+                          <CardHeader className="pb-3">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-2xl">{entry.mood}</span>
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar size={14} />
+                                {new Date(entry.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <CardTitle className="text-base line-clamp-2">
+                              {entry.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3 flex-1 flex flex-col">
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                              {entry.text}
+                            </p>
+                            <div className="flex gap-2 pt-2 border-t mt-auto">
+                              <Button variant="outline" size="sm" className="flex-1 bg-transparent h-8">
+                                Read
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleDeleteEntry(entry._id)} 
+                                className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )
                 )}
               </TabsContent>
 
