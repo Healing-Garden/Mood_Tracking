@@ -140,7 +140,7 @@ const UserProfilePage: React.FC = () => {
           <div className="lg:col-span-1">
             <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
               <AvatarUpload
-                onAvatarChange={(file) => console.log('New avatar file:', file)}
+                onAvatarChange={async (file) => console.log('New avatar file:', file)}
               />
               <div className="mt-6 pt-4 border-t border-border w-full text-center">
                 <p className="text-sm font-semibold text-primary mb-1">Member Since</p>

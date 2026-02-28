@@ -3,6 +3,15 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const googleAuthService = require("./googleAuthService");
 
+const DEFAULT_AVATAR_URL =
+  process.env.DEFAULT_AVATAR_URL ||
+  "https://i.pinimg.com/originals/bc/43/98/bc439871417621836a0eeea768d60944.jpg";
+
+const isDefaultAvatar = (url) => {
+  if (!url) return true;
+  return url.trim() === DEFAULT_AVATAR_URL;
+};
+
 const issueJwt = (user) => {
   const accessToken = jwt.sign(
     { id: user._id, role: user.role },
@@ -76,7 +85,7 @@ module.exports = {
     if (user.authProvider === "local") {
       user.googleId = googleId;
       user.authProvider = "both";
-      if (!user.avatarUrl) user.avatarUrl = picture;
+      if (isDefaultAvatar(user.avatarUrl)) user.avatarUrl = picture;
       await user.save();
 
       return issueJwt(user);
@@ -85,7 +94,10 @@ module.exports = {
     if (!user.googleId) {
       user.googleId = googleId;
       user.authProvider = "both";
-      if (!user.avatarUrl) user.avatarUrl = picture;
+      if (isDefaultAvatar(user.avatarUrl)) user.avatarUrl = picture;
+      await user.save();
+    } else if (isDefaultAvatar(user.avatarUrl)) {
+      user.avatarUrl = picture;
       await user.save();
     }
 
@@ -101,7 +113,7 @@ module.exports = {
 
     user.googleId = googleId;
     user.authProvider = "both";
-    if (!user.avatarUrl) user.avatarUrl = avatarUrl;
+    if (isDefaultAvatar(user.avatarUrl)) user.avatarUrl = avatarUrl;
 
     await user.save();
     return issueJwt(user);
