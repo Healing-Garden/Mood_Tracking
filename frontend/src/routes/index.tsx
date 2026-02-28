@@ -88,7 +88,11 @@ const routes = [
   },
   {
     path: "/user/journal",
-    element: <JournalPage />,
+    element: (
+      <ProtectedRoute role="user">
+        <JournalPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/user/analytics",

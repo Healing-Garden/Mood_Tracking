@@ -18,7 +18,7 @@ class AIController {
                     }
                 });
             } else {
-                res.status(500).json({
+                res.json({
                     success: false,
                     error: result.error,
                     data: {
