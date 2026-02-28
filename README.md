@@ -18,26 +18,35 @@ node -v: 20.19.x or later
 - git branch //show branch
 
 **Backend**
-step 1: cd BE
+Step 1: cd BE
 
-step 2: install library
+Step 2: install library
 
 - npm init -y
 - npm install express mongoose dotenv bcrypt jsonwebtoken cors cookie-parser
 - npm install -D nodemon
 
-step 3: run BE project
+Step 3: run BE project
 
 - npm run dev
 
 **Frontend**
 
-step1: cd frontend
+Step 1: cd frontend
 
-step2: install library
+Step 2: install library
 
 - npm install
 
-step 3:
+Step 3:
 
 - npm run dev
+
+**Python**
+
+Step 1: cd Python
+Step 2: Open docker
+Step 3: pip install -r requirements.txt
+Step 4: docker run -d -p 6379:6379 redis:7-alpine
+Step 5: docker run -d -p 8001:8000 chromadb/chroma:latest
+Step 6: python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
