@@ -44,63 +44,85 @@ async def semantic_search(request: SearchRequest):
         )
         
         # Filter by similarity threshold
-        filtered_results = []
+        filtered_entries_info = []  # list of dicts: {entry_id, similarity, entry_doc, text}
         db = mongodb.get_db()
         
         for i, (entry_id, distance) in enumerate(zip(results["ids"][0], results["distances"][0])):
-            # Convert distance to similarity (ChromaDB uses distance, not similarity)
-            similarity = 1.0 - distance  # Assuming cosine distance
-            
+            similarity = 1.0 - distance
             if similarity >= request.threshold:
-                # Get full entry details from MongoDB
                 entry = await db.journal_entries.find_one({"_id": entry_id})
-                
                 if entry and not entry.get("deleted_at"):
-                    # Extract preview text
-                    text = entry.get("text", "")
-                    preview = text[:200] + "..." if len(text) > 200 else text
-                    
-                    # Find most similar sentence (simple highlight)
-                    sentences = text.split('. ')
-                    if sentences:
-                        # Find sentence with highest similarity to query
-                        sentence_embeddings = embedding_service.encode(sentences)
-                        similarities = embedding_service.batch_similarity(
-                            query_embedding, 
-                            sentence_embeddings
-                        )
-                        best_idx = np.argmax(similarities)
-                        highlighted = sentences[best_idx] + "."
-                    else:
-                        highlighted = preview
-                    
-                    filtered_results.append(SearchResult(
-                        entry_id=str(entry["_id"]),
-                        text=preview,
-                        similarity=float(similarity),
-                        mood=entry.get("mood"),
-                        created_at=entry.get("created_at").isoformat() if entry.get("created_at") else "",
-                        highlighted_text=highlighted
-                    ))
+                    filtered_entries_info.append({
+                        "entry_id": str(entry["_id"]),
+                        "similarity": similarity,
+                        "entry": entry,
+                        "text": entry.get("text", "")
+                    })
         
-        # Sort by similarity and limit
-        filtered_results.sort(key=lambda x: x.similarity, reverse=True)
-        filtered_results = filtered_results[:request.limit]
-        
-        if not filtered_results:
+        if not filtered_entries_info:
             # Fallback to keyword search
             return await keyword_search(request)
         
+        sentences_per_entry = []
+        all_sentences = []
+        entry_indices = []
+        for info in filtered_entries_info:
+            text = info["text"]
+            # Xử lý split câu đơn giản (có thể cải tiến bằng thư viện NLP)
+            sentences = [s.strip() + "." for s in text.split('.') if s.strip()]
+            if not sentences:
+                sentences = [text]  # fallback nếu không tách được
+            sentences_per_entry.append(sentences)
+            all_sentences.extend(sentences)
+        
+        # Encode tất cả câu một lần
+        if all_sentences:
+            sentence_embeddings = embedding_service.encode(all_sentences)
+            # Tính similarity giữa query và tất cả câu
+            similarities = embedding_service.batch_similarity(query_embedding, sentence_embeddings)
+        else:
+            similarities = []
+        
+        # Phân bổ lại kết quả highlight cho từng entry
+        idx = 0
+        final_results = []
+        for i, info in enumerate(filtered_entries_info):
+            sentences = sentences_per_entry[i]
+            num_sent = len(sentences)
+            if num_sent > 0 and similarities is not None:
+                entry_similarities = similarities[idx:idx+num_sent]
+                best_idx = np.argmax(entry_similarities)
+                highlighted = sentences[best_idx]
+            else:
+                highlighted = info["text"][:200] + "..."  
+            
+            idx += num_sent
+            
+            # Tạo preview text
+            preview = info["text"][:200] + "..." if len(info["text"]) > 200 else info["text"]
+            
+            final_results.append(SearchResult(
+                entry_id=info["entry_id"],
+                text=preview,
+                similarity=info["similarity"],
+                mood=info["entry"].get("mood"),
+                created_at=info["entry"].get("created_at").isoformat() if info["entry"].get("created_at") else "",
+                highlighted_text=highlighted
+            ))
+        
+        # Sort by similarity and limit
+        final_results.sort(key=lambda x: x.similarity, reverse=True)
+        final_results = final_results[:request.limit]
+        
         return SearchResponse(
-            results=filtered_results,
+            results=final_results,
             query=request.query,
-            count=len(filtered_results),
+            count=len(final_results),
             search_type="semantic"
         )
         
     except Exception as e:
         logger.error(f"Semantic search failed: {e}")
-        # Fallback to keyword search
         return await keyword_search(request)
 
 async def keyword_search(request: SearchRequest) -> SearchResponse:
@@ -108,7 +130,6 @@ async def keyword_search(request: SearchRequest) -> SearchResponse:
     try:
         db = mongodb.get_db()
         
-        # Simple text search using MongoDB $regex
         query_regex = {"$regex": request.query, "$options": "i"}
         
         entries = await db.journal_entries.find({
@@ -212,4 +233,26 @@ async def find_similar_entries(entry_id: str, user_id: str, limit: int = 5):
         
     except Exception as e:
         logger.error(f"Find similar entries failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@router.post("/sync/entry")
+async def sync_entry(entry_id: str, user_id: str, text: str, operation: str = "add"):
+    try:
+        if operation in ["add", "update"]:
+            embedding = embedding_service.encode([text])[0].tolist()
+            await vector_store.add_documents(
+                collection_name="journal_entries",
+                documents=[text],
+                embeddings=[embedding],
+                metadatas=[{"user_id": user_id, "entry_id": entry_id}],
+                ids=[entry_id]
+            )
+        elif operation == "delete":
+            await vector_store.delete(
+                collection_name="journal_entries",
+                ids=[entry_id]
+            )
+        return {"status": "ok"}
+    except Exception as e:
+        logger.error(f"Sync failed for entry {entry_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
