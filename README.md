@@ -45,8 +45,13 @@ Step 3:
 **Python**
 
 Step 1: cd Python
+
 Step 2: Open docker
+
 Step 3: pip install -r requirements.txt
+
 Step 4: docker run -d -p 6379:6379 redis:7-alpine
+
 Step 5: docker run -d -p 8001:8000 chromadb/chroma:latest
+
 Step 6: python -m uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
