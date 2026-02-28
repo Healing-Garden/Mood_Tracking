@@ -24,23 +24,6 @@ declare global {
   }
 }
 
-// Constants
-const DAILY_PROMPTS = [
-  {
-    title: "How did that moment make you feel?",
-    subtitle:
-      "Take a deep breath and describe the colors of your mood today...",
-  },
-  {
-    title: "What are you grateful for today?",
-    subtitle: "Share three moments that brought you peace...",
-  },
-  {
-    title: "Describe your inner weather",
-    subtitle: "What storms or sunshine do you notice within?",
-  },
-];
-
 const EMOTIONS = [
   "Happy",
   "Sad",
@@ -62,9 +45,7 @@ export default function JournalPage() {
     "write" | "entries" | "search" | "trash"
   >("entries");
   // const [editingId, setEditingId] = useState<string | null>(null);
-  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
-  const transcriptRef = useRef<string>(""); // lưu tạm nội dung nói
-
+  
   // Form state
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
@@ -80,12 +61,16 @@ export default function JournalPage() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchMeta, setSearchMeta] = useState<{ searchType: string } | null>(null);
+  const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
+  const transcriptRef = useRef<string>(""); // lưu tạm nội dung nói
 
   // Store
   const [entries, setEntries] = useState<Journal[]>([]);
@@ -113,6 +98,43 @@ export default function JournalPage() {
     loadEntries();
     loadDeletedEntries();
   }, []);
+
+  useEffect(() => {
+  // Chỉ active khi đang ở tab "write" và nội dung trống
+    if (activeTab === 'write' && !content.trim()) {
+      if (!timerRef.current) {
+        timerRef.current = setTimeout(() => {
+          fetchPromptQuestions();
+        }, 15000);
+      }
+    } else {
+      // Hủy timer nếu người dùng bắt đầu nhập hoặc chuyển tab
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = undefined;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, [content, activeTab]);
+
+  const fetchPromptQuestions = async () => {
+    if (!user?.id) return;
+    try {
+      const res = await aiApi.getQuestions(user.id, selectedMood, 3, 'en');
+      if (res?.data?.success) {
+        setSuggestedQuestions(res.data?.data?.questions || []);
+      } else if (res?.data?.questions?.length) {
+        setSuggestedQuestions(res.data.questions);
+      }
+    } catch (error) {
+      console.error('Failed to fetch questions', error);
+    }
+  };
 
   // const filteredEntries = searchQuery
   //   ? entries.filter((entry) =>
@@ -331,9 +353,6 @@ export default function JournalPage() {
     );
   };
 
-  const currentPrompt =
-    DAILY_PROMPTS[Math.floor(Math.random() * DAILY_PROMPTS.length)];
-
   if (!hydrated) return null;
 
   return (
@@ -403,23 +422,25 @@ export default function JournalPage() {
 
               {/* Write Tab */}
               <TabsContent value="write" className="space-y-6">
-                {/* Daily Prompt */}
-                <Card className="bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/30">
-                  <CardHeader className="pb-3">
-                    <p className="text-xs font-semibold text-primary uppercase tracking-wide">
-                      Daily Sanctuary
-                    </p>
-                    <CardTitle className="text-2xl mt-2">
-                      {currentPrompt.title}
-                    </CardTitle>
-                    <CardDescription className="text-sm mt-2">
-                      {currentPrompt.subtitle}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
                 <Card>
                   <CardContent className="pt-6 space-y-4">
+                    {suggestedQuestions.length > 0 && (
+                      <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                        <p className="text-sm font-medium mb-2">✨ Writing Suggestions:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {suggestedQuestions.map((q, idx) => (
+                            <Button
+                              key={idx}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setContent(prev => prev + (prev ? '\n' : '') + q)}
+                            >
+                              {q}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     {/* Textarea */}
                     <Textarea
                       placeholder="Start your journey here, share your soul..."
@@ -430,6 +451,8 @@ export default function JournalPage() {
                     <p className="text-xs text-right text-muted-foreground">
                       {content.length} characters
                     </p>
+
+                    
 
                     {/* Mood Selection */}
                     <div className="flex items-center gap-2">
