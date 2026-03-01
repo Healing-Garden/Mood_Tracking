@@ -63,7 +63,23 @@ export const dailyCheckInApi = {
   getWordCloud(period: "week" | "month" | "year" = "month"): Promise<WordCloudResponse> {
     return http.get(`/user/analytics/word-cloud?period=${period}`) as Promise<WordCloudResponse>;
   },
+
+  getMoodHistory(month: number, year: number): Promise<MoodHistoryResponse> {
+    return http.get(`/user/analytics/mood-history?month=${month}&year=${year}`) as Promise<MoodHistoryResponse>;
+  },
 };
+
+export interface MoodHistoryItem {
+  date: string;
+  mood: number;
+  theme: "low" | "neutral" | "positive";
+}
+
+export interface MoodHistoryResponse {
+  month: number;
+  year: number;
+  items: MoodHistoryItem[];
+}
 
 export interface TriggerHeatmapRow {
   trigger: string;
