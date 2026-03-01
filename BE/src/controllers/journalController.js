@@ -18,7 +18,7 @@ module.exports = {
       console.log(req.files);
 
       if (data && data._id && data.text) {
-        aiService.syncEntry(data._id, data.text, 'add').catch(err => {
+        aiService.syncEntry(data._id, req.user.id, data.text, 'add').catch(err => {
           console.error('Sync to vector store failed for create:', err);
         });
       }
@@ -70,7 +70,7 @@ module.exports = {
       });
 
       if (data && data._id && data.text) {
-        aiService.syncEntry(data._id, data.text, 'update').catch(err => {
+        aiService.syncEntry(data._id, req.user.id, data.text, 'update').catch(err => {
           console.error('Sync to vector store failed for update:', err);
         });
       }
@@ -88,7 +88,7 @@ module.exports = {
         userId: req.user.id,
       });
 
-      aiService.deleteEntry(req.params.id).catch(err => {
+      aiService.deleteEntry(req.params.id, req.user.id).catch(err => {
         console.error('Delete from vector store failed:', err);
       });
 
@@ -106,7 +106,7 @@ module.exports = {
       });
 
       if (data && data._id && data.text) {
-        aiService.syncEntry(data._id, data.text, 'add').catch(err => {
+        aiService.syncEntry(data._id, req.user.id, data.text, 'add').catch(err => {
           console.error('Sync to vector store failed for restore:', err);
         });
       }
@@ -124,7 +124,7 @@ module.exports = {
         userId: req.user.id,
       });
 
-      aiService.deleteEntry(req.params.id).catch(err => {
+      aiService.deleteEntry(req.params.id, req.user.id).catch(err => {
         console.error('Delete from vector store failed for permanent delete:', err);
       });
 

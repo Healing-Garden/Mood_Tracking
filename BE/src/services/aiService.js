@@ -7,6 +7,7 @@ class AIServiceClient {
         if (!this.apiKey) {
             throw new Error('AI_SERVICE_API_KEY is required');
         }
+        
         this.timeout = config.timeout || 60000;
         
         this.client = axios.create({
@@ -41,11 +42,15 @@ class AIServiceClient {
      */
     async suggestQuestions(userId, recentMood = null, count = 3) {
         try {
-            const response = await this.client.post('/api/v1/questions/suggest', {
-                user_id: userId,
-                recent_mood: recentMood,
-                count: count
-            });
+            const response = await this.client.post(
+                '/api/v1/questions/suggest',
+                {
+                    user_id: userId,
+                    recent_mood: recentMood,
+                    count: count
+                },
+                { timeout: 12000 }
+            );
             
             return {
                 success: true,
@@ -69,10 +74,14 @@ class AIServiceClient {
      */
     async generateDailySummary(userId, date = null) {
         try {
-            const response = await this.client.post('/api/v1/summary/daily', {
-                user_id: userId,
-                date: date || new Date().toISOString().split('T')[0]
-            });
+            const response = await this.client.post(
+                '/api/v1/summary/daily',
+                {
+                    user_id: userId,
+                    date: date || new Date().toISOString().split('T')[0]
+                },
+                { timeout: 20000 }
+            );
             
             return {
                 success: true,
@@ -294,6 +303,46 @@ class AIServiceClient {
                 completions: []
             };
         }
+    }
+    
+    /**
+     * Sync a journal entry to vector store (add/update/delete)
+     */
+    async syncEntry(entryId, userId, text, operation = 'add') {
+        try {
+            if (!entryId) {
+                throw new Error('entryId is required');
+            }
+            if (!userId) {
+                throw new Error('userId is required');
+            }
+
+            const params = {
+                entry_id: String(entryId),
+                user_id: String(userId),
+                operation: operation,
+            };
+
+            // FastAPI route uses primitive params, which are interpreted as query params.
+            if (operation !== 'delete') {
+                params.text = String(text || '');
+            } else {
+                params.text = String(text || '');
+            }
+
+            const response = await this.client.post('/api/v1/search/sync/entry', null, { params });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to sync entry:', error.message);
+            throw error;
+        }
+    }
+
+    /**
+     * Delete journal entry from vector store
+     */
+    async deleteEntry(entryId, userId) {
+        return this.syncEntry(entryId, userId, '', 'delete');
     }
     
     /**
