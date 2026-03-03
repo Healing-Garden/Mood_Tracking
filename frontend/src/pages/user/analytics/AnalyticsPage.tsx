@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { dailyCheckInApi, type SummaryResponse } from '../../../api/dailyCheckInApi'
@@ -9,8 +9,11 @@ import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import MoodFlow from '../../../components/features/MoodFlow'
 import WordCloud from '../../../components/features/WordCloud'
 import MoodCalendar from '../../../components/features/MoodCalendar'
+import ReportTemplate from '../../../components/features/ReportTemplate'
+import jsPDF from 'jspdf'
+import { toPng } from 'html-to-image'
 
-type TimeRange = 'week' | 'month' | 'quarter' | 'year'
+type TimeRange = 'week' | 'month' | 'year'
 
 const AnalyticsPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
@@ -18,14 +21,58 @@ const AnalyticsPage = () => {
   const [isExporting, setIsExporting] = useState(false)
   const [summary, setSummary] = useState<SummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const reportRef = useRef<HTMLDivElement>(null)
+
+  // Helper for date range display
+  const getFormattedDateRange = (range: TimeRange) => {
+    const end = new Date();
+    let start = new Date();
+
+    if (range === 'week') start.setDate(end.getDate() - 7);
+    else if (range === 'month') start.setMonth(end.getMonth() - 1);
+    else if (range === 'year') start.setFullYear(end.getFullYear() - 1);
+
+    return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+  };
+
+  // Export Modal & Config
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportConfig, setExportConfig] = useState({
+    summaryRange: 'week' as TimeRange,
+    moodFlowRange: 'week' as TimeRange,
+    heatmapRange: 'week' as TimeRange,
+    wordCloudRange: 'week' as TimeRange
+  });
+
+  const [exportSummary, setExportSummary] = useState<SummaryResponse | null>(null);
+
+  // Sync config when modal opens
+  useEffect(() => {
+    if (showExportModal) {
+      setExportConfig(prev => ({ ...prev, summaryRange: timeRange }));
+    }
+  }, [showExportModal, timeRange]);
+
+  // Load summary for export if range changes
+  useEffect(() => {
+    if (showExportModal) {
+      const loadExportSummary = async () => {
+        try {
+          const data = await dailyCheckInApi.getAnalyticsSummary(exportConfig.summaryRange)
+          setExportSummary(data)
+        } catch (error) {
+          console.error('Failed to load export summary:', error)
+        }
+      }
+      loadExportSummary()
+    }
+  }, [exportConfig.summaryRange, showExportModal]);
 
   useEffect(() => {
     const loadSummary = async () => {
       try {
         setLoading(true)
-        // Map 'quarter' to 'month' because BE currently supports 'week', 'month', 'year'
-        const period = timeRange === 'quarter' ? 'month' : timeRange as 'week' | 'month' | 'year'
-        const data = await dailyCheckInApi.getAnalyticsSummary(period)
+        const data = await dailyCheckInApi.getAnalyticsSummary(timeRange)
         setSummary(data)
       } catch (error) {
         console.error('Failed to load summary:', error)
@@ -38,15 +85,173 @@ const AnalyticsPage = () => {
 
   const handleExport = async () => {
     setIsExporting(true)
-    // TODO: Thực tế gọi API export PDF/CSV
-    console.log('Exporting report for range:', timeRange)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsExporting(false)
-    alert('Report exported successfully! (mock)')
+    try {
+      // Delay to ensure all charts and AI content are fully rendered
+      await new Promise(resolve => setTimeout(resolve, 2500));
+
+      if (reportRef.current) {
+        // Capture with high resolution and reset scaling to avoid distortion
+        const imgData = await toPng(reportRef.current, {
+          quality: 1,
+          pixelRatio: 2,
+          width: 800,
+          style: {
+            transform: 'scale(1)',
+            transformOrigin: 'top left',
+            visibility: 'visible',
+            position: 'static'
+          }
+        });
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(imgData);
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfPageHeight = pdf.internal.pageSize.getHeight();
+        const imgHeightInPdf = (imgProps.height * pdfWidth) / imgProps.width;
+
+        let heightLeft = imgHeightInPdf;
+        let position = 0;
+
+        // Add first page
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInPdf, undefined, 'FAST');
+        heightLeft -= pdfPageHeight;
+
+        // Add subsequent pages if content exceeds one page
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeightInPdf; // Calculate offset for the next segment
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInPdf, undefined, 'FAST');
+          heightLeft -= pdfPageHeight;
+        }
+
+        pdf.save(`HealingGarden_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        setShowExportModal(false);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export report. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   }
+
+  const ExportPreviewModal = () => (
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${showExportModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+          <div>
+            <h2 className="text-2xl font-bold text-primary">Export Mental Health Report</h2>
+            <p className="text-slate-500 text-sm">Configure your report sections before downloading</p>
+          </div>
+          <button onClick={() => setShowExportModal(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+          {/* Settings Sidebar */}
+          <div className="w-full md:w-80 p-6 border-r bg-slate-50/50 space-y-6 overflow-y-auto">
+            <div className="space-y-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp size={18} className="text-primary" /> Configuration
+              </h3>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Summary Statistics</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, summaryRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.summaryRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Mood Flow Range</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, moodFlowRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.moodFlowRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Trigger Factors Range</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, heatmapRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.heatmapRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Common Themes Range</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, wordCloudRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.wordCloudRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t">
+              <Button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="w-full bg-primary hover:bg-primary/90 text-white gap-2 h-11 text-base font-bold shadow-lg shadow-primary/20"
+              >
+                {isExporting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating...</span> : <><Download size={20} /> Download PDF</>}
+              </Button>
+            </div>
+          </div>
+
+          {/* Report Preview */}
+          <div className="flex-1 bg-slate-200 p-8 overflow-y-auto flex justify-center">
+            <div className="shadow-2xl origin-top scale-[0.55] sm:scale-[0.65] md:scale-[0.5] lg:scale-[0.6] xl:scale-[0.7]">
+              <ReportTemplate
+                ref={reportRef}
+                summary={exportSummary || summary}
+                timeRange={exportConfig.summaryRange}
+                userName={JSON.parse(localStorage.getItem('user') || '{"name": "User"}').name}
+                dateRange={getFormattedDateRange(exportConfig.summaryRange)}
+                isPreview={true}
+                exportConfig={exportConfig}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen bg-background">
+      <ExportPreviewModal />
+
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
         <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
@@ -71,12 +276,11 @@ const AnalyticsPage = () => {
 
             <div className="flex items-center gap-3">
               <Button
-                onClick={handleExport}
-                disabled={isExporting}
+                onClick={() => setShowExportModal(true)}
                 className="bg-primary hover:bg-primary/90 text-white gap-2 h-10"
               >
                 <Download size={18} />
-                {isExporting ? 'Exporting...' : 'Export Report'}
+                Export Report
               </Button>
 
               <button
@@ -93,7 +297,7 @@ const AnalyticsPage = () => {
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Time Range Selector */}
           <div className="mb-8 flex flex-wrap gap-3">
-            {(['week', 'month', 'quarter', 'year'] as TimeRange[]).map(range => (
+            {(['week', 'month', 'year'] as TimeRange[]).map(range => (
               <Button
                 key={range}
                 onClick={() => setTimeRange(range)}

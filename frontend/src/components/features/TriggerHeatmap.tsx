@@ -23,12 +23,17 @@ function getHeatColor(
 }
 
 interface HeatmapProps {
-    defaultPeriod?: HeatmapPeriod
+  defaultPeriod?: HeatmapPeriod
 }
 
-export default function TriggerHeatmap({defaultPeriod = 'week'}: HeatmapProps) {
+export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps) {
   const [period, setPeriod] = useState<HeatmapPeriod>(defaultPeriod)
   const [rows, setRows] = useState<TriggerHeatmapRow[]>([])
+
+  // Sync state if prop changes (needed for export capture)
+  useEffect(() => {
+    setPeriod(defaultPeriod);
+  }, [defaultPeriod]);
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -80,7 +85,7 @@ export default function TriggerHeatmap({defaultPeriod = 'week'}: HeatmapProps) {
   ]
 
   return (
-    <Card className="border-border shadow-md">
+    <Card id="trigger-heatmap-chart" className="border-border shadow-md">
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
