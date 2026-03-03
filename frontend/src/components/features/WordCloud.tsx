@@ -11,6 +11,11 @@ interface WordCloudProps {
 export default function WordCloud({ defaultPeriod = 'month' }: WordCloudProps) {
     const [period, setPeriod] = useState<Period>(defaultPeriod)
     const [words, setWords] = useState<WordCloudWord[]>([])
+
+    // Sync state if prop changes (needed for export capture)
+    useEffect(() => {
+        setPeriod(defaultPeriod);
+    }, [defaultPeriod]);
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -59,7 +64,7 @@ export default function WordCloud({ defaultPeriod = 'month' }: WordCloudProps) {
     }
 
     return (
-        <Card className="border-border shadow-md">
+        <Card id="word-cloud-chart" className="border-border shadow-md">
             <CardHeader>
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -73,8 +78,8 @@ export default function WordCloud({ defaultPeriod = 'month' }: WordCloudProps) {
                                 type="button"
                                 onClick={() => setPeriod(p)}
                                 className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${period === p
-                                        ? 'bg-primary text-white'
-                                        : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                                    ? 'bg-primary text-white'
+                                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
                                     }`}
                             >
                                 {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}

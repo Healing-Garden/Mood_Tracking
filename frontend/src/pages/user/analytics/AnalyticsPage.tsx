@@ -1,17 +1,22 @@
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
+
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { dailyCheckInApi, type SummaryResponse } from '../../../api/dailyCheckInApi'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
-import { Download, Menu, X, AlertTriangle } from 'lucide-react'
+import { Download, Menu, X, TrendingUp, AlertTriangle } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import MoodFlow from '../../../components/features/MoodFlow'
 import WordCloud from '../../../components/features/WordCloud'
 import MoodCalendar from '../../../components/features/MoodCalendar'
+import ReportTemplate from '../../../components/features/ReportTemplate'
+import jsPDF from 'jspdf'
+import { toPng } from 'html-to-image'
 import { aiApi } from '../../../api/aiApi'
 import { useAuth } from '../../../hooks/useAuth'
 
-type TimeRange = 'week' | 'month' | 'quarter' | 'year'
+type TimeRange = 'week' | 'month' | 'year'
 
 interface TrendAnalysis {
   moodPoints: Array<{
@@ -39,8 +44,71 @@ interface TrendAnalysis {
 const AnalyticsPage = () => {
   const { user } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [timeRange, setTimeRange] = useState<TimeRange>('month')
+  const [timeRange, setTimeRange] = useState<TimeRange>('week')
   const [isExporting, setIsExporting] = useState(false)
+  const [summary, setSummary] = useState<SummaryResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+  const reportRef = useRef<HTMLDivElement>(null)
+
+  // Helper for date range display
+  const getFormattedDateRange = (range: TimeRange) => {
+    const end = new Date();
+    let start = new Date();
+
+    if (range === 'week') start.setDate(end.getDate() - 7);
+    else if (range === 'month') start.setMonth(end.getMonth() - 1);
+    else if (range === 'year') start.setFullYear(end.getFullYear() - 1);
+
+    return `${start.toLocaleDateString()} - ${end.toLocaleDateString()}`;
+  };
+
+  // Export Modal & Config
+  const [showExportModal, setShowExportModal] = useState(false);
+  const [exportConfig, setExportConfig] = useState({
+    summaryRange: 'week' as TimeRange,
+    moodFlowRange: 'week' as TimeRange,
+    heatmapRange: 'week' as TimeRange,
+    wordCloudRange: 'week' as TimeRange
+  });
+
+  const [exportSummary, setExportSummary] = useState<SummaryResponse | null>(null);
+
+  // Sync config when modal opens
+  useEffect(() => {
+    if (showExportModal) {
+      setExportConfig(prev => ({ ...prev, summaryRange: timeRange }));
+    }
+  }, [showExportModal, timeRange]);
+
+  // Load summary for export if range changes
+  useEffect(() => {
+    if (showExportModal) {
+      const loadExportSummary = async () => {
+        try {
+          const data = await dailyCheckInApi.getAnalyticsSummary(exportConfig.summaryRange)
+          setExportSummary(data)
+        } catch (error) {
+          console.error('Failed to load export summary:', error)
+        }
+      }
+      loadExportSummary()
+    }
+  }, [exportConfig.summaryRange, showExportModal]);
+
+  useEffect(() => {
+    const loadSummary = async () => {
+      try {
+        setLoading(true)
+        const data = await dailyCheckInApi.getAnalyticsSummary(timeRange)
+        setSummary(data)
+      } catch (error) {
+        console.error('Failed to load summary:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadSummary()
+  }, [timeRange])
   const [loadingAI, setLoadingAI] = useState(false)
   const [trendData, setTrendData] = useState<TrendAnalysis | null>(null)
   const [aiError, setAiError] = useState<string | null>(null)
@@ -49,7 +117,6 @@ const AnalyticsPage = () => {
     switch (range) {
       case 'week': return 7
       case 'month': return 30
-      case 'quarter': return 90
       case 'year': return 365
       default: return 30
     }
@@ -96,12 +163,173 @@ const AnalyticsPage = () => {
 
   const handleExport = async () => {
     setIsExporting(true)
-    // TODO: Thực tế gọi API export PDF/CSV
-    console.log('Exporting report for range:', timeRange)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsExporting(false)
-    alert('Report exported successfully! (mock)')
+    try {
+      // Delay to ensure all charts and AI content are fully rendered
+      await new Promise(resolve => setTimeout(resolve, 2500));
+
+      if (reportRef.current) {
+        // Capture with high resolution and reset scaling to avoid distortion
+        const imgData = await toPng(reportRef.current, {
+          quality: 1,
+          pixelRatio: 2,
+          width: 800,
+          style: {
+            transform: 'scale(1)',
+            transformOrigin: 'top left',
+            visibility: 'visible',
+            position: 'static'
+          }
+        });
+
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const imgProps = pdf.getImageProperties(imgData);
+
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfPageHeight = pdf.internal.pageSize.getHeight();
+        const imgHeightInPdf = (imgProps.height * pdfWidth) / imgProps.width;
+
+        let heightLeft = imgHeightInPdf;
+        let position = 0;
+
+        // Add first page
+        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInPdf, undefined, 'FAST');
+        heightLeft -= pdfPageHeight;
+
+        // Add subsequent pages if content exceeds one page
+        while (heightLeft > 0) {
+          position = heightLeft - imgHeightInPdf; // Calculate offset for the next segment
+          pdf.addPage();
+          pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeightInPdf, undefined, 'FAST');
+          heightLeft -= pdfPageHeight;
+        }
+
+        pdf.save(`HealingGarden_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+        setShowExportModal(false);
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Failed to export report. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
   }
+
+  const ExportPreviewModal = () => (
+    <div className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${showExportModal ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="p-6 border-b flex justify-between items-center bg-slate-50">
+          <div>
+            <h2 className="text-2xl font-bold text-primary">Export Mental Health Report</h2>
+            <p className="text-slate-500 text-sm">Configure your report sections before downloading</p>
+          </div>
+          <button
+            onClick={() => setShowExportModal(false)}
+            className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+            aria-label="Close export modal"
+            title="Close"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
+          {/* Settings Sidebar */}
+          <div className="w-full md:w-80 p-6 border-r bg-slate-50/50 space-y-6 overflow-y-auto">
+            <div className="space-y-4">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <TrendingUp size={18} className="text-primary" /> Configuration
+              </h3>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Summary Statistics</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, summaryRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.summaryRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Mood Flow Range</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, moodFlowRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.moodFlowRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Trigger Factors Range</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, heatmapRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.heatmapRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <label className="text-xs font-bold text-slate-500 uppercase">Common Themes Range</label>
+                <div className="grid grid-cols-3 gap-1">
+                  {['week', 'month', 'year'].map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setExportConfig({ ...exportConfig, wordCloudRange: r as TimeRange })}
+                      className={`py-1.5 text-xs rounded-md border font-medium transition-all ${exportConfig.wordCloudRange === r ? 'bg-primary text-white border-primary shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:border-primary/40'}`}
+                    >
+                      {r.charAt(0).toUpperCase() + r.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t">
+              <Button
+                onClick={handleExport}
+                disabled={isExporting}
+                className="w-full bg-primary hover:bg-primary/90 text-white gap-2 h-11 text-base font-bold shadow-lg shadow-primary/20"
+              >
+                {isExporting ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Generating...</span> : <><Download size={20} /> Download PDF</>}
+              </Button>
+            </div>
+          </div>
+
+          {/* Report Preview */}
+          <div className="flex-1 bg-slate-200 p-8 overflow-y-auto flex justify-center">
+            <div className="shadow-2xl origin-top scale-[0.55] sm:scale-[0.65] md:scale-[0.5] lg:scale-[0.6] xl:scale-[0.7]">
+              <ReportTemplate
+                ref={reportRef}
+                summary={exportSummary || summary}
+                timeRange={exportConfig.summaryRange}
+                userName={JSON.parse(localStorage.getItem('user') || '{"name": "User"}').name}
+                dateRange={getFormattedDateRange(exportConfig.summaryRange)}
+                isPreview={true}
+                exportConfig={exportConfig}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   // Helper to convert internal score (-1 to +1) to 1-5 display scale
   const scoreToDisplayMood = (score: number | undefined): string => {
@@ -143,6 +371,8 @@ const AnalyticsPage = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
+      <ExportPreviewModal />
+
       {/* Sidebar */}
       <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
         <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
@@ -167,17 +397,18 @@ const AnalyticsPage = () => {
 
             <div className="flex items-center gap-3">
               <Button
-                onClick={handleExport}
-                disabled={isExporting}
+                onClick={() => setShowExportModal(true)}
                 className="bg-primary hover:bg-primary/90 text-white gap-2 h-10"
               >
                 <Download size={18} />
-                {isExporting ? 'Exporting...' : 'Export Report'}
+                Export Report
               </Button>
 
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 hover:bg-muted rounded-lg"
+                aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
@@ -189,7 +420,7 @@ const AnalyticsPage = () => {
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* Time Range Selector */}
           <div className="mb-8 flex flex-wrap gap-3">
-            {(['week', 'month', 'quarter', 'year'] as TimeRange[]).map(range => (
+            {(['week', 'month', 'year'] as TimeRange[]).map(range => (
               <Button
                 key={range}
                 onClick={() => setTimeRange(range)}
@@ -227,18 +458,17 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-sm font-semibold text-muted-foreground">Avg Mood Score</CardTitle>
               </CardHeader>
               <CardContent>
-                {loadingAI ? (
-                  <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
-                ) : (
-                  <div className="text-3xl font-bold text-primary">
-                    {scoreToDisplayMood(trendData?.stats?.average_mood)}
-                    <span className="text-base font-normal text-muted-foreground">/5</span>
-                  </div>
-                )}
+                <div className="text-3xl font-bold text-primary">
+                  {loading ? '...' : (summary?.current.avgMood || 0)}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  {trendData?.stats ? (
-                    <>{getTrendArrow(trendData.stats.trend_slope)} {trendData.overallTrend} trend</>
-                  ) : 'Tracking your mood'}
+                  {summary && summary.moodTrend !== 0 ? (
+                    <>
+                      <span className={summary.moodTrend > 0 ? 'text-green-500' : 'text-red-500'}>
+                        {summary.moodTrend > 0 ? '↑' : '↓'} {Math.abs(summary.moodTrend)}
+                      </span> from last {timeRange}
+                    </>
+                  ) : 'No change'}
                 </p>
               </CardContent>
             </Card>
@@ -249,6 +479,10 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-sm font-semibold text-muted-foreground">Emotional Stability</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="text-3xl font-bold text-accent">
+                  {loading ? '...' : `${summary?.current.consistency || 0}%`}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">Daily check-ins</p>
                 {loadingAI ? (
                   <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
                 ) : (
@@ -271,21 +505,39 @@ const AnalyticsPage = () => {
             {/* Data Points */}
             <Card className="border-border shadow-md hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">Days Tracked</CardTitle>
+                <CardTitle className="text-sm font-semibold text-muted-foreground">
+                  Entries
+                </CardTitle>
               </CardHeader>
+
               <CardContent>
-                {loadingAI ? (
-                  <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
-                ) : (
-                  <div className="text-3xl font-bold text-primary">
-                    {trendData?.stats?.data_points ?? '—'}
-                  </div>
-                )}
+                <div className="text-3xl font-bold text-primary">
+                  {loading ? '...' : (summary?.current.journalEntries || 0)}
+                </div>
+
                 <p className="text-xs text-muted-foreground mt-1">
-                  {trendData?.stats
-                    ? `In last ${trendData.stats.analysis_period_days} days`
-                    : 'Check-in days'}
+                  In this {timeRange}
                 </p>
+
+                <div className="mt-4">
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    Days Tracked
+                  </p>
+
+                  {loadingAI ? (
+                    <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
+                  ) : (
+                    <div className="text-3xl font-bold text-primary">
+                      {trendData?.stats?.data_points ?? '—'}
+                    </div>
+                  )}
+
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {trendData?.stats
+                      ? `In last ${trendData.stats.analysis_period_days} days`
+                      : 'Check-in days'}
+                  </p>
+                </div>
               </CardContent>
             </Card>
 
@@ -295,6 +547,9 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-sm font-semibold text-muted-foreground">AI Insights</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="text-3xl font-bold text-accent">
+                  {loading ? '...' : (summary?.current.insightCount || 0)}
+                </div>
                 {loadingAI ? (
                   <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
                 ) : (
@@ -338,7 +593,7 @@ const AnalyticsPage = () => {
 
             {/* Mood Trend */}
             <TabsContent value="mood">
-              <MoodFlow defaultPeriod="month" />
+              <MoodFlow defaultPeriod="week" />
             </TabsContent>
 
             {/* Mood Calendar */}
@@ -348,7 +603,7 @@ const AnalyticsPage = () => {
 
             {/* Word Cloud */}
             <TabsContent value="wordcloud">
-              <WordCloud defaultPeriod="month" />
+              <WordCloud defaultPeriod="week" />
             </TabsContent>
 
             {/* Trigger Heatmap */}
@@ -357,7 +612,7 @@ const AnalyticsPage = () => {
 
                 {/* Heatmap - main */}
                 <div className="lg:col-span-2">
-                  <TriggerHeatmap />
+                  <TriggerHeatmap defaultPeriod="week" />
                 </div>
 
                 {/* Insight panel */}
@@ -400,6 +655,66 @@ const AnalyticsPage = () => {
             </TabsContent>
 
           </Tabs>
+
+          {/* Comparative Analysis */}
+          <Card className="mb-10 border-border shadow-md">
+            <CardHeader>
+              <CardTitle className="text-primary flex items-center gap-2">
+                <TrendingUp size={20} />
+                Comparative Analysis
+              </CardTitle>
+              <CardDescription>
+                Comparing current {timeRange} vs previous {timeRange}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-secondary/30">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">Metric</th>
+                      <th className="px-6 py-3 font-medium text-center">Previous {timeRange}</th>
+                      <th className="px-6 py-3 font-medium text-center">Current {timeRange}</th>
+                      <th className="px-6 py-3 font-medium text-center">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {[
+                      { label: 'Avg Mood', key: 'avgMood', suffix: '/5' },
+                      { label: 'Consistency', key: 'consistency', suffix: '%' },
+                      { label: 'Journal Entries', key: 'journalEntries', suffix: '' },
+                      { label: 'AI Insights', key: 'insightCount', suffix: '' },
+                    ].map((item) => {
+                      const curr = summary?.current[item.key as keyof typeof summary.current] || 0;
+                      const prev = summary?.previous[item.key as keyof typeof summary.previous] || 0;
+                      const diff = curr - prev;
+                      const isPositive = diff > 0;
+
+                      return (
+                        <tr key={item.label} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-6 py-4 font-medium text-foreground">{item.label}</td>
+                          <td className="px-6 py-4 text-center text-muted-foreground">{prev}{item.suffix}</td>
+                          <td className="px-6 py-4 text-center font-bold text-primary">{curr}{item.suffix}</td>
+                          <td className="px-6 py-4 text-center">
+                            {diff !== 0 ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${isPositive && item.key !== 'avgMood' || (isPositive && item.key === 'avgMood' && diff > 0)
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                                }`}>
+                                {isPositive ? '↑' : '↓'} {Math.abs(Number(diff.toFixed(1)))}{item.suffix}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* AI Insights */}
           <Card className="mt-12 border-border shadow-md bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
