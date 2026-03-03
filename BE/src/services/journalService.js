@@ -1,6 +1,7 @@
 const Journal = require("../models/journalEntries");
 const cloudinary = require("../config/cloudinary");
 const streamifier = require("streamifier");
+const aiService = require("../services/aiService");
 
 const uploadToCloudinary = (fileBuffer) => {
   return new Promise((resolve, reject) => {
@@ -51,10 +52,29 @@ module.exports = {
       trigger_tags,
       images,
       voice_note_url,
+      created_at: new Date(),
     });
 
+    if (text && text.trim()) {
+      try {
+        const sentimentResult = await aiService.analyzeSentiment(text);
+        if (sentimentResult.success) {
+          journal.sentiment = {
+            sentiment: sentimentResult.sentiment,
+            score: sentimentResult.score,
+            confidence: sentimentResult.confidence,
+            emotions: sentimentResult.emotions || [] 
+          };
+        }
+      } catch (error) {
+        console.error("Failed to analyze sentiment for journal entry:", error);
+      }
+    }
+
+    await journal.save();
     return journal;
   },
+
   getAll: async (userId) => {
     return await Journal.find({
       user_id: userId,

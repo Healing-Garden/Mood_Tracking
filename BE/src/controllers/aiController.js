@@ -115,11 +115,18 @@ class AIController {
                     }
                 });
             } else {
-                res.status(500).json({
+                // Still return 200 so UI can show fallback/stub trend data
+                res.json({
                     success: false,
                     error: result.error,
                     data: {
-                        insights: result.insights || []
+                        moodPoints: result.moodPoints || [],
+                        overallTrend: result.overallTrend || 'error',
+                        trendScore: result.trendScore || 0,
+                        volatility: result.volatility || 0,
+                        insights: result.insights || [],
+                        riskFlags: result.riskFlags || [],
+                        stats: result.stats || {}
                     }
                 });
             }
