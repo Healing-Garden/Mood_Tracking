@@ -16,9 +16,10 @@ export const aiApi = {
   },
 
   // Generate daily summary
-  getDailySummary: (userId: string, date: string | null) => {
-    return http.post('/ai/summary/daily', { userId, date }, { timeout: 30000 });
+  getDailySummary: (userId: string, date: string | null, force: boolean = false) => {
+    return http.post('/ai/summary/daily', { userId, date, forceRegenerate: force }, { timeout: 30000 });
   },
+  
 
   // Semantic search
   semanticSearch: (userId: string, query: string, limit: number = 10) => {

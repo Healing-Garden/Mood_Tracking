@@ -1,4 +1,13 @@
 const axios = require('axios');
+const mongoose = require('mongoose');
+const { ObjectId } = require('mongodb');
+
+async function getMongoDB() {
+    if (!mongoose.connection || !mongoose.connection.db) {
+        throw new Error('MongoDB connection not initialized');
+    }
+    return mongoose.connection.db;
+}
 
 class AIServiceClient {
     constructor(config = {}) {
@@ -74,14 +83,14 @@ class AIServiceClient {
      */
     async generateDailySummary(userId, date = null) {
         try {
-            const response = await this.client.post(
-                '/api/v1/summary/daily',
-                {
+            const response = await this.client.post('/api/v1/summary/daily', {
                     user_id: userId,
                     date: date || new Date().toISOString().split('T')[0]
-                },
-                { timeout: 20000 }
+                }, { timeout: 30000 }
             );
+
+            const result = response.data;
+            await this.saveDailySummary(userId, result);
 
             return {
                 success: true,
@@ -99,6 +108,35 @@ class AIServiceClient {
                 summary: "Unable to generate summary at this time. Check back later."
             };
         }
+    }
+
+    async saveDailySummary(userId, data) {
+        const db = await getMongoDB(); 
+        const collection = db.collection('daily_summaries');
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let userObjectId = null;
+        try {
+            userObjectId = new ObjectId(String(userId));
+        } catch (e) {
+            userObjectId = null;
+        }
+
+        const storedUserId = userObjectId || String(userId);
+
+        await collection.updateOne(
+            { user_id: storedUserId, date: today },
+            {
+            $set: {
+                summary: data.summary,
+                metadata: data.metadata,
+                generated_at: new Date(data.generated_at),
+                updated_at: new Date()
+            }
+            },
+            { upsert: true }
+        );
     }
 
     /**
@@ -328,7 +366,6 @@ class AIServiceClient {
                 operation: operation,
             };
 
-            // FastAPI route uses primitive params, which are interpreted as query params.
             if (operation !== 'delete') {
                 params.text = String(text || '');
             } else {
