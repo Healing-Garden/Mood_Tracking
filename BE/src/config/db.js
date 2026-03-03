@@ -5,7 +5,7 @@ const connectDB = async () => {
     console.log("MONGO_URI:", process.env.MONGO_URI);
 
     await mongoose.connect(process.env.MONGO_URI, {
-      family: 4, // FIX DNS SRV ECONNREFUSED on Windows
+      family: 4, 
     });
 
     console.log("MongoDB connected");
