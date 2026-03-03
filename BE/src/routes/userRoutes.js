@@ -27,7 +27,11 @@ router.get("/checkins/flow", userController.getMoodFlow);
 // Analytics
 router.get("/analytics/trigger-heatmap", userController.getTriggerHeatmap);
 router.get("/analytics/word-cloud", userController.getWordCloud);
+router.get("/analytics/summary", userController.getAnalyticsSummary);
 router.get("/analytics/mood-history", userController.getMoodHistory);
+
+// Dashboard
+router.get("/dashboard/data", userController.getDashboardData);
 
 module.exports = router;
 

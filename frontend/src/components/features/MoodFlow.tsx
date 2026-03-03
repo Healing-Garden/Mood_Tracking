@@ -22,6 +22,11 @@ export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodF
     const { lastCheckInDate } = useDailyCheckInStore()
     const [period, setPeriod] = useState<MoodFlowPeriod>(defaultPeriod)
     const [moodTrendData, setMoodTrendData] = useState<MoodTrendPoint[]>([])
+
+    // Sync state if prop changes (needed for export capture)
+    useEffect(() => {
+        setPeriod(defaultPeriod);
+    }, [defaultPeriod]);
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -53,7 +58,7 @@ export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodF
     }, [period, lastCheckInDate, onDataChange])
 
     return (
-        <Card className="border-border/50 shadow-md">
+        <Card id="mood-flow-chart" className="border-border/50 shadow-md">
             <CardHeader>
                 <div className="flex items-center justify-between gap-4">
                     <CardTitle className="flex items-center gap-2">
