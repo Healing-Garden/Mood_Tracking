@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
+import { dailyCheckInApi, type SummaryResponse } from '../../../api/dailyCheckInApi'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
-import { Download, Menu, X } from 'lucide-react'
+import { Download, Menu, X, TrendingUp } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import MoodFlow from '../../../components/features/MoodFlow'
@@ -13,8 +14,27 @@ type TimeRange = 'week' | 'month' | 'quarter' | 'year'
 
 const AnalyticsPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [timeRange, setTimeRange] = useState<TimeRange>('month')
+  const [timeRange, setTimeRange] = useState<TimeRange>('week')
   const [isExporting, setIsExporting] = useState(false)
+  const [summary, setSummary] = useState<SummaryResponse | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const loadSummary = async () => {
+      try {
+        setLoading(true)
+        // Map 'quarter' to 'month' because BE currently supports 'week', 'month', 'year'
+        const period = timeRange === 'quarter' ? 'month' : timeRange as 'week' | 'month' | 'year'
+        const data = await dailyCheckInApi.getAnalyticsSummary(period)
+        setSummary(data)
+      } catch (error) {
+        console.error('Failed to load summary:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadSummary()
+  }, [timeRange])
 
   const handleExport = async () => {
     setIsExporting(true)
@@ -96,8 +116,18 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-sm font-semibold text-muted-foreground">Avg Mood</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-primary">4.3</div>
-                <p className="text-xs text-muted-foreground mt-1">↑ 0.5 from last month</p>
+                <div className="text-3xl font-bold text-primary">
+                  {loading ? '...' : (summary?.current.avgMood || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {summary && summary.moodTrend !== 0 ? (
+                    <>
+                      <span className={summary.moodTrend > 0 ? 'text-green-500' : 'text-red-500'}>
+                        {summary.moodTrend > 0 ? '↑' : '↓'} {Math.abs(summary.moodTrend)}
+                      </span> from last {timeRange}
+                    </>
+                  ) : 'No change'}
+                </p>
               </CardContent>
             </Card>
 
@@ -106,18 +136,22 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-sm font-semibold text-muted-foreground">Consistency</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-accent">89%</div>
+                <div className="text-3xl font-bold text-accent">
+                  {loading ? '...' : `${summary?.current.consistency || 0}%`}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">Daily check-ins</p>
               </CardContent>
             </Card>
 
             <Card className="border-border shadow-md hover:shadow-lg transition-shadow">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-semibold text-muted-foreground">Total Entries</CardTitle>
+                <CardTitle className="text-sm font-semibold text-muted-foreground">Entries</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-primary">47</div>
-                <p className="text-xs text-muted-foreground mt-1">Journal entries</p>
+                <div className="text-3xl font-bold text-primary">
+                  {loading ? '...' : (summary?.current.journalEntries || 0)}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">In this {timeRange}</p>
               </CardContent>
             </Card>
 
@@ -126,7 +160,9 @@ const AnalyticsPage = () => {
                 <CardTitle className="text-sm font-semibold text-muted-foreground">Insights</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-accent">12</div>
+                <div className="text-3xl font-bold text-accent">
+                  {loading ? '...' : (summary?.current.insightCount || 0)}
+                </div>
                 <p className="text-xs text-muted-foreground mt-1">AI insights generated</p>
               </CardContent>
             </Card>
@@ -163,7 +199,7 @@ const AnalyticsPage = () => {
 
             {/* Mood Trend */}
             <TabsContent value="mood">
-              <MoodFlow defaultPeriod="month" />
+              <MoodFlow defaultPeriod="week" />
             </TabsContent>
 
             {/* Mood Calendar */}
@@ -173,7 +209,7 @@ const AnalyticsPage = () => {
 
             {/* Word Cloud */}
             <TabsContent value="wordcloud">
-              <WordCloud defaultPeriod="month" />
+              <WordCloud defaultPeriod="week" />
             </TabsContent>
 
             {/* Trigger Heatmap */}
@@ -182,7 +218,7 @@ const AnalyticsPage = () => {
 
                 {/* Heatmap - main */}
                 <div className="lg:col-span-2">
-                  <TriggerHeatmap />
+                  <TriggerHeatmap defaultPeriod="week" />
                 </div>
 
                 {/* Insight panel */}
@@ -225,6 +261,66 @@ const AnalyticsPage = () => {
             </TabsContent>
 
           </Tabs>
+
+          {/* Comparative Analysis */}
+          <Card className="mb-10 border-border shadow-md">
+            <CardHeader>
+              <CardTitle className="text-primary flex items-center gap-2">
+                <TrendingUp size={20} />
+                Comparative Analysis
+              </CardTitle>
+              <CardDescription>
+                Comparing current {timeRange} vs previous {timeRange}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="text-xs text-muted-foreground uppercase bg-secondary/30">
+                    <tr>
+                      <th className="px-6 py-3 font-medium">Metric</th>
+                      <th className="px-6 py-3 font-medium text-center">Previous {timeRange}</th>
+                      <th className="px-6 py-3 font-medium text-center">Current {timeRange}</th>
+                      <th className="px-6 py-3 font-medium text-center">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {[
+                      { label: 'Avg Mood', key: 'avgMood', suffix: '/5' },
+                      { label: 'Consistency', key: 'consistency', suffix: '%' },
+                      { label: 'Journal Entries', key: 'journalEntries', suffix: '' },
+                      { label: 'AI Insights', key: 'insightCount', suffix: '' },
+                    ].map((item) => {
+                      const curr = summary?.current[item.key as keyof typeof summary.current] || 0;
+                      const prev = summary?.previous[item.key as keyof typeof summary.previous] || 0;
+                      const diff = curr - prev;
+                      const isPositive = diff > 0;
+
+                      return (
+                        <tr key={item.label} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-6 py-4 font-medium text-foreground">{item.label}</td>
+                          <td className="px-6 py-4 text-center text-muted-foreground">{prev}{item.suffix}</td>
+                          <td className="px-6 py-4 text-center font-bold text-primary">{curr}{item.suffix}</td>
+                          <td className="px-6 py-4 text-center">
+                            {diff !== 0 ? (
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${isPositive && item.key !== 'avgMood' || (isPositive && item.key === 'avgMood' && diff > 0)
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                                }`}>
+                                {isPositive ? '↑' : '↓'} {Math.abs(Number(diff.toFixed(1)))}{item.suffix}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* AI Insights */}
           <Card className="mt-12 border-border shadow-md bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">

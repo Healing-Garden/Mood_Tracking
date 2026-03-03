@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card'
 import { dailyCheckInApi, type TriggerHeatmapRow } from '../../api/dailyCheckInApi'
 
-type Period = 'week' | 'month' | 'year'
+type HeatmapPeriod = 'week' | 'month' | 'year'
 
 const MOOD_COLORS = {
   negative: { light: 'rgb(254 226 226)', mid: 'rgb(248 113 113)', dark: 'rgb(220 38 38)' },
@@ -22,8 +22,12 @@ function getHeatColor(
   return MOOD_COLORS[kind].mid
 }
 
-export default function TriggerHeatmap() {
-  const [period, setPeriod] = useState<Period>('month')
+interface HeatmapProps {
+    defaultPeriod?: HeatmapPeriod
+}
+
+export default function TriggerHeatmap({defaultPeriod = 'week'}: HeatmapProps) {
+  const [period, setPeriod] = useState<HeatmapPeriod>(defaultPeriod)
   const [rows, setRows] = useState<TriggerHeatmapRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -95,7 +99,7 @@ export default function TriggerHeatmap() {
               <span>Frequent</span>
             </div>
             <div className="flex gap-2">
-              {(['week', 'month', 'year'] as Period[]).map((p) => (
+              {(['week', 'month', 'year'] as HeatmapPeriod[]).map((p) => (
                 <button
                   key={p}
                   type="button"

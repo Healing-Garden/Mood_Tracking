@@ -1,6 +1,8 @@
 const User = require("../models/users");
 const DailyCheckIn = require("../models/dailyCheckIn");
 const Onboarding = require("../models/onboarding");
+const JournalEntry = require("../models/journalEntries");
+const ChatSession = require("../models/chatSession");
 
 // Helper to derive theme from mood (1–5)
 const getThemeByMood = (mood) => {
@@ -368,6 +370,199 @@ module.exports = {
       });
     } catch (err) {
       console.error("getMoodHistory error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
+  // GET /api/user/analytics/summary?period=week|month|year
+  getAnalyticsSummary: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const period = req.query.period || "month";
+
+      const today = new Date();
+      let start = new Date(today);
+      let prevStart = new Date(today);
+      let days = 30;
+
+      if (period === "year") {
+        start.setFullYear(start.getFullYear() - 1);
+        prevStart.setFullYear(prevStart.getFullYear() - 2);
+        days = 365;
+      } else if (period === "month") {
+        start.setMonth(start.getMonth() - 1);
+        prevStart.setMonth(prevStart.getMonth() - 2);
+        days = 30;
+      } else {
+        // default: week
+        start.setDate(start.getDate() - 6);
+        prevStart.setDate(prevStart.getDate() - 13);
+        days = 7;
+      }
+
+      const toStr = today.toISOString().split("T")[0];
+      const fromStr = start.toISOString().split("T")[0];
+      const prevFromStr = prevStart.toISOString().split("T")[0];
+
+      // 1. Avg Mood & Trend
+      const currentCheckIns = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: fromStr, $lte: toStr },
+      }).select("mood");
+
+      const prevCheckIns = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: prevFromStr, $lt: fromStr },
+      }).select("mood");
+
+      const calculateAvg = (items) => {
+        if (!items.length) return 0;
+        const sum = items.reduce((acc, curr) => acc + curr.mood, 0);
+        return parseFloat((sum / items.length).toFixed(1));
+      };
+
+      const avgMood = calculateAvg(currentCheckIns);
+      const prevAvgMood = calculateAvg(prevCheckIns);
+      const moodTrend = avgMood - prevAvgMood;
+
+      // 2. Consistency
+      const calculateConsistency = (items, daysCount) => Math.round((items.length / daysCount) * 100);
+      const consistency = calculateConsistency(currentCheckIns, days);
+      const prevConsistency = calculateConsistency(prevCheckIns, days);
+
+      // 3. Total Entries (Journal) - Within the specific period
+      const currentEntries = await JournalEntry.countDocuments({
+        user_id: userId,
+        createdAt: { $gte: start, $lte: today },
+        deleted_at: null,
+      });
+      const prevEntries = await JournalEntry.countDocuments({
+        user_id: userId,
+        createdAt: { $gte: prevStart, $lt: start },
+        deleted_at: null,
+      });
+
+      // 4. Insights (Count of chat sessions with summaries) - Within the specific period
+      const currentInsights = await ChatSession.countDocuments({
+        userId: userId,
+        sessionSummary: { $exists: true, $ne: "" },
+        createdAt: { $gte: start, $lte: today },
+      });
+      const prevInsights = await ChatSession.countDocuments({
+        userId: userId,
+        sessionSummary: { $exists: true, $ne: "" },
+        createdAt: { $gte: prevStart, $lt: start },
+      });
+
+      return res.json({
+        period,
+        current: {
+          avgMood,
+          consistency,
+          journalEntries: currentEntries,
+          insightCount: currentInsights,
+        },
+        previous: {
+          avgMood: prevAvgMood,
+          consistency: prevConsistency,
+          journalEntries: prevEntries,
+          insightCount: prevInsights,
+        },
+        moodTrend: parseFloat(moodTrend.toFixed(1)),
+      });
+    } catch (err) {
+      console.error("getAnalyticsSummary error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+
+  // GET /api/user/dashboard/data
+  getDashboardData: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const today = new Date();
+      const toStr = today.toISOString().split("T")[0];
+      const weekStart = new Date(today);
+      weekStart.setDate(weekStart.getDate() - 6);
+      const weekFromStr = weekStart.toISOString().split("T")[0];
+
+      // 1. Wellness Journey Day Count
+      const user = await User.findById(userId).select("createdAt");
+      let journeyDays = 1;
+      if (user && user.createdAt) {
+        const diffTime = Math.abs(today - user.createdAt);
+        journeyDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      }
+
+      // 2. Weekly Stats (Same logic as Analytics Page for sync)
+      const currentCheckIns = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: weekFromStr, $lte: toStr },
+      }).select("mood");
+
+      const calculateAvg = (items) => {
+        if (!items.length) return 0;
+        const sum = items.reduce((acc, curr) => acc + curr.mood, 0);
+        return parseFloat((sum / items.length).toFixed(1));
+      };
+
+      const avgMood = calculateAvg(currentCheckIns);
+      const totalEntriesLabel = await JournalEntry.countDocuments({
+        user_id: userId,
+        createdAt: { $gte: weekStart, $lte: today },
+        deleted_at: null,
+      });
+      const insightCount = await ChatSession.countDocuments({
+        userId: userId,
+        sessionSummary: { $exists: true, $ne: "" },
+        createdAt: { $gte: weekStart, $lte: today },
+      });
+
+      // 3. Mood Distribution (Pie Chart) - Last 30 days
+      const monthStart = new Date(today);
+      monthStart.setMonth(monthStart.getMonth() - 1);
+      const monthFromStr = monthStart.toISOString().split("T")[0];
+
+      const monthEntries = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: monthFromStr, $lte: toStr },
+      }).select("mood theme");
+
+      const distribution = {
+        'Happy': 0,
+        'Calm': 0,
+        'Anxious': 0,
+        'Sad': 0
+      };
+
+      monthEntries.forEach(e => {
+        if (e.mood === 5) distribution['Happy']++;
+        else if (e.mood === 4 || e.mood === 3) distribution['Calm']++;
+        else if (e.mood === 2) distribution['Anxious']++;
+        else if (e.mood === 1) distribution['Sad']++;
+      });
+
+      const totalMonth = monthEntries.length || 1;
+      const pieData = [
+        { name: 'Happy', value: Math.round((distribution['Happy'] / totalMonth) * 100), fill: '#52b788' },
+        { name: 'Calm', value: Math.round((distribution['Calm'] / totalMonth) * 100), fill: '#7fdb8e' },
+        { name: 'Anxious', value: Math.round((distribution['Anxious'] / totalMonth) * 100), fill: '#f4d35e' },
+        { name: 'Sad', value: Math.round((distribution['Sad'] / totalMonth) * 100), fill: '#8b5cf6' },
+      ];
+
+      return res.json({
+        journeyDays,
+        weeklyStats: {
+          checkIns: currentCheckIns.length,
+          avgMood,
+          journalEntries: totalEntriesLabel,
+          insightsGenerated: insightCount
+        },
+        moodDistribution: pieData
+      });
+
+    } catch (err) {
+      console.error("getDashboardData error:", err);
       return res.status(500).json({ message: "Internal server error" });
     }
   },
