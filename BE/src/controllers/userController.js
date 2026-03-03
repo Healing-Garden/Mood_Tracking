@@ -619,7 +619,7 @@ module.exports = {
   changePassword: async (req, res) => {
     try {
       const userId = req.user.id;
-      const { currentPassword, newPassword } = req.body;
+      const { currentPassword, newPassword, recoveryCode } = req.body;
 
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ message: "Current password and new password are required" });
@@ -629,10 +629,45 @@ module.exports = {
       const result = await userService.changePassword(userId, {
         currentPassword,
         newPassword,
+        recoveryCode,
       });
       return res.json(result);
     } catch (err) {
       console.error("changePassword error:", err);
+      return res.status(400).json({ message: err.message || "Internal server error" });
+    }  
+  },
+
+  // GET /api/user/admin/recovery-codes
+  getAdminRecoveryCodes: async (req, res) => {
+    try {
+      if (req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const userId = req.user.id;
+      const userService = require("../services/userService");
+      const result = await userService.getAdminRecoveryCodes(userId);
+      return res.json(result);
+    } catch (err) {
+      console.error("getAdminRecoveryCodes error:", err);
+      return res.status(400).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  // POST /api/user/admin/recovery-codes/regenerate
+  regenerateAdminRecoveryCodes: async (req, res) => {
+    try {
+      if (req.user.role !== "admin") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+
+      const userId = req.user.id;
+      const userService = require("../services/userService");
+      const result = await userService.regenerateAdminRecoveryCodes(userId);
+      return res.json(result);
+    } catch (err) {
+      console.error("regenerateAdminRecoveryCodes error:", err);
       return res.status(400).json({ message: err.message || "Internal server error" });
     }
   },
