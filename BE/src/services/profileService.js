@@ -166,8 +166,19 @@ module.exports = {
 
     if (!user) throw new Error("User not found");
 
+    // Check if user has password (local auth only)
+    if (!user.password) {
+      throw new Error("You cannot change password because you signed up with Google. Please use Google account settings to change your password.");
+    }
+
+    // Verify current password
     const match = await bcrypt.compare(currentPassword, user.password);
     if (!match) throw new Error("Current password is incorrect");
+
+    // Validate new password strength
+    if (newPassword.length < 6) {
+      throw new Error("New password must be at least 6 characters long");
+    }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;

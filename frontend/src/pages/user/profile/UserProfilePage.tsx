@@ -1,25 +1,40 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
 import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
-import { Eye, EyeOff, Lock, Menu, X } from 'lucide-react'
+import { Eye, EyeOff, Lock, Menu, X, AlertCircle } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import { Card, CardContent } from '../../../components/ui/Card'
+import { useProfile } from '../../../hooks/useProfile'
 
 const UserProfilePage: React.FC = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security'>('personal')
-  const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [passwordError, setPasswordError] = useState<string>('')
+  const [personalError, setPersonalError] = useState<string>('')
+  const [showFormSuccess, setShowFormSuccess] = useState(false)
+
+  // Use the useProfile hook
+  const {
+    profile,
+    loading,
+    error,
+    updateProfile: updateProfileAPI,
+    uploadAvatar,
+    deleteAvatar,
+    changePassword: changePasswordAPI,
+    setAppLockPin: setAppLockPinAPI,
+  } = useProfile()
 
   // Personal Info
-  const [name, setName] = useState<string>('John Doe')
-  const [age, setAge] = useState<string>('28')
-  const [height, setHeight] = useState<string>('175')
-  const [weight, setWeight] = useState<string>('75')
-  const [email, setEmail] = useState<string>('john@example.com')
+  const [name, setName] = useState<string>('')
+  const [age, setAge] = useState<string>('')
+  const [height, setHeight] = useState<string>('')
+  const [weight, setWeight] = useState<string>('')
+  const [email, setEmail] = useState<string>('')
 
   // Password
   const [currentPassword, setCurrentPassword] = useState<string>('')
@@ -32,29 +47,98 @@ const UserProfilePage: React.FC = () => {
   const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(''))
   const [confirmPinDigits, setConfirmPinDigits] = useState<string[]>(Array(6).fill(''))
 
+  // Load profile data from API response
+  useEffect(() => {
+    if (profile) {
+      setName(profile.fullName || '')
+      setAge(profile.age?.toString() || '')
+      setHeight(profile.heightCm?.toString() || '')
+      setWeight(profile.weight?.toString() || '')
+      setEmail(profile.email || '')
+    }
+  }, [profile])
+
+  // Clear success message after 3 seconds
+  useEffect(() => {
+    if (showFormSuccess) {
+      const timer = setTimeout(() => setShowFormSuccess(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [showFormSuccess])
+
   const handlePersonalInfoSave = async (e: FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-    // TODO: API call to save profile
-    console.log('Saving personal info:', { name, age, height, weight, email })
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    setIsLoading(false)
+    setPersonalError('')
+
+    if (!name.trim()) {
+      setPersonalError('Full name is required')
+      return
+    }
+
+    if (age && (isNaN(Number(age)) || Number(age) < 0)) {
+      setPersonalError('Age must be a valid number')
+      return
+    }
+
+    if (height && (isNaN(Number(height)) || Number(height) < 0)) {
+      setPersonalError('Height must be a valid number')
+      return
+    }
+
+    if (weight && (isNaN(Number(weight)) || Number(weight) < 0)) {
+      setPersonalError('Weight must be a valid number')
+      return
+    }
+
+    try {
+      await updateProfileAPI({
+        fullName: name.trim(),
+        age: age ? Number(age) : undefined,
+        heightCm: height ? Number(height) : undefined,
+        weight: weight ? Number(weight) : undefined,
+      })
+      setShowFormSuccess(true)
+    } catch (err: any) {
+      setPersonalError(err?.response?.data?.message || 'Failed to update profile')
+    }
   }
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
-    if (newPassword !== confirmPassword) {
-      alert('New passwords do not match')
+    setPasswordError('')
+
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All password fields are required')
       return
     }
-    setIsLoading(true)
-    // TODO: API call to change password
-    console.log('Changing password')
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    setIsLoading(false)
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match')
+      return
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters long')
+      return
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordError('New password must be different from current password')
+      return
+    }
+
+    try {
+      await changePasswordAPI({
+        currentPassword,
+        newPassword,
+      })
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setShowFormSuccess(true)
+    } catch (err: any) {
+      setPasswordError(err?.response?.data?.message || 'Failed to change password')
+    }
   }
 
   const handlePinSetup = async (e: FormEvent) => {
@@ -71,14 +155,15 @@ const UserProfilePage: React.FC = () => {
       return
     }
 
-    setIsLoading(true)
-    // TODO: API call to set PIN
-    console.log('Setting PIN:', pin)
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    setIsLoading(false)
-    setShowPinForm(false)
-    setPinDigits(Array(6).fill(''))
-    setConfirmPinDigits(Array(6).fill(''))
+    try {
+      await setAppLockPinAPI(pin)
+      setShowPinForm(false)
+      setPinDigits(Array(6).fill(''))
+      setConfirmPinDigits(Array(6).fill(''))
+      setShowFormSuccess(true)
+    } catch (err: any) {
+      alert(err?.response?.data?.message || 'Failed to set PIN')
+    }
   }
 
   const handlePinDigitChange = (
@@ -139,12 +224,24 @@ const UserProfilePage: React.FC = () => {
           {/* Avatar & Member Info Sidebar */}
           <div className="lg:col-span-1">
             <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
-              <AvatarUpload
-                onAvatarChange={async (file) => console.log('New avatar file:', file)}
-              />
+              {loading ? (
+                <div className="w-32 h-32 rounded-full bg-secondary/30 flex items-center justify-center">
+                  <p className="text-sm text-muted-foreground">Loading...</p>
+                </div>
+              ) : (
+                <AvatarUpload
+                  currentAvatar={profile?.avatarUrl}
+                  onAvatarChange={async (file: File) => {
+                    await uploadAvatar(file)
+                  }}
+                  onAvatarRemove={deleteAvatar}
+                />
+              )}
               <div className="mt-6 pt-4 border-t border-border w-full text-center">
                 <p className="text-sm font-semibold text-primary mb-1">Member Since</p>
-                <p className="text-sm text-muted-foreground">January 2024</p>
+                <p className="text-sm text-muted-foreground">
+                  {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : 'N/A'}
+                </p>
               </div>
             </Card>
           </div>
@@ -181,6 +278,17 @@ const UserProfilePage: React.FC = () => {
 
               {/* Personal Info */}
               <TabsContent value="personal" className="mt-6 space-y-6">
+                {personalError && (
+                  <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                    <p className="text-sm text-red-700">{personalError}</p>
+                  </div>
+                )}
+                {showFormSuccess && activeTab === 'personal' && (
+                  <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <p className="text-sm text-green-700">Profile updated successfully!</p>
+                  </div>
+                )}
                 <form onSubmit={handlePersonalInfoSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="name" className="text-primary font-medium">
@@ -191,18 +299,18 @@ const UserProfilePage: React.FC = () => {
                       value={name}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                       className="h-11"
+                      disabled={loading}
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="email" className="text-primary font-medium">
-                      Email
+                      Email (Cannot be changed)
                     </Label>
                     <Input
                       id="email"
                       type="email"
                       value={email}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                       className="h-11"
                       disabled
                     />
@@ -218,6 +326,7 @@ const UserProfilePage: React.FC = () => {
                       value={age}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setAge(e.target.value)}
                       className="h-11"
+                      disabled={loading}
                     />
                   </div>
 
@@ -231,6 +340,7 @@ const UserProfilePage: React.FC = () => {
                       value={height}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)}
                       className="h-11"
+                      disabled={loading}
                     />
                   </div>
 
@@ -244,79 +354,105 @@ const UserProfilePage: React.FC = () => {
                       value={weight}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
                       className="h-11"
+                      disabled={loading}
                     />
                   </div>
 
                   <Button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={loading}
                     className="md:col-span-2 w-full h-11 bg-primary hover:bg-primary/90"
                   >
-                    {isLoading ? 'Saving...' : 'Save Changes'}
+                    {loading ? 'Saving...' : 'Save Changes'}
                   </Button>
                 </form>
               </TabsContent>
 
               {/* Password Change */}
               <TabsContent value="password" className="mt-6 space-y-6">
-                <form onSubmit={handlePasswordChange} className="space-y-5">
-                  <div className="space-y-2">
-                    <Label htmlFor="current-password" className="text-primary font-medium">
-                      Current Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="current-password"
-                        type={showPasswords ? 'text' : 'password'}
-                        value={currentPassword}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-                        className="h-11 pr-10"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPasswords(!showPasswords)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        aria-label={showPasswords ? 'Hide password' : 'Show password'}
+                {profile?.authProvider === 'google' ? (
+                  <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <AlertCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                    <p className="text-sm text-blue-700">
+                      You are signed in with Google. Please use your Google account settings to change your password.
+                    </p>
+                  </div>
+                ) : profile?.authProvider === 'both' || profile?.authProvider === 'local' ? (
+                  <>
+                    {passwordError && (
+                      <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+                        <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                        <p className="text-sm text-red-700">{passwordError}</p>
+                      </div>
+                    )}
+                    {showFormSuccess && activeTab === 'password' && (
+                      <div className="flex items-center gap-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <p className="text-sm text-green-700">Password changed successfully!</p>
+                      </div>
+                    )}
+                    <form onSubmit={handlePasswordChange} className="space-y-5">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password" className="text-primary font-medium">
+                          Current Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="current-password"
+                            type={showPasswords ? 'text' : 'password'}
+                            value={currentPassword}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                            className="h-11 pr-10"
+                            disabled={loading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPasswords(!showPasswords)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                            aria-label={showPasswords ? 'Hide password' : 'Show password'}
+                          >
+                            {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password" className="text-primary font-medium">
+                          New Password
+                        </Label>
+                        <Input
+                          id="new-password"
+                          type={showPasswords ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                          className="h-11"
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password" className="text-primary font-medium">
+                          Confirm New Password
+                        </Label>
+                        <Input
+                          id="confirm-password"
+                          type={showPasswords ? 'text' : 'password'}
+                          value={confirmPassword}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                          className="h-11"
+                          disabled={loading}
+                        />
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={loading}
+                        className="w-full h-11 bg-primary hover:bg-primary/90"
                       >
-                        {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="new-password" className="text-primary font-medium">
-                      New Password
-                    </Label>
-                    <Input
-                      id="new-password"
-                      type={showPasswords ? 'text' : 'password'}
-                      value={newPassword}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="confirm-password" className="text-primary font-medium">
-                      Confirm New Password
-                    </Label>
-                    <Input
-                      id="confirm-password"
-                      type={showPasswords ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                      className="h-11"
-                    />
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full h-11 bg-primary hover:bg-primary/90"
-                  >
-                    {isLoading ? 'Updating...' : 'Change Password'}
-                  </Button>
-                </form>
+                        {loading ? 'Updating...' : 'Change Password'}
+                      </Button>
+                    </form>
+                  </>
+                ) : null}
               </TabsContent>
 
               {/* Security / PIN Setup */}
@@ -337,6 +473,7 @@ const UserProfilePage: React.FC = () => {
                   <Button
                     onClick={() => setShowPinForm(true)}
                     className="w-full h-11 bg-primary hover:bg-primary/90 gap-2"
+                    disabled={loading}
                   >
                     <Lock size={18} />
                     Set App Lock PIN
@@ -357,6 +494,7 @@ const UserProfilePage: React.FC = () => {
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, false)}
                             className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
                             placeholder="•"
+                            disabled={loading}
                           />
                         ))}
                       </div>
@@ -376,6 +514,7 @@ const UserProfilePage: React.FC = () => {
                             onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, true)}
                             className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
                             placeholder="•"
+                            disabled={loading}
                           />
                         ))}
                       </div>
@@ -391,19 +530,20 @@ const UserProfilePage: React.FC = () => {
                           setConfirmPinDigits(Array(6).fill(''))
                         }}
                         className="flex-1 h-11"
+                        disabled={loading}
                       >
                         Cancel
                       </Button>
                       <Button
                         type="submit"
                         disabled={
-                          isLoading ||
+                          loading ||
                           pinDigits.some(d => !d) ||
                           confirmPinDigits.some(d => !d)
                         }
                         className="flex-1 h-11 bg-primary hover:bg-primary/90"
                       >
-                        {isLoading ? 'Setting...' : 'Set PIN'}
+                        {loading ? 'Setting...' : 'Set PIN'}
                       </Button>
                     </div>
                   </form>

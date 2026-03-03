@@ -3,7 +3,7 @@ import { Button } from "../../components/ui/Button"
 import { Upload, X, Loader2 } from "lucide-react"
 
 interface AvatarUploadProps {
-  currentAvatar?: string
+  currentAvatar?: string | null
   onAvatarChange: (file: File) => Promise<void>
   onAvatarRemove?: () => Promise<void>
 }
@@ -32,15 +32,20 @@ export default function AvatarUpload({
   const [removing, setRemoving] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Update preview when currentAvatar changes
   useEffect(() => {
-    if (!uploading) {
-      setPreview(resolveAvatarUrl(currentAvatar))
-    }
-  }, [currentAvatar, uploading])
+    const newPreview = resolveAvatarUrl(currentAvatar)
+    setPreview(newPreview)
+  }, [currentAvatar])
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !file.type.startsWith("image/")) {
+    if (!file) {
+      setError(null)
+      return
+    }
+
+    if (!file.type.startsWith("image/")) {
       setError("Please select a valid image file")
       return
     }
@@ -57,6 +62,10 @@ export default function AvatarUpload({
       setUploading(true)
       try {
         await onAvatarChange(file)
+        // Reset file input after successful upload
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ""
+        }
       } catch (err: any) {
         setError(err?.response?.data?.message || "Failed to upload avatar")
         setPreview(resolveAvatarUrl(currentAvatar))
@@ -85,6 +94,8 @@ export default function AvatarUpload({
       setShowConfirm(false)
     } catch (err: any) {
       setError(err?.response?.data?.message || "Failed to remove avatar")
+      // Keep current avatar if remove fails
+      setPreview(resolveAvatarUrl(currentAvatar))
     } finally {
       setRemoving(false)
     }
