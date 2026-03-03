@@ -144,7 +144,12 @@ const AnalyticsPage = () => {
             <h2 className="text-2xl font-bold text-primary">Export Mental Health Report</h2>
             <p className="text-slate-500 text-sm">Configure your report sections before downloading</p>
           </div>
-          <button onClick={() => setShowExportModal(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
+          <button
+            onClick={() => setShowExportModal(false)}
+            className="p-2 hover:bg-slate-200 rounded-full transition-colors"
+            aria-label="Close export modal"
+            title="Close"
+          >
             <X size={24} />
           </button>
         </div>
@@ -286,9 +291,11 @@ const AnalyticsPage = () => {
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="lg:hidden p-2 hover:bg-muted rounded-lg"
+                aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                title={sidebarOpen ? "Close sidebar" : "Open sidebar"}
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-              </button>
+              </button>F
             </div>
           </div>
         </header>
