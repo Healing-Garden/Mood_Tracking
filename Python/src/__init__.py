@@ -1,4 +1,3 @@
-"""
-Mental Health AI Service Package
-"""
-__version__ = "1.0.0"
+from .config import Settings
+
+__all__ = ["Settings"]

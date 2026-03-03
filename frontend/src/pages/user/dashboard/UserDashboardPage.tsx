@@ -1,22 +1,17 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
-import { Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts'
+import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { Brain, BookOpen, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
+import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
+import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 
-type MoodFlowPeriod = 'week' | 'month' | 'year'
-
-type MoodTrendPoint = {
-  label: string
-  mood: number
-  energy: number
-}
 
 const emotionBreakdownData = [
   { name: 'Happy', value: 35, fill: '#52b788' },
@@ -27,8 +22,6 @@ const emotionBreakdownData = [
 
 const UserDashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [period, setPeriod] = useState<MoodFlowPeriod>('week')
-  const [moodTrendData, setMoodTrendData] = useState<MoodTrendPoint[]>([])
   const [weeklyStats, setWeeklyStats] = useState({
     checkIns: 0,
     avgMood: 0,
@@ -36,7 +29,7 @@ const UserDashboardPage = () => {
     insightsGenerated: 0,
   })
 
-  const { setShowModal } = useDailyCheckInStore()
+  const { setShowModal, resetStore } = useDailyCheckInStore()
 
   // Kiểm tra trạng thái check-in hôm nay từ database khi mở dashboard
   useEffect(() => {
@@ -49,63 +42,35 @@ const UserDashboardPage = () => {
           const status = error.response?.status
 
           if (status === 404) {
-            // Chưa check-in hôm nay -> mở modal
+            // Chưa check-in hôm nay
+            resetStore()
+            // Mở modal
             setShowModal(true)
           } else {
             console.error('Failed to fetch today check-in:', error.message)
           }
         } else {
-          // Lỗi không phải từ Axios
           console.error('Unexpected error:', error)
         }
       }
     }
 
     checkTodayFromServer()
-  }, [setShowModal])
+  }, [setShowModal, resetStore])
 
-
-  // Tải dữ liệu mood flow cho biểu đồ
-  useEffect(() => {
-    const loadMoodFlow = async () => {
-      try {
-        const res = await dailyCheckInApi.getFlow(period)
-
-        // Map từng bản ghi thành điểm trên chart
-        const points: MoodTrendPoint[] = res.items.map((item) => ({
-          label: item.date,
-          mood: item.mood,
-          energy: item.energy,
-        }))
-
-        setMoodTrendData(points)
-
-        setWeeklyStats((prev) => {
-          if (points.length === 0) {
-            return {
-              ...prev,
-              checkIns: 0,
-              avgMood: 0,
-            }
-          }
-
-          const totalMood = points.reduce((sum, p) => sum + p.mood, 0)
-          const avgMood = totalMood / points.length
-
-          return {
-            ...prev,
-            checkIns: points.length,
-            avgMood: Number(avgMood.toFixed(1)),
-          }
-        })
-      } catch (error) {
-        console.error('Failed to load mood flow:', error)
-      }
+  const handleMoodDataChange = useCallback((points: any[]) => {
+    if (points.length === 0) {
+      setWeeklyStats((prev) => ({ ...prev, checkIns: 0, avgMood: 0 }))
+    } else {
+      const totalMood = points.reduce((sum, p) => sum + p.mood, 0)
+      const avgMood = totalMood / points.length
+      setWeeklyStats((prev) => ({
+        ...prev,
+        checkIns: points.length,
+        avgMood: Number(avgMood.toFixed(1)),
+      }))
     }
-
-    void loadMoodFlow()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period])
+  }, [])
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -116,7 +81,7 @@ const UserDashboardPage = () => {
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -129,7 +94,7 @@ const UserDashboardPage = () => {
           <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold text-foreground">My Dashboard</h1>
 
-            <button 
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 hover:bg-muted rounded-lg"
             >
@@ -149,64 +114,10 @@ const UserDashboardPage = () => {
               </div>
 
               {/* Mood Trend Chart */}
-              <Card className="border-border/50 shadow-md">
-                <CardHeader>
-                  <div className="flex items-center justify-between gap-4">
-                    <CardTitle className="flex items-center gap-2">
-                      <TrendingUp size={20} className="text-primary" />
-                      Mood Flow
-                    </CardTitle>
-                    <div className="flex gap-2 text-xs">
-                      <button
-                        type="button"
-                        onClick={() => setPeriod('week')}
-                        className={`px-3 py-1 rounded-full border ${
-                          period === 'week'
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-transparent text-foreground border-border hover:bg-muted'
-                        }`}
-                      >
-                        7 days
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPeriod('month')}
-                        className={`px-3 py-1 rounded-full border ${
-                          period === 'month'
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-transparent text-foreground border-border hover:bg-muted'
-                        }`}
-                      >
-                        30 days
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setPeriod('year')}
-                        className={`px-3 py-1 rounded-full border ${
-                          period === 'year'
-                            ? 'bg-primary text-white border-primary'
-                            : 'bg-transparent text-foreground border-border hover:bg-muted'
-                        }`}
-                      >
-                        1 year
-                      </button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <ComposedChart data={moodTrendData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
-                      <XAxis dataKey="label" stroke="var(--color-muted-foreground)" />
-                      <YAxis stroke="var(--color-muted-foreground)" />
-                      <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid var(--color-border)' }} />
-                      <Legend />
-                      <Line type="monotone" dataKey="mood" stroke="var(--color-chart-1)" strokeWidth={2} dot={{ r: 4 }} name="Mood" />
-                      <Line type="monotone" dataKey="energy" stroke="var(--color-chart-2)" strokeWidth={2} dot={{ r: 4 }} name="Energy" />
-                    </ComposedChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
+              <MoodFlow
+                defaultPeriod="month"
+                onDataChange={handleMoodDataChange}
+              />
 
               {/* Emotions Breakdown */}
               <Card className="border-border/50 shadow-md">
@@ -229,6 +140,9 @@ const UserDashboardPage = () => {
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
+
+              {/* Trigger Heatmap */}
+              <TriggerHeatmap />
             </div>
 
             {/* Right Sidebar */}

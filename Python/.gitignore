@@ -4,6 +4,7 @@ env/
 ENV/
 
 # Python
+models_cache/
 __pycache__/
 *.py[cod]
 *$py.class
@@ -57,3 +58,6 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+data/vector_store/
+*.sqlite3

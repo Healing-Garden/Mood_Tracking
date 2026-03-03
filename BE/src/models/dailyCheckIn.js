@@ -37,6 +37,12 @@ const dailyCheckInSchema = new mongoose.Schema(
       enum: ["low", "neutral", "positive"],
       required: true,
     },
+    // Optional: what triggered this mood (for heatmap analytics)
+    triggers: [{
+      type: String,
+      enum: ["Family", "Work", "Health", "Relationships", "Finance", "Sleep", "Social", "Self-care", "Other"],
+      trim: true,
+    }],
   },
   { timestamps: true }
 );

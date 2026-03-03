@@ -14,7 +14,7 @@ module.exports = {
     await otpService.createOtp({
       email,
       type: "REGISTER",
-      payload: req.body, // fullName, age, weight, password
+      payload: req.body,
     });
 
     res.json({ message: "OTP sent to email" });
@@ -43,7 +43,6 @@ module.exports = {
 
       res.json({ message: "Register success. Redirect to login" });
     } catch (err) {
-      // ✅ QUAN TRỌNG
       res.status(400).json({
         message: err.message || "OTP invalid",
       });

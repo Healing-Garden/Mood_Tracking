@@ -1,5 +1,9 @@
 const mongoose = require("mongoose");
 
+const DEFAULT_AVATAR_URL =
+  process.env.DEFAULT_AVATAR_URL ||
+  "https://i.pinimg.com/originals/bc/43/98/bc439871417621836a0eeea768d60944.jpg";
+
 const notificationSchema = new mongoose.Schema(
   {
     enabled: { type: Boolean, default: true },
@@ -54,7 +58,10 @@ const userSchema = new mongoose.Schema(
       default: "user",
     },
 
-    avatarUrl: String,
+    avatarUrl: {
+      type: String,
+      default: DEFAULT_AVATAR_URL,
+    },
 
     dateOfBirth: Date,
 
