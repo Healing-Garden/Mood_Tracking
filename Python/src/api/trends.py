@@ -2,8 +2,12 @@ from fastapi import APIRouter, HTTPException
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta
 import logging
+import asyncio
 from pydantic import BaseModel
 import numpy as np
+from collections import defaultdict
+from bson import ObjectId
+
 from src.database import mongodb
 from src.core.sentiment import sentiment_analyzer
 
@@ -22,299 +26,438 @@ class MoodPoint(BaseModel):
 
 class TrendResponse(BaseModel):
     mood_points: List[MoodPoint]
-    overall_trend: str  # "improving", "declining", "stable", "volatile"
-    trend_score: float  # -1 to 1
+    overall_trend: str  
+    trend_score: float  
     volatility: float
     insights: List[str]
     risk_flags: List[str]
     stats: Dict[str, Any]
 
+# -------------------------------------------------------------------
+# Helper functions
+# -------------------------------------------------------------------
+
+async def aggregate_daily_scores(mood_entries: List[dict], journal_entries: List[dict]) -> List[dict]:
+    """
+    Gộp mood_entries (từ dailycheckins) và journal_entries theo ngày,
+    tính overall_score = weighted average (mood 0.6, sentiment 0.4)
+    DailyCheckIn schema: user (ObjectId), mood (Number 1-5), energy (Number 1-10),
+                         date (String YYYY-MM-DD), theme, timestamps (createdAt/updatedAt)
+    """
+    # Map numeric mood (1-5) to score (-1 to +1)
+    # 1=very bad, 2=bad, 3=neutral, 4=good, 5=excellent
+    def mood_number_to_score(mood_val) -> float:
+        try:
+            m = int(mood_val)
+            return (m - 3) / 2.0  # maps 1->-1, 2->-0.5, 3->0, 4->0.5, 5->1
+        except (TypeError, ValueError):
+            return 0.0
+
+    mood_by_date = {}
+    for entry in mood_entries:
+        # date is stored as 'YYYY-MM-DD' string in this model
+        date_key = entry.get("date")
+        if not date_key:
+            # Fallback to createdAt timestamp
+            raw_date = entry.get("createdAt") or entry.get("created_at")
+            if raw_date is None:
+                continue
+            date_key = raw_date.date().isoformat() if hasattr(raw_date, 'date') else str(raw_date)[:10]
+        else:
+            date_key = str(date_key)[:10]  # ensure YYYY-MM-DD format
+
+        mood_val = entry.get("mood")
+        mood_score = mood_number_to_score(mood_val)
+        energy = entry.get("energy")  # field name is 'energy' in this model
+
+        if date_key in mood_by_date:
+            old = mood_by_date[date_key]
+            mood_by_date[date_key] = {
+                "mood_score": (old["mood_score"] + mood_score) / 2,
+                "energy_level": energy if energy is not None else old.get("energy_level")
+            }
+        else:
+            mood_by_date[date_key] = {
+                "mood_score": mood_score,
+                "energy_level": energy
+            }
+
+    # Run sentiment analysis in thread pool to avoid blocking the event loop
+    loop = asyncio.get_running_loop()
+    sentiment_by_date: dict = defaultdict(list)
+
+    def _compute_sentiments():
+        results = []
+        # Cap work to keep endpoint responsive
+        max_entries = 200
+        max_text_chars = 1200
+        for i, entry in enumerate(journal_entries):
+            if i >= max_entries:
+                break
+            raw_date = entry.get("created_at") or entry.get("date")
+            if raw_date is None:
+                continue
+            date_key = raw_date.date().isoformat() if hasattr(raw_date, 'date') else str(raw_date)[:10]
+            text = entry.get("text", "")
+            if text:
+                try:
+                    sentiment = sentiment_analyzer.analyze_sentiment(str(text)[:max_text_chars])
+                    results.append((date_key, sentiment["score"]))
+                except Exception:
+                    pass
+        return results
+
+    try:
+        sentiment_results = await asyncio.wait_for(
+            loop.run_in_executor(None, _compute_sentiments),
+            timeout=10.0
+        )
+        for date_key, score in sentiment_results:
+            sentiment_by_date[date_key].append(score)
+    except asyncio.TimeoutError:
+        logger.warning("Sentiment analysis timed out, proceeding with mood data only")
+
+    # Tính sentiment trung bình theo ngày
+    avg_sentiment = {date: float(np.mean(scores)) for date, scores in sentiment_by_date.items()}
+
+    # Kết hợp
+    all_dates = sorted(set(mood_by_date.keys()) | set(avg_sentiment.keys()))
+    daily_scores = []
+    for date in all_dates:
+        mood_data = mood_by_date.get(date, {})
+        mood_score = mood_data.get("mood_score")
+        sentiment_score = avg_sentiment.get(date)
+
+        if mood_score is not None and sentiment_score is not None:
+            overall = mood_score * 0.6 + sentiment_score * 0.4
+        elif mood_score is not None:
+            overall = mood_score
+        elif sentiment_score is not None:
+            overall = sentiment_score
+        else:
+            continue  
+
+        daily_scores.append({
+            "date": date,
+            "overall_score": overall,
+            "mood_score": mood_score,
+            "sentiment_score": sentiment_score,
+            "energy_level": mood_data.get("energy_level")
+        })
+    return daily_scores
+
+def insufficient_data_response(data_points: int) -> TrendResponse:
+    """Trả về response khi không đủ dữ liệu"""
+    days_remaining = max(1, 7 - data_points)
+    return TrendResponse(
+        mood_points=[],
+        overall_trend="insufficient_data",
+        trend_score=0.0,
+        volatility=0.0,
+        insights=[f"Please continue logging for {days_remaining} more day(s) to enable AI trend analysis."],
+        risk_flags=[],
+        stats={"data_points": data_points, "days_remaining": days_remaining}
+    )
+
+def convert_to_mood_points(daily_scores: List[dict]) -> List[MoodPoint]:
+    """Chuyển daily_scores thành list MoodPoint để response"""
+    return [
+        MoodPoint(
+            date=item["date"],
+            mood_score=item["mood_score"],
+            sentiment_score=item["sentiment_score"],
+            energy_level=item["energy_level"]
+        )
+        for item in daily_scores
+    ]
+
+async def detect_weekday_patterns(user_id: str, daily_scores: List[dict]) -> List[dict]:
+    """
+    Phát hiện ngày trong tuần có mood trung bình cao nhất / thấp nhất.
+    DailyCheckIn uses field 'user' (ObjectId) and 'mood' (Number 1-5).
+    """
+    db = mongodb.get_db()
+    # Try both ObjectId and string for the 'user' field
+    query_ids = [user_id]
+    try:
+        query_ids.append(ObjectId(user_id))
+    except Exception:
+        pass
+    cursor = db.dailycheckins.find(
+        {"user": {"$in": query_ids}},
+        {"date": 1, "createdAt": 1, "created_at": 1, "mood": 1}
+    )
+
+    def mood_number_to_score(mood_val) -> float:
+        try:
+            m = int(mood_val)
+            return (m - 3) / 2.0
+        except (TypeError, ValueError):
+            return 0.0
+
+    weekday_scores = defaultdict(list)
+    async for doc in cursor:
+        # date is a 'YYYY-MM-DD' string in DailyCheckIn
+        date_str = doc.get("date")
+        if not date_str:
+            raw_date = doc.get("createdAt") or doc.get("created_at")
+            if raw_date is None:
+                continue
+            try:
+                weekday = raw_date.strftime("%A")
+            except AttributeError:
+                continue
+        else:
+            try:
+                from datetime import date as date_cls
+                d = date_cls.fromisoformat(str(date_str)[:10])
+                weekday = d.strftime("%A")
+            except Exception:
+                continue
+
+        score = mood_number_to_score(doc.get("mood"))
+        weekday_scores[weekday].append(score)
+
+    avg_by_weekday = {day: np.mean(scores) for day, scores in weekday_scores.items() if scores}
+    if len(avg_by_weekday) < 2:
+        return []
+
+    best_day = max(avg_by_weekday, key=avg_by_weekday.get)
+    worst_day = min(avg_by_weekday, key=avg_by_weekday.get)
+    return [{
+        "type": "weekly_pattern",
+        "description": f"You tend to feel best on {best_day}s and more challenged on {worst_day}s",
+        "confidence": 0.7
+    }]
+
+def generate_enhanced_insights(trend: str, slope: float, volatility: float,
+                                patterns: List[dict], daily_scores: List[dict]) -> List[str]:
+    """Tạo insights từ trend, volatility và patterns"""
+    insights = []
+
+    if trend == "improving":
+        insights.append("Your mood has been improving. Keep up the good habits!")
+    elif trend == "declining":
+        insights.append("We've noticed a downward trend. Consider reaching out for support.")
+    elif trend == "volatile":
+        insights.append("Your mood fluctuates a lot. Consistent routines may help stabilize.")
+    else:
+        insights.append("Your mood is stable – a sign of good emotional regulation.")
+
+    if volatility > 0.4:
+        insights.append("High emotional volatility detected. Mindfulness exercises could help.")
+
+    for p in patterns:
+        insights.append(p["description"])
+
+    # Insight từ 7 ngày gần nhất
+    recent = daily_scores[-7:]
+    recent_avg = np.mean([s["overall_score"] for s in recent])
+    if recent_avg < -0.2:
+        insights.append("Your mood has been below average lately. Small self-care acts might help.")
+
+    return insights[:5]  # giới hạn 5 insights
+
+async def save_analysis_to_db(user_id: str, trend: str, slope: float, volatility: float,
+                               insights: List[str], risk_flags: List[str], stats: Dict[str, Any]):
+    """Lưu kết quả phân tích vào collection ai_interactions"""
+    db = mongodb.get_db()
+    await db.ai_interactions.insert_one({
+        "user_id": ObjectId(user_id),
+        "type": "emotional_assessment",
+        "content": {
+            "trend": trend,
+            "trend_score": slope,
+            "volatility": volatility,
+            "insights": insights,
+            "risk_flags": risk_flags,
+            "stats": stats
+        },
+        "context": {
+            "period_days": stats.get("analysis_period_days", 30),
+            "timestamp": datetime.utcnow()
+        },
+        "created_at": datetime.utcnow()
+    })
+
+# -------------------------------------------------------------------
+# Endpoint chính
+# -------------------------------------------------------------------
+
 @router.post("/analyze", response_model=TrendResponse)
 async def analyze_trends(request: TrendAnalysisRequest):
     try:
-        # Calculate date range
         end_date = datetime.now()
         start_date = end_date - timedelta(days=request.days)
-        
+
         db = mongodb.get_db()
-        
-        # Get mood entries
-        mood_entries = await db.mood_entries.find({
-            "user_id": request.user_id,
-            "created_at": {"$gte": start_date, "$lte": end_date}
-        }).sort("created_at", 1).to_list(length=None)
-        
-        # Get journal entries for sentiment analysis
+
+        # Convert user_id string -> ObjectId for correct MongoDB query
+        try:
+            user_object_id = ObjectId(request.user_id)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid user_id format")
+
+        # DailyCheckIn uses field 'user' (ObjectId), 'date' as 'YYYY-MM-DD' string
+        start_date_str = start_date.strftime("%Y-%m-%d")
+        end_date_str = end_date.strftime("%Y-%m-%d")
+
+        # Query dailycheckins using ObjectId 'user' field and string 'date' range
+        mood_entries = await db.dailycheckins.find({
+            "user": user_object_id,
+            "date": {"$gte": start_date_str, "$lte": end_date_str}
+        }, {"date": 1, "createdAt": 1, "created_at": 1, "mood": 1, "energy": 1}).sort("date", 1).to_list(length=None)
+
+        # fallback with string user_id
+        if not mood_entries:
+            mood_entries = await db.dailycheckins.find({
+                "user": request.user_id,
+                "date": {"$gte": start_date_str, "$lte": end_date_str}
+            }, {"date": 1, "createdAt": 1, "created_at": 1, "mood": 1, "energy": 1}).sort("date", 1).to_list(length=None)
+
+        # Lấy journal entries - match docs where deleted_at is null, empty, or field doesn't exist
         journal_entries = await db.journal_entries.find({
-            "user_id": request.user_id,
+            "user_id": user_object_id,
             "created_at": {"$gte": start_date, "$lte": end_date},
-            "deleted_at": None
-        }).sort("created_at", 1).to_list(length=None)
-        
-        # Check if we have enough data
-        if len(mood_entries) + len(journal_entries) < 7:
-            return TrendResponse(
-                mood_points=[],
-                overall_trend="insufficient_data",
-                trend_score=0.0,
-                volatility=0.0,
-                insights=["Need more data for trend analysis. Please continue logging for better insights."],
-                risk_flags=[],
-                stats={"data_points": len(mood_entries) + len(journal_entries)}
+            "deleted_at": {"$in": [None, ""]}
+        }, {"created_at": 1, "date": 1, "text": 1, "deleted_at": 1}).sort("created_at", 1).limit(500).to_list(length=500)
+
+        # Also try: include docs where deleted_at field doesn't exist at all
+        if not journal_entries:
+            journal_entries = await db.journal_entries.find({
+                "user_id": user_object_id,
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "deleted_at": {"$exists": False}
+            }, {"created_at": 1, "date": 1, "text": 1, "deleted_at": 1}).sort("created_at", 1).limit(500).to_list(length=500)
+
+        # Also try string user_id if ObjectId query returned nothing
+        if not journal_entries:
+            journal_entries = await db.journal_entries.find({
+                "user_id": request.user_id,
+                "created_at": {"$gte": start_date, "$lte": end_date},
+                "deleted_at": {"$in": [None, ""]}
+            }, {"created_at": 1, "date": 1, "text": 1, "deleted_at": 1}).sort("created_at", 1).limit(500).to_list(length=500)
+
+        logger.info(f"Found {len(mood_entries)} mood entries and {len(journal_entries)} journal entries for user {request.user_id}")
+
+        # Tổng hợp dữ liệu theo ngày (now async)
+        daily_scores = await aggregate_daily_scores(mood_entries, journal_entries)
+
+        # Kiểm tra đủ dữ liệu (tối thiểu 7 ngày)
+        if len(daily_scores) < 7:
+            return insufficient_data_response(len(daily_scores))
+
+        # Mảng các overall_score
+        y = np.array([d["overall_score"] for d in daily_scores])
+        x = np.arange(len(y))
+
+        # Tính trend (linear regression)
+        slope, intercept = np.polyfit(x, y, 1)
+
+        # Tính volatility (std deviation)
+        volatility = float(np.std(y))
+
+        # Xác định trend type
+        if slope > 0.05:
+            trend = "improving"
+        elif slope < -0.05:
+            trend = "declining"
+        elif volatility > 0.3:
+            trend = "volatile"
+        else:
+            trend = "stable"
+
+        # Kiểm tra risk flags (BR-22-01)
+        risk_flag_set = set()
+        if len(y) >= 7:
+            recent_scores = y[-7:]
+            # Cách 1: tất cả 7 ngày gần nhất đều âm (dưới -0.3)
+            if all(score < -0.3 for score in recent_scores):
+                risk_flag_set.add("prolonged_negative_trend")
+            # Cách 2: độ dốc 7 ngày gần nhất âm rõ rệt
+            recent_slope = np.polyfit(np.arange(7), recent_scores, 1)[0]
+            if recent_slope < -0.1:
+                risk_flag_set.add("prolonged_negative_trend")
+        if len(y) >= 3:
+            recent_change = y[-1] - y[-3]
+            if recent_change < -0.5:
+                risk_flag_set.add("rapid_mood_decline")
+        if len(y) >= 5:
+            recent_volatility = np.std(y[-5:])
+            if recent_volatility > 0.5:
+                risk_flag_set.add("high_emotional_volatility")
+        risk_flags = list(risk_flag_set)
+
+        # Phát hiện patterns theo ngày trong tuần
+        patterns = await detect_weekday_patterns(request.user_id, daily_scores)
+
+        # Tạo insights
+        insights = generate_enhanced_insights(trend, slope, volatility, patterns, daily_scores)
+
+        # Thống kê
+        stats = {
+            "data_points": len(daily_scores),
+            "average_mood": float(np.mean(y)),
+            "min_mood": float(np.min(y)),
+            "max_mood": float(np.max(y)),
+            "trend_slope": float(slope),
+            "volatility": volatility,
+            "analysis_period_days": request.days
+        }
+
+        # Lưu vào ai_interactions (tuỳ chọn, có thể bỏ qua nếu muốn)
+        try:
+            await save_analysis_to_db(
+                request.user_id, trend, slope, volatility,
+                insights, risk_flags, stats
             )
-        
-        # Process mood entries
-        mood_by_date = {}
-        for entry in mood_entries:
-            date_key = entry["created_at"].date().isoformat()
-            
-            # Convert mood to score (simplified mapping)
-            mood_scores = {
-                "happy": 1.0, "excited": 1.0, "peaceful": 0.8, "grateful": 0.9,
-                "neutral": 0.0,
-                "sad": -0.7, "anxious": -0.6, "angry": -0.8, "tired": -0.3, "stressed": -0.5
-            }
-            
-            mood = entry.get("mood", "neutral").lower()
-            mood_score = mood_scores.get(mood, 0.0)
-            
-            # Average if multiple entries on same day
-            if date_key in mood_by_date:
-                existing = mood_by_date[date_key]
-                mood_by_date[date_key] = {
-                    "mood_score": (existing["mood_score"] + mood_score) / 2,
-                    "energy_level": existing["energy_level"] if "energy_level" in existing else entry.get("energy_level")
-                }
-            else:
-                mood_by_date[date_key] = {
-                    "mood_score": mood_score,
-                    "energy_level": entry.get("energy_level")
-                }
-        
-        # Process journal entries for sentiment
-        sentiment_by_date = {}
-        for entry in journal_entries:
-            date_key = entry["created_at"].date().isoformat()
-            text = entry.get("text", "")
-            
-            if text:
-                sentiment = sentiment_analyzer.analyze_sentiment(text)
-                sentiment_score = sentiment["score"]
-                
-                if date_key in sentiment_by_date:
-                    # Average sentiment for the day
-                    sentiment_by_date[date_key].append(sentiment_score)
-                else:
-                    sentiment_by_date[date_key] = [sentiment_score]
-        
-        # Average sentiment per day
-        for date_key, scores in sentiment_by_date.items():
-            sentiment_by_date[date_key] = np.mean(scores)
-        
-        # Combine mood and sentiment data
-        mood_points = []
-        all_dates = sorted(set(list(mood_by_date.keys()) + list(sentiment_by_date.keys())))
-        
-        for date_key in all_dates:
-            mood_data = mood_by_date.get(date_key, {})
-            sentiment_score = sentiment_by_date.get(date_key)
-            
-            # Calculate overall score (weighted average)
-            mood_score = mood_data.get("mood_score")
-            
-            if mood_score is not None and sentiment_score is not None:
-                overall_score = (mood_score * 0.6) + (sentiment_score * 0.4)
-            elif mood_score is not None:
-                overall_score = mood_score
-            elif sentiment_score is not None:
-                overall_score = sentiment_score
-            else:
-                continue  # Skip days with no data
-            
-            mood_points.append(MoodPoint(
-                date=date_key,
-                mood_score=float(mood_score) if mood_score is not None else None,
-                sentiment_score=float(sentiment_score) if sentiment_score is not None else None,
-                energy_level=mood_data.get("energy_level"),
-                # overall_score is implied by trend analysis
-            ))
-        
-        # Analyze trends
-        if len(mood_points) >= 3:
-            # Extract scores for analysis
-            scores = []
-            for point in mood_points:
-                # Use mood_score if available, otherwise use None
-                if point.mood_score is not None:
-                    scores.append(point.mood_score)
-                elif point.sentiment_score is not None:
-                    scores.append(point.sentiment_score)
-            
-            if len(scores) >= 3:
-                # Calculate trend (linear regression slope)
-                x = np.arange(len(scores))
-                y = np.array(scores)
-                
-                # Simple linear regression
-                if len(scores) > 1:
-                    slope = np.polyfit(x, y, 1)[0]
-                else:
-                    slope = 0
-                
-                # Calculate volatility (standard deviation)
-                volatility = float(np.std(scores)) if len(scores) > 1 else 0.0
-                
-                # Determine overall trend
-                if slope > 0.05:
-                    trend = "improving"
-                elif slope < -0.05:
-                    trend = "declining"
-                elif volatility > 0.3:
-                    trend = "volatile"
-                else:
-                    trend = "stable"
-                
-                # Generate insights
-                insights = generate_insights(trend, slope, volatility, mood_points)
-                
-                # Check for risk flags (BR-22-01)
-                risk_flags = check_risk_flags(scores, mood_points)
-                
-                # Calculate statistics
-                stats = {
-                    "data_points": len(mood_points),
-                    "average_mood": float(np.mean(scores)) if scores else 0.0,
-                    "min_mood": float(np.min(scores)) if scores else 0.0,
-                    "max_mood": float(np.max(scores)) if scores else 0.0,
-                    "trend_slope": float(slope),
-                    "volatility": volatility,
-                    "analysis_period_days": request.days
-                }
-                
-                return TrendResponse(
-                    mood_points=mood_points,
-                    overall_trend=trend,
-                    trend_score=float(slope),
-                    volatility=volatility,
-                    insights=insights,
-                    risk_flags=risk_flags,
-                    stats=stats
-                )
-        
-        # If we get here, there wasn't enough data for proper analysis
+        except Exception as e:
+            logger.warning(f"Failed to save analysis to ai_interactions: {e}")
+
+        # Trả về response
         return TrendResponse(
-            mood_points=mood_points,
-            overall_trend="insufficient_data",
-            trend_score=0.0,
-            volatility=0.0,
-            insights=["We need more consistent data for detailed trend analysis."],
-            risk_flags=[],
-            stats={"data_points": len(mood_points)}
+            mood_points=convert_to_mood_points(daily_scores),
+            overall_trend=trend,
+            trend_score=float(slope),
+            volatility=volatility,
+            insights=insights,
+            risk_flags=risk_flags,
+            stats=stats
         )
-        
+
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Trend analysis failed: {e}")
+        logger.error(f"Trend analysis failed: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
-
-def generate_insights(trend: str, slope: float, volatility: float, mood_points: List[MoodPoint]) -> List[str]:
-    """Generate insights based on trend analysis"""
-    insights = []
-    
-    if trend == "improving":
-        insights.append("Your mood has been improving over time. Keep up the positive momentum!")
-        if slope > 0.1:
-            insights.append("You're showing significant positive progress. Celebrate your growth!")
-    elif trend == "declining":
-        insights.append("We've noticed a downward trend in your mood. Consider reaching out for support.")
-        insights.append("It's okay to have difficult periods. Remember that feelings are temporary.")
-    elif trend == "volatile":
-        insights.append("Your mood has been fluctuating significantly. This might indicate stress or uncertainty.")
-        insights.append("Consistency in self-care routines can help stabilize emotional swings.")
-    else:  # stable
-        insights.append("Your mood has been relatively stable, which can indicate good emotional regulation.")
-    
-    # Add energy level insight if available
-    energy_levels = [p.energy_level for p in mood_points if p.energy_level is not None]
-    if energy_levels:
-        avg_energy = np.mean(energy_levels)
-        if avg_energy < 5:
-            insights.append("Your energy levels have been lower than average. Consider checking your sleep and nutrition.")
-        elif avg_energy > 7:
-            insights.append("You've maintained good energy levels. This can positively impact your mood.")
-    
-    # Add day-of-week pattern if we have enough data
-    if len(mood_points) > 14:  # At least 2 weeks
-        # Simple day pattern detection (could be enhanced)
-        insights.append("Continue tracking to identify patterns in your weekly routine.")
-    
-    return insights
-
-def check_risk_flags(scores: List[float], mood_points: List[MoodPoint]) -> List[str]:
-    """Check for risk flags (BR-22-01)"""
-    risk_flags = []
-    
-    if len(scores) < 7:
-        return risk_flags  # Not enough data
-    
-    # Check for prolonged negative trend (7 consecutive days)
-    recent_scores = scores[-7:]  # Last 7 days
-    if len(recent_scores) == 7:
-        # Count negative days
-        negative_days = sum(1 for score in recent_scores if score < -0.3)
-        if negative_days >= 5:  # 5+ negative days in last week
-            risk_flags.append("prolonged_negative_trend")
-    
-    # Check for rapid decline
-    if len(scores) >= 3:
-        recent_change = scores[-1] - scores[-3]  # Change over last 3 days
-        if recent_change < -0.5:  # Significant drop
-            risk_flags.append("rapid_mood_decline")
-    
-    # Check for extreme volatility
-    if len(scores) >= 5:
-        recent_volatility = np.std(scores[-5:])
-        if recent_volatility > 0.5:
-            risk_flags.append("high_emotional_volatility")
-    
-    return risk_flags
 
 @router.get("/patterns/{user_id}")
 async def detect_patterns(user_id: str, days: int = 90):
-    """Detect recurring patterns in mood and behavior"""
+    """
+    Endpoint cũ giữ lại để tương thích, nhưng có thể dùng detect_weekday_patterns
+    """
     try:
-        # Similar to trend analysis but looking for patterns
-        # This is a simplified version
-        
         db = mongodb.get_db()
-        
-        # Get data for pattern detection
-        mood_entries = await db.mood_entries.find({
+        mood_entries = await db.dailycheckins.find({
             "user_id": user_id,
             "created_at": {"$gte": datetime.now() - timedelta(days=days)}
         }).to_list(length=None)
-        
+
         if not mood_entries:
             return {"patterns": [], "message": "Insufficient data for pattern detection"}
-        
-        # Simple pattern detection by day of week
-        from collections import defaultdict
+
+        mood_scores_map = {
+            "happy": 1, "excited": 1, "peaceful": 0.8, "grateful": 0.9,
+            "neutral": 0,
+            "sad": -1, "anxious": -0.8, "angry": -0.9, "tired": -0.5
+        }
         mood_by_weekday = defaultdict(list)
-        
         for entry in mood_entries:
             weekday = entry["created_at"].strftime("%A")
-            mood = entry.get("mood", "neutral").lower()
-            
-            # Convert mood to score
-            mood_scores = {
-                "happy": 1, "excited": 1, "peaceful": 0.8, "grateful": 0.9,
-                "neutral": 0,
-                "sad": -1, "anxious": -0.8, "angry": -0.9, "tired": -0.5
-            }
-            
-            score = mood_scores.get(mood, 0)
+            mood_str = entry.get("mood", "neutral").lower()
+            score = mood_scores_map.get(mood_str, 0)
             mood_by_weekday[weekday].append(score)
-        
-        # Calculate average mood by weekday
+
         weekday_patterns = []
         for weekday, scores in mood_by_weekday.items():
             if scores:
@@ -324,28 +467,24 @@ async def detect_patterns(user_id: str, days: int = 90):
                     "average_mood": float(avg_score),
                     "count": len(scores)
                 })
-        
-        # Sort by worst to best mood
+
         weekday_patterns.sort(key=lambda x: x["average_mood"])
-        
-        # Generate pattern insights
         patterns = []
         if weekday_patterns:
             worst_day = weekday_patterns[0]
             best_day = weekday_patterns[-1]
-            
             patterns.append({
                 "type": "weekly_pattern",
                 "description": f"You tend to feel best on {best_day['weekday']}s and worst on {worst_day['weekday']}s",
                 "confidence": min(best_day['count'], worst_day['count']) / days * 7
             })
-        
+
         return {
             "patterns": patterns,
             "analysis_period_days": days,
             "total_data_points": len(mood_entries)
         }
-        
+
     except Exception as e:
         logger.error(f"Pattern detection failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))

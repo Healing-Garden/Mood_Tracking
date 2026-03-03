@@ -11,6 +11,7 @@ import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
+import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
 
 const UserDashboardPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
@@ -216,17 +217,7 @@ const UserDashboardPage = () => {
                 </CardContent>
               </Card>
 
-              {/* Wellness Tips */}
-              <Card className="border-border/50 shadow-md bg-gradient-to-br from-accent/20 to-accent/10">
-                <CardHeader>
-                  <CardTitle className="text-lg">💡 Today's Tip</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-foreground/80">
-                    Take a 5-minute breathing break. It can reduce anxiety and improve your mood significantly.
-                  </p>
-                </CardContent>
-              </Card>
+              <DailySummaryCard />
             </div>
           </div>
         </main>

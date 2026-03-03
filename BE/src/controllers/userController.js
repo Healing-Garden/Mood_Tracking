@@ -566,6 +566,76 @@ module.exports = {
       return res.status(500).json({ message: "Internal server error" });
     }
   },
+
+  // GET /api/user/profile
+  getProfile: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const userService = require("../services/userService");
+      const user = await userService.getProfile(userId);
+      return res.json(user);
+    } catch (err) {
+      console.error("getProfile error:", err);
+      return res.status(500).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  // PUT /api/user/profile
+  updateProfile: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { fullName, age, heightCm, weight } = req.body;
+      const userService = require("../services/userService");
+      const user = await userService.updateProfile(userId, {
+        fullName,
+        age,
+        heightCm,
+        weight,
+      });
+      return res.json({ message: "Profile updated successfully", user });
+    } catch (err) {
+      console.error("updateProfile error:", err);
+      return res.status(500).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  // POST /api/user/avatar
+  uploadAvatar: async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file provided" });
+      }
+      const userId = req.user.id;
+      const userService = require("../services/userService");
+      const result = await userService.uploadAvatar(userId, req.file);
+      return res.json({ message: "Avatar uploaded successfully", ...result });
+    } catch (err) {
+      console.error("uploadAvatar error:", err);
+      return res.status(500).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  // POST /api/user/change-password
+  changePassword: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ message: "Current password and new password are required" });
+      }
+
+      const userService = require("../services/userService");
+      const result = await userService.changePassword(userId, {
+        currentPassword,
+        newPassword,
+      });
+      return res.json(result);
+    } catch (err) {
+      console.error("changePassword error:", err);
+      return res.status(400).json({ message: err.message || "Internal server error" });
+    }
+  },
 };
 
 

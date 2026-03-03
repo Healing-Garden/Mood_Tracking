@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
@@ -7,54 +7,179 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import AvatarUpload from '../../../components/profile/AvatarUpload'
 import { Eye, EyeOff, Lock, Menu, X } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
-import { Card, CardContent } from '../../../components/ui/Card'
+import { Card } from '../../../components/ui/Card'
+import { useToast } from '../../../hooks/use-toast'
+import { userApi } from '../../../api/userApi'
 
 const UserProfilePage: React.FC = () => {
+  const { toast } = useToast()
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security'>('personal')
+  const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false)
+  const [successMessage, setSuccessMessage] = useState<string>('')
 
   // Personal Info
-  const [name, setName] = useState<string>('John Doe')
-  const [age, setAge] = useState<string>('28')
-  const [height, setHeight] = useState<string>('175')
-  const [weight, setWeight] = useState<string>('75')
-  const [email, setEmail] = useState<string>('john@example.com')
+  const [name, setName] = useState<string>('')
+  const [age, setAge] = useState<string>('')
+  const [height, setHeight] = useState<string>('')
+  const [weight, setWeight] = useState<string>('')
+  const [email, setEmail] = useState<string>('')
+  const [avatar, setAvatar] = useState<string>('')
 
   // Password
   const [currentPassword, setCurrentPassword] = useState<string>('')
   const [newPassword, setNewPassword] = useState<string>('')
   const [confirmPassword, setConfirmPassword] = useState<string>('')
   const [showPasswords, setShowPasswords] = useState<boolean>(false)
+  const [passwordError, setPasswordError] = useState<string>('')
 
   // PIN
   const [showPinForm, setShowPinForm] = useState<boolean>(false)
   const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(''))
   const [confirmPinDigits, setConfirmPinDigits] = useState<string[]>(Array(6).fill(''))
 
+  const showSuccess = (message: string) => {
+    setSuccessMessage(message)
+    console.log(`[PROFILE_SUCCESS] ${message}`)
+  }
+
+  // Load user profile on mount
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        setIsLoadingProfile(true)
+        const profile = await userApi.getProfile()
+        setName(profile.fullName || '')
+        setEmail(profile.email || '')
+        setAge(profile.age?.toString() || '')
+        setHeight(profile.heightCm?.toString() || '')
+        setWeight(profile.weight?.toString() || '')
+        setAvatar(profile.avatarUrl || '')
+      } catch (error) {
+        console.error('Failed to load profile:', error)
+        toast({
+          title: 'Lỗi',
+          description: 'Không thể tải thông tin cá nhân của bạn',
+          variant: 'destructive',
+        })
+      } finally {
+        setIsLoadingProfile(false)
+      }    }
+
+    loadProfile()
+  }, [toast])
+
+  const handleAvatarUpload = async (file: File) => {
+    setSuccessMessage('')
+    setIsUploadingAvatar(true)
+    try {
+      const avatarResponse = await userApi.uploadAvatar(file)
+      const nextAvatar =
+        avatarResponse.user?.avatarUrl ||
+        avatarResponse.imageUrl ||
+        ''
+
+      setAvatar(nextAvatar)
+
+      showSuccess('Avatar đã được cập nhật thành công.')
+    } catch (avatarError) {
+      console.error('Avatar upload error:', avatarError)
+      toast({
+        title: 'Lỗi',
+        description: avatarError instanceof Error ? avatarError.message : 'Không thể cập nhật avatar',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
   const handlePersonalInfoSave = async (e: FormEvent) => {
     e.preventDefault()
+    setSuccessMessage('')
     setIsLoading(true)
-    // TODO: API call to save profile
-    console.log('Saving personal info:', { name, age, height, weight, email })
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    setIsLoading(false)
+
+    try {
+      // Then update profile info
+      try {
+        const response = await userApi.updateProfile({
+          fullName: name,
+          age: age ? parseInt(age) : undefined,
+          heightCm: height ? parseInt(height) : undefined,
+          weight: weight ? parseFloat(weight) : undefined,
+        })
+
+        setAvatar((prev) => response.user.avatarUrl || prev || '')
+
+        showSuccess('Thông tin cá nhân đã được cập nhật thành công.')
+      } catch (profileError) {
+        console.error('Profile update error:', profileError)
+        toast({
+          title: 'Lỗi',
+          description: profileError instanceof Error ? profileError.message : 'Không thể cập nhật thông tin cá nhân',
+          variant: 'destructive',
+        })
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const validatePasswordStrength = (password: string): boolean => {
+    // Must contain uppercase letters and special characters, at least 8 chars
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])(?=.{8,})/
+    return passwordRegex.test(password)
   }
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
-    if (newPassword !== confirmPassword) {
-      alert('New passwords do not match')
+    setPasswordError('')
+    setSuccessMessage('')
+
+    if (!newPassword) {
+      setPasswordError('Vui lòng nhập mật khẩu mới')
       return
     }
+
+    if (!validatePasswordStrength(newPassword)) {
+      setPasswordError(
+        'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa và ký tự đặc biệt'
+      )
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Mật khẩu mới không khớp')
+      return
+    }
+
     setIsLoading(true)
-    // TODO: API call to change password
-    console.log('Changing password')
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    setIsLoading(false)
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
+    try {
+      await userApi.changePassword({
+        currentPassword,
+        newPassword,
+      })
+
+      showSuccess('Mật khẩu đã được thay đổi thành công.')
+
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      setPasswordError('')
+    } catch (error) {
+      console.error('Password change error:', error)
+      const errorMsg = error instanceof Error ? error.message : 'Không thể thay đổi mật khẩu'
+      setPasswordError(errorMsg)
+      toast({
+        title: 'Lỗi',
+        description: errorMsg,
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePinSetup = async (e: FormEvent) => {
@@ -63,11 +188,19 @@ const UserProfilePage: React.FC = () => {
     const confirmPin = confirmPinDigits.join('')
 
     if (pin !== confirmPin) {
-      alert('PINs do not match')
+      toast({
+        title: 'Lỗi',
+        description: 'Mã PIN không khớp',
+        variant: 'destructive',
+      })
       return
     }
     if (pin.length !== 6) {
-      alert('PIN must be 6 digits')
+      toast({
+        title: 'Lỗi',
+        description: 'Mã PIN phải có 6 chữ số',
+        variant: 'destructive',
+      })
       return
     }
 
@@ -79,6 +212,12 @@ const UserProfilePage: React.FC = () => {
     setShowPinForm(false)
     setPinDigits(Array(6).fill(''))
     setConfirmPinDigits(Array(6).fill(''))
+
+    toast({
+      title: 'Thành công',
+      description: 'Mã PIN của bạn đã được đặt thành công!',
+      variant: 'default',
+    })
   }
 
   const handlePinDigitChange = (
@@ -100,6 +239,22 @@ const UserProfilePage: React.FC = () => {
       const nextId = isConfirm ? `confirm-pin-${index + 1}` : `pin-${index + 1}`
       document.getElementById(nextId)?.focus()
     }
+  }
+
+  if (isLoadingProfile) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <div className={`fixed inset-y-0 left-0 z-30 lg:static lg:block`}>
+          <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading your profile...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -135,12 +290,19 @@ const UserProfilePage: React.FC = () => {
 
         {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+        {successMessage && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {successMessage}
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Avatar & Member Info Sidebar */}
           <div className="lg:col-span-1">
             <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
               <AvatarUpload
-                onAvatarChange={(file) => console.log('New avatar file:', file)}
+                currentAvatar={avatar}
+                onAvatarChange={handleAvatarUpload}
+                isLoading={isUploadingAvatar}
               />
               <div className="mt-6 pt-4 border-t border-border w-full text-center">
                 <p className="text-sm font-semibold text-primary mb-1">Member Since</p>
@@ -191,6 +353,7 @@ const UserProfilePage: React.FC = () => {
                       value={name}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
                       className="h-11"
+                      required
                     />
                   </div>
 
@@ -218,6 +381,8 @@ const UserProfilePage: React.FC = () => {
                       value={age}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setAge(e.target.value)}
                       className="h-11"
+                      min="0"
+                      max="120"
                     />
                   </div>
 
@@ -231,6 +396,8 @@ const UserProfilePage: React.FC = () => {
                       value={height}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)}
                       className="h-11"
+                      min="0"
+                      max="300"
                     />
                   </div>
 
@@ -241,9 +408,12 @@ const UserProfilePage: React.FC = () => {
                     <Input
                       id="weight"
                       type="number"
+                      step="0.1"
                       value={weight}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
                       className="h-11"
+                      min="0"
+                      max="500"
                     />
                   </div>
 
@@ -260,6 +430,12 @@ const UserProfilePage: React.FC = () => {
               {/* Password Change */}
               <TabsContent value="password" className="mt-6 space-y-6">
                 <form onSubmit={handlePasswordChange} className="space-y-5">
+                  {passwordError && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-700">{passwordError}</p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="current-password" className="text-primary font-medium">
                       Current Password
@@ -271,6 +447,7 @@ const UserProfilePage: React.FC = () => {
                         value={currentPassword}
                         onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
                         className="h-11 pr-10"
+                        required
                       />
                       <button
                         type="button"
@@ -293,7 +470,11 @@ const UserProfilePage: React.FC = () => {
                       value={newPassword}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
                       className="h-11"
+                      required
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Must contain at least 8 characters, uppercase letters, and special characters
+                    </p>
                   </div>
 
                   <div className="space-y-2">
@@ -306,6 +487,7 @@ const UserProfilePage: React.FC = () => {
                       value={confirmPassword}
                       onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                       className="h-11"
+                      required
                     />
                   </div>
 

@@ -1,4 +1,13 @@
 const aiService = require('../services/aiService');
+const mongoose = require('mongoose');
+const { ObjectId } = require('mongodb');
+
+async function getMongoDB() {
+    if (!mongoose.connection || !mongoose.connection.db) {
+        throw new Error('MongoDB connection not initialized');
+    }
+    return mongoose.connection.db;
+}
 
 class AIController {
     // Suggest prompting questions
@@ -52,19 +61,73 @@ class AIController {
                     }
                 });
             } else {
-                res.status(500).json({
+                res.json({
                     success: false,
                     error: result.error,
                     data: {
-                        summary: result.summary
+                        summary: result.summary,
+                        metadata: result.metadata || { fallback: true },
+                        type: result.type || 'fallback',
+                        generatedAt: result.generatedAt || new Date().toISOString(),
                     }
                 });
             }
         } catch (error) {
-            res.status(500).json({
+            res.json({
                 success: false,
-                error: error.message
+                error: error.message,
+                data: {
+                    summary: "Today's data could not be summarized by AI right now. Keep checking in — your consistency matters.",
+                    metadata: { fallback: true },
+                    type: 'fallback',
+                    generatedAt: new Date().toISOString(),
+                }
             });
+        }
+    }
+
+    async getDailySummary(req, res) {
+        try {
+            const { userId } = req.params;
+            const date = req.query.date || new Date().toISOString().split('T')[0];
+            const db = await getMongoDB();
+            
+            const targetDate = new Date(date);
+            targetDate.setHours(0, 0, 0, 0);
+
+            let summary = null;
+            try {
+                summary = await db.collection('daily_summaries').findOne({
+                    user_id: new ObjectId(userId),
+                    date: targetDate
+                });
+            } catch (e) {
+                summary = null;
+            }
+
+            if (!summary) {
+                summary = await db.collection('daily_summaries').findOne({
+                    user_id: String(userId),
+                    date: targetDate
+                });
+            }
+            
+            if (!summary) {
+                return res.status(404).json({ message: 'No summary for this day' });
+            }
+            
+            res.json({
+                success: true,
+                data: {
+                    summary: summary.summary,
+                    metadata: summary.metadata,
+                    generatedAt: summary.generated_at,
+                    type: 'cached'
+                }
+            });
+        } catch (error) {
+            console.error('Get daily summary error:', error);
+            res.status(500).json({ success: false, error: error.message });
         }
     }
     
@@ -115,11 +178,18 @@ class AIController {
                     }
                 });
             } else {
-                res.status(500).json({
+                // Still return 200 so UI can show fallback/stub trend data
+                res.json({
                     success: false,
                     error: result.error,
                     data: {
-                        insights: result.insights || []
+                        moodPoints: result.moodPoints || [],
+                        overallTrend: result.overallTrend || 'error',
+                        trendScore: result.trendScore || 0,
+                        volatility: result.volatility || 0,
+                        insights: result.insights || [],
+                        riskFlags: result.riskFlags || [],
+                        stats: result.stats || {}
                     }
                 });
             }

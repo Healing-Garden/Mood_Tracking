@@ -1,4 +1,13 @@
 const axios = require('axios');
+const mongoose = require('mongoose');
+const { ObjectId } = require('mongodb');
+
+async function getMongoDB() {
+    if (!mongoose.connection || !mongoose.connection.db) {
+        throw new Error('MongoDB connection not initialized');
+    }
+    return mongoose.connection.db;
+}
 
 class AIServiceClient {
     constructor(config = {}) {
@@ -7,9 +16,9 @@ class AIServiceClient {
         if (!this.apiKey) {
             throw new Error('AI_SERVICE_API_KEY is required');
         }
-        
+
         this.timeout = config.timeout || 60000;
-        
+
         this.client = axios.create({
             baseURL: this.baseURL,
             timeout: this.timeout,
@@ -19,7 +28,7 @@ class AIServiceClient {
             }
         });
     }
-    
+
     /**
      * Get service health status
      */
@@ -29,14 +38,14 @@ class AIServiceClient {
             return response.data;
         } catch (error) {
             console.error('Health check failed:', error.message);
-            return { 
-                status: 'unhealthy', 
+            return {
+                status: 'unhealthy',
                 error: error.message,
                 timestamp: new Date().toISOString()
             };
         }
     }
-    
+
     /**
      * UC-18: Suggest prompting questions
      */
@@ -51,14 +60,14 @@ class AIServiceClient {
                 },
                 { timeout: 12000 }
             );
-            
+
             return {
                 success: true,
                 questions: response.data.questions,
                 context: response.data.context,
                 generatedAt: response.data.generated_at
             };
-            
+
         } catch (error) {
             console.error('Failed to get questions:', error.message);
             return {
@@ -68,21 +77,21 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * UC-19: Generate daily summary
      */
     async generateDailySummary(userId, date = null) {
         try {
-            const response = await this.client.post(
-                '/api/v1/summary/daily',
-                {
+            const response = await this.client.post('/api/v1/summary/daily', {
                     user_id: userId,
                     date: date || new Date().toISOString().split('T')[0]
-                },
-                { timeout: 20000 }
+                }, { timeout: 30000 }
             );
-            
+
+            const result = response.data;
+            await this.saveDailySummary(userId, result);
+
             return {
                 success: true,
                 summary: response.data.summary,
@@ -90,7 +99,7 @@ class AIServiceClient {
                 type: response.data.type,
                 generatedAt: response.data.generated_at
             };
-            
+
         } catch (error) {
             console.error('Failed to generate summary:', error.message);
             return {
@@ -99,6 +108,35 @@ class AIServiceClient {
                 summary: "Unable to generate summary at this time. Check back later."
             };
         }
+    }
+
+    async saveDailySummary(userId, data) {
+        const db = await getMongoDB(); 
+        const collection = db.collection('daily_summaries');
+        const today = new Date();
+        today.setHours(0,0,0,0);
+
+        let userObjectId = null;
+        try {
+            userObjectId = new ObjectId(String(userId));
+        } catch (e) {
+            userObjectId = null;
+        }
+
+        const storedUserId = userObjectId || String(userId);
+
+        await collection.updateOne(
+            { user_id: storedUserId, date: today },
+            {
+            $set: {
+                summary: data.summary,
+                metadata: data.metadata,
+                generated_at: new Date(data.generated_at),
+                updated_at: new Date()
+            }
+            },
+            { upsert: true }
+        );
     }
 
     /**
@@ -116,19 +154,19 @@ class AIServiceClient {
 
             return {
                 success: true,
-                data: response.data  
+                data: response.data
             };
         } catch (error) {
             console.error('Chat message processing failed:', error.message);
 
             const isVietnamese = /[àáảãạăắằẳẵặâấầẩẫậđèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵ]/i.test(String(text));
-            
+
             return {
                 success: true,
                 data: {
                     text: isVietnamese
-                      ? "Mình đang ở đây để lắng nghe. Bạn có thể chia sẻ thêm về cảm xúc của bạn lúc này không?"
-                      : "I'm here to listen. Could you tell me more about how you're feeling?",
+                        ? "Mình đang ở đây để lắng nghe. Bạn có thể chia sẻ thêm về cảm xúc của bạn lúc này không?"
+                        : "I'm here to listen. Could you tell me more about how you're feeling?",
                     sentiment: { sentiment: 'neutral', score: 0.5, confidence: 0.5 },
                     intent: 'general',
                     technique: 'active_listening',
@@ -140,7 +178,7 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * UC-21: Semantic search
      */
@@ -151,7 +189,7 @@ class AIServiceClient {
                 query: query,
                 limit: limit
             });
-            
+
             return {
                 success: true,
                 results: response.data.results,
@@ -159,7 +197,7 @@ class AIServiceClient {
                 count: response.data.count,
                 searchType: response.data.search_type
             };
-            
+
         } catch (error) {
             console.error('Semantic search failed:', error.message);
             return {
@@ -170,7 +208,7 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * UC-22: Analyze emotional trends
      */
@@ -179,8 +217,8 @@ class AIServiceClient {
             const response = await this.client.post('/api/v1/trends/analyze', {
                 user_id: userId,
                 days: days
-            });
-            
+            }, { timeout: 15000 });
+
             return {
                 success: true,
                 moodPoints: response.data.mood_points,
@@ -191,32 +229,37 @@ class AIServiceClient {
                 riskFlags: response.data.risk_flags,
                 stats: response.data.stats
             };
-            
+
         } catch (error) {
             console.error('Trend analysis failed:', error.message);
             return {
                 success: false,
                 error: error.message,
                 moodPoints: [],
-                insights: []
+                insights: [],
+                overallTrend: 'error',
+                trendScore: 0,
+                volatility: 0,
+                riskFlags: [],
+                stats: {}
             };
         }
     }
-    
+
     /**
      * UC-22: Detect patterns
      */
     async detectPatterns(userId, days = 90) {
         try {
             const response = await this.client.get(`/api/v1/trends/patterns/${userId}?days=${days}`);
-            
+
             return {
                 success: true,
                 patterns: response.data.patterns,
                 analysisPeriodDays: response.data.analysis_period_days,
                 totalDataPoints: response.data.total_data_points
             };
-            
+
         } catch (error) {
             console.error('Pattern detection failed:', error.message);
             return {
@@ -226,7 +269,7 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * UC-23: Suggest practical actions
      */
@@ -237,14 +280,14 @@ class AIServiceClient {
                 current_mood: currentMood,
                 count: count
             });
-            
+
             return {
                 success: true,
                 actions: response.data.actions,
                 context: response.data.context,
                 suggestedAt: response.data.suggested_at
             };
-            
+
         } catch (error) {
             console.error('Failed to suggest actions:', error.message);
             return {
@@ -254,7 +297,7 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * UC-23: Log action completion
      */
@@ -265,12 +308,12 @@ class AIServiceClient {
                 action_id: actionId,
                 duration_seconds: durationSeconds
             });
-            
+
             return {
                 success: true,
                 message: response.data.message
             };
-            
+
         } catch (error) {
             console.error('Failed to log action completion:', error.message);
             return {
@@ -279,14 +322,14 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * UC-23: Get action history
      */
     async getActionHistory(userId, days = 7) {
         try {
             const response = await this.client.get(`/api/v1/actions/history/${userId}?days=${days}`);
-            
+
             return {
                 success: true,
                 completions: response.data.completions,
@@ -294,7 +337,7 @@ class AIServiceClient {
                 totalCompletions: response.data.total_completions,
                 stats: response.data.stats
             };
-            
+
         } catch (error) {
             console.error('Failed to get action history:', error.message);
             return {
@@ -304,7 +347,7 @@ class AIServiceClient {
             };
         }
     }
-    
+
     /**
      * Sync a journal entry to vector store (add/update/delete)
      */
@@ -323,7 +366,6 @@ class AIServiceClient {
                 operation: operation,
             };
 
-            // FastAPI route uses primitive params, which are interpreted as query params.
             if (operation !== 'delete') {
                 params.text = String(text || '');
             } else {
@@ -344,7 +386,7 @@ class AIServiceClient {
     async deleteEntry(entryId, userId) {
         return this.syncEntry(entryId, userId, '', 'delete');
     }
-    
+
     /**
      * Analyze sentiment of text
      */
@@ -354,14 +396,15 @@ class AIServiceClient {
             const response = await this.client.post('/api/v1/sentiment/analyze', {
                 text: text
             });
-            
+
             return {
                 success: true,
                 sentiment: response.data.sentiment,
                 score: response.data.score,
-                confidence: response.data.confidence
+                confidence: response.data.confidence,
+                emotions: response.data.emotions || []
             };
-            
+
         } catch (error) {
             console.error('Sentiment analysis failed:', error.message);
             return {
@@ -398,7 +441,7 @@ function getFallbackQuestions(mood, count) {
             "What are you looking forward to?"
         ]
     };
-    
+
     const bank = questionBanks[mood] || questionBanks.default;
     return bank.slice(0, count);
 }
@@ -430,7 +473,7 @@ function getFallbackActions(mood, count) {
             difficulty: "easy"
         }
     ];
-    
+
     return actions.slice(0, count);
 }
 

@@ -1,9 +1,16 @@
 const router = require("express").Router();
 const authMiddleware = require("../middleware/authMiddleware");
 const userController = require("../controllers/userController");
+const upload = require("../middleware/uploadMiddleware");
 
 // All routes below require authenticated user
 router.use(authMiddleware);
+
+// Profile routes
+router.get("/profile", userController.getProfile);
+router.put("/profile", userController.updateProfile);
+router.post("/avatar", upload.single("avatar"), userController.uploadAvatar);
+router.post("/change-password", userController.changePassword);
 
 // Onboarding preferences
 router.get("/onboarding/status", userController.getOnboardingStatus);
