@@ -309,7 +309,7 @@ module.exports = {
 
       entries.forEach((entry) => {
         if (!entry.note) return;
-        
+
         // Extract words: lowercase, remove punctuation, split by whitespace
         const words = entry.note
           .toLowerCase()
@@ -336,6 +336,38 @@ module.exports = {
       });
     } catch (err) {
       console.error("getWordCloud error:", err);
+      return res.status(500).json({ message: "Internal server error" });
+    }
+  },
+  // GET /api/user/analytics/mood-history?month=1&year=2024
+  getMoodHistory: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { month, year } = req.query;
+
+      if (!month || !year) {
+        return res.status(400).json({ message: "Month and year are required" });
+      }
+
+      // Format start and end dates for the month
+      const startOfMonth = new Date(year, month - 1, 1).toISOString().split("T")[0];
+      const endOfMonth = new Date(year, month, 0).toISOString().split("T")[0];
+
+      const entries = await DailyCheckIn.find({
+        user: userId,
+        date: { $gte: startOfMonth, $lte: endOfMonth },
+      })
+        .select("date mood theme")
+        .sort({ date: 1 })
+        .lean();
+
+      return res.json({
+        month: parseInt(month),
+        year: parseInt(year),
+        items: entries,
+      });
+    } catch (err) {
+      console.error("getMoodHistory error:", err);
       return res.status(500).json({ message: "Internal server error" });
     }
   },

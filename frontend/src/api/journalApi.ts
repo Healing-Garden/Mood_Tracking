@@ -1,17 +1,5 @@
 import http from "./http";
-
-export interface Journal {
-  _id: string;
-  title: string;             
-  mood: string;
-  energy_level: number;
-  text: string;
-  images: string[];
-  voice_note_url?: string;
-  trigger_tags: string[];
-  created_at: string;
-  deleted_at?: string | null;
-}
+import type { Journal } from "../types/journal";
 
 export const journalApi = {
   // CREATE (multipart)

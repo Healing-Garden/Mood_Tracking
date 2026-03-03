@@ -38,3 +38,40 @@ export interface JournalState {
   getEntryVersions: (id: string) => JournalVersion[]
   restoreVersion: (entryId: string, versionId: string) => void
 }
+
+export interface Journal {
+  _id: string;
+  title: string;             
+  mood: string;
+  energy_level: number;
+  text: string;
+  images: string[];
+  voice_note_url?: string;
+  trigger_tags: string[];
+  created_at: string;
+  deleted_at?: string | null;
+}
+
+export interface SpeechRecognitionResult {
+  isFinal: boolean;
+  [index: number]: {
+    transcript: string;
+    confidence: number;
+  };
+}
+
+export interface SpeechRecognitionEvent extends Event {
+  resultIndex: number;
+  results: SpeechRecognitionResult[];
+}
+
+export interface SpeechRecognition extends EventTarget {
+  lang: string;
+  continuous: boolean;
+  interimResults: boolean;
+
+  start(): void;
+  stop(): void;
+
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+}

@@ -1,4 +1,5 @@
 const journalService = require("../services/journalService");
+const aiService = require("../services/aiService");
 
 module.exports = {
   create: async (req, res) => {
@@ -15,6 +16,12 @@ module.exports = {
         files: req.files,
       });
       console.log(req.files);
+
+      if (data && data._id && data.text) {
+        aiService.syncEntry(data._id, req.user.id, data.text, 'add').catch(err => {
+          console.error('Sync to vector store failed for create:', err);
+        });
+      }
 
       res.status(201).json(data);
     } catch (err) {
@@ -62,6 +69,12 @@ module.exports = {
         ...req.body,
       });
 
+      if (data && data._id && data.text) {
+        aiService.syncEntry(data._id, req.user.id, data.text, 'update').catch(err => {
+          console.error('Sync to vector store failed for update:', err);
+        });
+      }
+
       res.json(data);
     } catch (err) {
       res.status(400).json({ message: err.message });
@@ -75,6 +88,10 @@ module.exports = {
         userId: req.user.id,
       });
 
+      aiService.deleteEntry(req.params.id, req.user.id).catch(err => {
+        console.error('Delete from vector store failed:', err);
+      });
+
       res.json({ message: "Deleted successfully" });
     } catch (err) {
       res.status(400).json({ message: err.message });
@@ -83,10 +100,16 @@ module.exports = {
 
   restore: async (req, res) => {
     try {
-      await journalService.restore({
+      const data = await journalService.restore({
         id: req.params.id,
         userId: req.user.id,
       });
+
+      if (data && data._id && data.text) {
+        aiService.syncEntry(data._id, req.user.id, data.text, 'add').catch(err => {
+          console.error('Sync to vector store failed for restore:', err);
+        });
+      }
 
       res.json({ message: "Restored successfully" });
     } catch (err) {
@@ -99,6 +122,10 @@ module.exports = {
       await journalService.permanentDelete({
         id: req.params.id,
         userId: req.user.id,
+      });
+
+      aiService.deleteEntry(req.params.id, req.user.id).catch(err => {
+        console.error('Delete from vector store failed for permanent delete:', err);
       });
 
       res.json({ message: "Deleted permanently" });

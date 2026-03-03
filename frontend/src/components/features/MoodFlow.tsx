@@ -3,6 +3,7 @@ import { Line, ComposedChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, Resp
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card'
 import { TrendingUp } from 'lucide-react'
 import { dailyCheckInApi, type MoodFlowResponse } from '../../api/dailyCheckInApi'
+import { useDailyCheckInStore } from '../../store/dailyCheckInStore'
 
 type MoodFlowPeriod = 'week' | 'month' | 'year'
 
@@ -18,6 +19,7 @@ interface MoodFlowProps {
 }
 
 export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodFlowProps) {
+    const { lastCheckInDate } = useDailyCheckInStore()
     const [period, setPeriod] = useState<MoodFlowPeriod>(defaultPeriod)
     const [moodTrendData, setMoodTrendData] = useState<MoodTrendPoint[]>([])
     const [loading, setLoading] = useState(true)
@@ -26,9 +28,7 @@ export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodF
         const loadMoodFlow = async () => {
             try {
                 setLoading(true)
-                console.log('[MoodFlow] Fetching data for period:', period)
                 const res: MoodFlowResponse = await dailyCheckInApi.getFlow(period)
-                console.log('[MoodFlow] Response:', res)
 
                 const points: MoodTrendPoint[] = res.items.map((item) => ({
                     label: item.date,
@@ -36,7 +36,6 @@ export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodF
                     energy: item.energy,
                 }))
 
-                console.log('[MoodFlow] Processed points:', points)
                 setMoodTrendData(points)
                 onDataChange?.(points)
             } catch (error) {
@@ -51,7 +50,7 @@ export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodF
         }
 
         void loadMoodFlow()
-    }, [period, onDataChange])
+    }, [period, lastCheckInDate, onDataChange])
 
     return (
         <Card className="border-border/50 shadow-md">
