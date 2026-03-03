@@ -27,7 +27,7 @@ export const aiApi = {
 
   // Analyze emotional trends
   analyzeTrends: (userId: string, days: number = 30) => {
-    return http.post('/ai/trends/analyze', { userId, days }, { timeout: 30000 });
+    return http.post('/ai/trends/analyze', { userId, days }, { timeout: 65000 });
   },
 
   // Suggest practical actions
