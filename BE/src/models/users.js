@@ -90,6 +90,11 @@ const userSchema = new mongoose.Schema(
     },
 
     appLockPinHash: String,
+
+    adminRecoveryCodes: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true }
 );
