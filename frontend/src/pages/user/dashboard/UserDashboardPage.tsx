@@ -115,7 +115,7 @@ const UserDashboardPage = () => {
 
               {/* Mood Trend Chart */}
               <MoodFlow
-                defaultPeriod="week"
+                defaultPeriod="month"
                 onDataChange={handleMoodDataChange}
               />
 

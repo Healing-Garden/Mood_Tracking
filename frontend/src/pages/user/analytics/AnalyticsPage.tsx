@@ -7,6 +7,7 @@ import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import MoodFlow from '../../../components/features/MoodFlow'
 import WordCloud from '../../../components/features/WordCloud'
+import MoodCalendar from '../../../components/features/MoodCalendar'
 
 type TimeRange = 'week' | 'month' | 'quarter' | 'year'
 
@@ -133,12 +134,18 @@ const AnalyticsPage = () => {
 
           {/* Charts Tabs */}
           <Tabs defaultValue="mood" className="space-y-8">
-            <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg p-1">
+            <TabsList className="grid w-full grid-cols-4 bg-secondary/50 rounded-lg p-1">
               <TabsTrigger
                 value="mood"
                 className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
               >
                 Mood Flow
+              </TabsTrigger>
+              <TabsTrigger
+                value="calendar"
+                className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
+              >
+                Calendar
               </TabsTrigger>
               <TabsTrigger
                 value="triggers"
@@ -157,6 +164,11 @@ const AnalyticsPage = () => {
             {/* Mood Trend */}
             <TabsContent value="mood">
               <MoodFlow defaultPeriod="month" />
+            </TabsContent>
+
+            {/* Mood Calendar */}
+            <TabsContent value="calendar">
+              <MoodCalendar />
             </TabsContent>
 
             {/* Word Cloud */}
