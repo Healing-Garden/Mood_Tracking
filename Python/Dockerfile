@@ -23,13 +23,13 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 
 # Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --default-timeout=1000 --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY . .
 
 # Create non-root user
-RUN useradd -m -u 1000 appuser && \
+RUN useradd -m -u 1000 appuser && \pppkk
     chown -R appuser:appuser /app && \
     mkdir -p /app/data /app/logs /app/models_cache && \
     chown -R appuser:appuser /app/data /app/logs /app/models_cache
