@@ -2,7 +2,6 @@ import http from "./http";
 import type { Journal } from "../types/journal";
 
 export const journalApi = {
-  // CREATE (multipart)
   async create(formData: FormData): Promise<Journal> {
     const res = await http.post("/journals", formData, {
     });
@@ -10,8 +9,7 @@ export const journalApi = {
   },
 
   async getAll(): Promise<Journal[]> {
-    const res = await http.get("/journals");
-    return res.data;
+    return await http.get("/journals");
   },
 
   async getDeleted(): Promise<Journal[]> {

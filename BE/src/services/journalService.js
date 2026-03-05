@@ -24,26 +24,10 @@ module.exports = {
     energy_level,
     text,
     trigger_tags,
-    files,
+    images = [],
+    voice_note_url = null,
   }) => {
-    let images = [];
-    let voice_note_url = null;
-
-    if (files && files.length > 0) {
-      for (const file of files) {
-        const result = await uploadToCloudinary(file.buffer);
-
-        if (file.mimetype.startsWith("image/")) {
-          images.push(result.secure_url);
-        }
-
-        if (file.mimetype.startsWith("audio/")) {
-          voice_note_url = result.secure_url;
-        }
-      }
-    }
-
-    const journal = await Journal.create({
+    return await Journal.create({
       user_id: userId,
       title,
       mood,
@@ -76,10 +60,13 @@ module.exports = {
   },
 
   getAll: async (userId) => {
+    console.log("SERVICE USER ID:", userId);
     return await Journal.find({
       user_id: userId,
       deleted_at: null,
-    }).sort({ created_at: -1 });
+    })
+      .sort({ created_at: -1 })
+      .lean();
   },
 
   getDeleted: async (userId) => {
@@ -101,26 +88,37 @@ module.exports = {
     });
   },
 
-  update: async ({ id, userId, mood, energy_level, text, trigger_tags }) => {
-    const journal = await Journal.findOne({
-      _id: id,
-      user_id: userId,
-    });
+  update: async ({
+    id,
+    userId,
+    title,
+    mood,
+    energy_level,
+    text,
+    trigger_tags,
+    images,
+    voice_note_url,
+  }) => {
+    const journal = await Journal.findOneAndUpdate(
+      { _id: id, user_id: userId },
+      {
+        $set: {
+          title,
+          mood,
+          energy_level: Number(energy_level),
+          text,
+          trigger_tags,
+          images,
+          voice_note_url,
+          updated_at: new Date(),
+        },
+      },
+      { new: true }
+    );
 
     if (!journal) throw new Error("Journal not found");
 
-    journal.version_history.push({
-      text: journal.text,
-      images: journal.images,
-      updated_at: new Date(),
-    });
-
-    journal.mood = mood ?? journal.mood;
-    journal.energy_level = energy_level ?? journal.energy_level;
-    journal.text = text ?? journal.text;
-    journal.trigger_tags = trigger_tags ?? journal.trigger_tags;
-
-    return await journal.save();
+    return journal;
   },
 
   softDelete: async ({ id, userId }) => {
