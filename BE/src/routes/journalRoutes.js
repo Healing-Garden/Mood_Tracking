@@ -1,11 +1,10 @@
 const router = require("express").Router();
 const journalController = require("../controllers/journalController");
-const upload = require("../middleware/uploadMiddleware");
 const authMiddleware = require("../middleware/authMiddleware");
 
 router.use(authMiddleware);
 
-router.post("/", upload.array("files"), journalController.create);
+router.post("/", journalController.create);
 router.get("/", journalController.getAll);
 router.get("/deleted", journalController.getDeleted);
 router.get("/search", journalController.search);

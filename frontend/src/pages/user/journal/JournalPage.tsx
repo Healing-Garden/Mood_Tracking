@@ -3,14 +3,42 @@ import type { ChangeEvent } from "react";
 import { Button } from "../../../components/ui/Button";
 import { Textarea } from "../../../components/ui/Textarea";
 import { Input } from "../../../components/ui/Input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/Card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/Tabs";
-import { Save, Plus, Trash2, Calendar, BookOpen, Menu, X, Mic, MicOff, Search, Trash, Image as ImageIcon } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../../components/ui/Card";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "../../../components/ui/Tabs";
+import {
+  Save,
+  Plus,
+  Trash2,
+  Calendar,
+  BookOpen,
+  Menu,
+  X,
+  Mic,
+  MicOff,
+  Search,
+  Trash,
+  Image as ImageIcon,
+} from "lucide-react";
 import DashboardSidebar from "../../../components/layout/DashboardSideBar";
 import { journalApi } from "../../../api/journalApi";
 import { aiApi } from "../../../api/aiApi";
 import { useAuth } from "../../../hooks/useAuth";
-import type { SpeechRecognition, Journal, SpeechRecognitionEvent } from "../../../types/journal";
+import type {
+  SpeechRecognition,
+  Journal,
+  SpeechRecognitionEvent,
+} from "../../../types/journal";
 import type { SearchResult } from "../../../types/ai";
 
 declare global {
@@ -45,7 +73,7 @@ export default function JournalPage() {
     "write" | "entries" | "search" | "trash"
   >("entries");
   // const [editingId, setEditingId] = useState<string | null>(null);
-  
+
   // Form state
   const [title, setTitle] = useState<string>("");
   const [content, setContent] = useState<string>("");
@@ -60,7 +88,9 @@ export default function JournalPage() {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchMeta, setSearchMeta] = useState<{ searchType: string } | null>(null);
+  const [searchMeta, setSearchMeta] = useState<{ searchType: string } | null>(
+    null
+  );
   const [suggestedQuestions, setSuggestedQuestions] = useState<string[]>([]);
 
   // Refs
@@ -76,10 +106,52 @@ export default function JournalPage() {
   const [entries, setEntries] = useState<Journal[]>([]);
   const [deletedEntries, setDeletedEntries] = useState<Journal[]>([]);
 
+  const [selectedEntry, setSelectedEntry] = useState<Journal | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [editTitle, setEditTitle] = useState("");
+  const [editMood, setEditMood] = useState("");
+  const [editEnergy, setEditEnergy] = useState(0);
+  const [newImages, setNewImages] = useState<File[]>([]);
+  const [previewImages, setPreviewImages] = useState<string[]>([]);
+  const [removedImages, setRemovedImages] = useState<string[]>([]);
+  const [voiceFile, setVoiceFile] = useState<File | null>(null);
+
+  const uploadToCloudinary = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "journal_unsigned");
+
+    const res = await fetch(
+      "https://api.cloudinary.com/v1_1/difg4vgbw/auto/upload",
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Upload failed");
+    }
+
+    const data = await res.json();
+
+    if (!data.secure_url) {
+      throw new Error("Cloudinary did not return URL");
+    }
+
+    console.log("Uploaded:", data.secure_url);
+
+    return data.secure_url;
+  };
+
   const loadEntries = async () => {
     try {
       const data = await journalApi.getAll();
       setEntries(Array.isArray(data) ? data : []);
+      console.log("FRONTEND RECEIVED:", data);
+      console.log("TYPE:", typeof data);
+      console.log("IS ARRAY:", Array.isArray(data));
     } catch (err) {
       console.error("Load entries error:", err);
     }
@@ -100,8 +172,8 @@ export default function JournalPage() {
   }, []);
 
   useEffect(() => {
-  // Chỉ active khi đang ở tab "write" và nội dung trống
-    if (activeTab === 'write' && !content.trim()) {
+    // Chỉ active khi đang ở tab "write" và nội dung trống
+    if (activeTab === "write" && !content.trim()) {
       if (!timerRef.current) {
         timerRef.current = setTimeout(() => {
           fetchPromptQuestions();
@@ -125,14 +197,14 @@ export default function JournalPage() {
   const fetchPromptQuestions = async () => {
     if (!user?.id) return;
     try {
-      const res = await aiApi.getQuestions(user.id, selectedMood, 3, 'en');
+      const res = await aiApi.getQuestions(user.id, selectedMood, 3, "en");
       if (res?.data?.success) {
         setSuggestedQuestions(res.data?.data?.questions || []);
       } else if (res?.data?.questions?.length) {
         setSuggestedQuestions(res.data.questions);
       }
     } catch (error) {
-      console.error('Failed to fetch questions', error);
+      console.error("Failed to fetch questions", error);
     }
   };
 
@@ -159,15 +231,15 @@ export default function JournalPage() {
           setSearchResults(response.data.data.results || []);
           setSearchMeta({ searchType: response.data.data.searchType });
         } else {
-          setSearchError('Search failed');
+          setSearchError("Search failed");
           setSearchResults([]);
         }
       } catch (err: unknown) {
-          if (err instanceof Error) {
-            setSearchError(err.message);
-          } else {
-            setSearchError("Search error");
-          }
+        if (err instanceof Error) {
+          setSearchError(err.message);
+        } else {
+          setSearchError("Search error");
+        }
         setSearchResults([]);
       } finally {
         setIsSearching(false);
@@ -289,30 +361,35 @@ export default function JournalPage() {
     setIsSaving(true);
 
     try {
-      const formData = new FormData();
+      // 1️⃣ Upload images trực tiếp lên Cloudinary
+      const imageUrls = await Promise.all(
+        imageFiles.map((file) => uploadToCloudinary(file))
+      );
 
-      formData.append("title", title || content.substring(0, 50));
-      formData.append("text", content);
-      formData.append("mood", selectedMood);
-      formData.append("trigger_tags", JSON.stringify(selectedEmotions));
-
-      imageFiles.forEach((file) => {
-        formData.append("files", file); 
-      });
+      // 2️⃣ Upload audio nếu có
+      let voiceUrl: string | null = null;
 
       if (audioBlob) {
         const audioFile = new File([audioBlob], "voice.webm", {
           type: "audio/webm",
         });
 
-        formData.append("files", audioFile);
+        voiceUrl = await uploadToCloudinary(audioFile);
       }
 
-      await journalApi.create(formData);
+      // 3️⃣ Gửi URL về backend
+      await journalApi.create({
+        title: title || content.substring(0, 50),
+        text: content,
+        mood: selectedMood,
+        trigger_tags: selectedEmotions,
+        images: imageUrls,
+        voice_note_url: voiceUrl,
+      });
 
       await loadEntries();
 
-      // Reset form
+      // Reset
       setTitle("");
       setContent("");
       setSelectedMood("😊");
@@ -320,6 +397,7 @@ export default function JournalPage() {
       setImageFiles([]);
       setImagePreviews([]);
       setAudioBlob(null);
+      setAudioUrl(null);
       setActiveTab("entries");
     } catch (error) {
       console.error("Error saving entry:", error);
@@ -402,7 +480,9 @@ export default function JournalPage() {
           <div className="max-w-6xl mx-auto p-6">
             <Tabs
               value={activeTab}
-              onValueChange={(v) => setActiveTab(v as "write" | "entries" | "search" | "trash")}
+              onValueChange={(v) =>
+                setActiveTab(v as "write" | "entries" | "search" | "trash")
+              }
               className="space-y-6"
             >
               <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
@@ -426,14 +506,20 @@ export default function JournalPage() {
                   <CardContent className="pt-6 space-y-4">
                     {suggestedQuestions.length > 0 && (
                       <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-                        <p className="text-sm font-medium mb-2">✨ Writing Suggestions:</p>
+                        <p className="text-sm font-medium mb-2">
+                          ✨ Writing Suggestions:
+                        </p>
                         <div className="flex flex-wrap gap-2">
                           {suggestedQuestions.map((q, idx) => (
                             <Button
                               key={idx}
                               variant="outline"
                               size="sm"
-                              onClick={() => setContent(prev => prev + (prev ? '\n' : '') + q)}
+                              onClick={() =>
+                                setContent(
+                                  (prev) => prev + (prev ? "\n" : "") + q
+                                )
+                              }
                             >
                               {q}
                             </Button>
@@ -451,8 +537,6 @@ export default function JournalPage() {
                     <p className="text-xs text-right text-muted-foreground">
                       {content.length} characters
                     </p>
-
-                    
 
                     {/* Mood Selection */}
                     <div className="flex items-center gap-2">
@@ -611,28 +695,42 @@ export default function JournalPage() {
                     </Card>
                   ) : searchResults.length === 0 ? (
                     <Card className="text-center p-12">
-                      <Search size={48} className="mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">No entries match your search</p>
+                      <Search
+                        size={48}
+                        className="mx-auto text-muted-foreground mb-4"
+                      />
+                      <p className="text-muted-foreground">
+                        No entries match your search
+                      </p>
                     </Card>
                   ) : (
                     <div>
                       <p className="text-sm text-muted-foreground mb-2">
                         Found {searchResults.length} results
-                        {searchMeta?.searchType && ` (${searchMeta.searchType} search)`}
+                        {searchMeta?.searchType &&
+                          ` (${searchMeta.searchType} search)`}
                       </p>
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {searchResults.map((result) => (
-                          <Card key={result.entry_id} className="hover:shadow-lg transition-shadow flex flex-col">
+                          <Card
+                            key={result.entry_id}
+                            className="hover:shadow-lg transition-shadow flex flex-col"
+                          >
                             <CardHeader className="pb-3">
                               <div className="flex justify-between items-start mb-2">
-                                <span className="text-2xl">{result.mood || '😐'}</span>
+                                <span className="text-2xl">
+                                  {result.mood || "😐"}
+                                </span>
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <Calendar size={14} />
-                                  {new Date(result.created_at).toLocaleDateString()}
+                                  {new Date(
+                                    result.created_at
+                                  ).toLocaleDateString()}
                                 </span>
                               </div>
                               <CardTitle className="text-base line-clamp-2">
-                                Similarity: {(result.similarity * 100).toFixed(1)}%
+                                Similarity:{" "}
+                                {(result.similarity * 100).toFixed(1)}%
                               </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-3 flex-1 flex flex-col">
@@ -643,21 +741,23 @@ export default function JournalPage() {
                                 }}
                               />
                               <div className="flex gap-2 pt-2 border-t mt-auto">
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   className="flex-1 bg-transparent h-8"
                                   onClick={() => {
                                     // Xử lý xem chi tiết entry, có thể mở modal hoặc chuyển trang
-                                    console.log('View entry', result.entry_id);
+                                    console.log("View entry", result.entry_id);
                                   }}
                                 >
                                   Read
                                 </Button>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  onClick={() => handleDeleteEntry(result.entry_id)} 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleDeleteEntry(result.entry_id)
+                                  }
                                   className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
                                 >
                                   <Trash2 size={14} />
@@ -669,51 +769,75 @@ export default function JournalPage() {
                       </div>
                     </div>
                   )
+                ) : // Hiển thị tất cả entries khi không tìm kiếm
+                entries.length === 0 ? (
+                  <Card className="text-center p-12">
+                    <BookOpen
+                      size={48}
+                      className="mx-auto text-muted-foreground mb-4"
+                    />
+                    <p className="text-muted-foreground">
+                      No entries yet. Start writing your first entry!
+                    </p>
+                  </Card>
                 ) : (
-                  // Hiển thị tất cả entries khi không tìm kiếm
-                  entries.length === 0 ? (
-                    <Card className="text-center p-12">
-                      <BookOpen size={48} className="mx-auto text-muted-foreground mb-4" />
-                      <p className="text-muted-foreground">No entries yet. Start writing your first entry!</p>
-                    </Card>
-                  ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {entries.map((entry) => (
-                        <Card key={entry._id} className="hover:shadow-lg transition-shadow flex flex-col">
-                          <CardHeader className="pb-3">
-                            <div className="flex justify-between items-start mb-2">
-                              <span className="text-2xl">{entry.mood}</span>
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar size={14} />
-                                {new Date(entry.created_at).toLocaleDateString()}
-                              </span>
-                            </div>
-                            <CardTitle className="text-base line-clamp-2">
-                              {entry.title}
-                            </CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3 flex-1 flex flex-col">
-                            <p className="text-sm text-muted-foreground line-clamp-3">
-                              {entry.text}
-                            </p>
-                            <div className="flex gap-2 pt-2 border-t mt-auto">
-                              <Button variant="outline" size="sm" className="flex-1 bg-transparent h-8">
-                                Read
-                              </Button>
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={() => handleDeleteEntry(entry._id)} 
-                                className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  )
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {entries.map((entry) => (
+                      <Card
+                        key={entry._id}
+                        className="hover:shadow-lg transition-shadow flex flex-col"
+                      >
+                        <CardHeader className="pb-3">
+                          <div className="flex justify-between items-start mb-2">
+                            <span className="text-2xl">{entry.mood}</span>
+                            <span className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar size={14} />
+                              {new Date(entry.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <CardTitle className="text-base line-clamp-2">
+                            {entry.title}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 flex-1 flex flex-col">
+                          <p className="text-sm text-muted-foreground line-clamp-3">
+                            {entry.text}
+                          </p>
+                          <div className="flex gap-2 pt-2 border-t mt-auto">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1 bg-transparent h-8"
+                              onClick={() => {
+                                setSelectedEntry(entry);
+                                setEditTitle(entry.title);
+                                setEditContent(entry.text);
+                                setEditMood(entry.mood);
+                                setEditEnergy(entry.energy_level);
+
+                                setNewImages([]);
+                                setPreviewImages([]);
+                                setRemovedImages([]);
+                                setVoiceFile(null);
+
+                                setIsEditMode(false);
+                              }}
+                            >
+                              Read
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDeleteEntry(entry._id)}
+                              className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
+                            >
+                              <Trash2 size={14} />
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 )}
               </TabsContent>
 
@@ -760,6 +884,202 @@ export default function JournalPage() {
           </div>
         </main>
       </div>
+      {selectedEntry && (
+        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6 relative">
+            {/* Close */}
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-black"
+              onClick={() => setSelectedEntry(null)}
+            >
+              ✕
+            </button>
+
+            {/* TITLE */}
+            <div className="mb-4">
+              {isEditMode ? (
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                />
+              ) : (
+                <h2 className="text-2xl font-bold">{selectedEntry.title}</h2>
+              )}
+            </div>
+
+            {/* MOOD + ENERGY */}
+            <div className="flex gap-4 mb-4 items-center">
+              {isEditMode ? (
+                <>
+                  <Input
+                    value={editMood}
+                    onChange={(e) => setEditMood(e.target.value)}
+                    placeholder="Mood 😄"
+                    className="w-32"
+                  />
+                  <Input
+                    type="number"
+                    value={editEnergy}
+                    onChange={(e) => setEditEnergy(Number(e.target.value))}
+                    className="w-24"
+                  />
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl">{selectedEntry.mood}</span>
+                  <span className="text-gray-600">
+                    Energy: {selectedEntry.energy_level}
+                  </span>
+                </>
+              )}
+            </div>
+
+            {/* TEXT */}
+            <div className="mb-6">
+              {isEditMode ? (
+                <Textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="min-h-40"
+                />
+              ) : (
+                <p className="whitespace-pre-line text-gray-700">
+                  {selectedEntry.text}
+                </p>
+              )}
+            </div>
+
+            {/* OLD IMAGES */}
+            {selectedEntry.images?.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {selectedEntry.images
+                  .filter((img) => !removedImages.includes(img))
+                  .map((img: string, index: number) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={img}
+                        alt="journal"
+                        className="rounded-lg object-cover w-full h-40"
+                      />
+
+                      {isEditMode && (
+                        <button
+                          onClick={() =>
+                            setRemovedImages((prev) => [...prev, img])
+                          }
+                          className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded"
+                        >
+                          X
+                        </button>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            )}
+            {/* NEW IMAGE PREVIEW */}
+            {previewImages.length > 0 && (
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                {previewImages.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img}
+                    className="rounded-lg object-cover w-full h-40"
+                  />
+                ))}
+              </div>
+            )}
+
+            {isEditMode && (
+              <>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="mb-3"
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setNewImages(files);
+                    setPreviewImages(files.map((f) => URL.createObjectURL(f)));
+                  }}
+                />
+
+                <input
+                  type="file"
+                  accept="audio/*"
+                  className="mb-3"
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) {
+                      setVoiceFile(e.target.files[0]);
+                    }
+                  }}
+                />
+              </>
+            )}
+
+            {/* ACTIONS */}
+            <div className="flex justify-end gap-3">
+              {isEditMode ? (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditMode(false)}
+                  >
+                    Cancel
+                  </Button>
+
+                  <Button
+                    onClick={async () => {
+                      if (!selectedEntry) return;
+
+                      try {
+                        // Upload new images
+                        const uploadedNewImages = await Promise.all(
+                          newImages.map((file) => uploadToCloudinary(file))
+                        );
+
+                        let uploadedVoiceUrl =
+                          selectedEntry.voice_note_url || null;
+
+                        if (voiceFile) {
+                          uploadedVoiceUrl = await uploadToCloudinary(
+                            voiceFile
+                          );
+                        }
+
+                        // Giữ lại ảnh cũ không bị xóa
+                        const remainingOldImages = selectedEntry.images.filter(
+                          (img) => !removedImages.includes(img)
+                        );
+
+                        await journalApi.update(selectedEntry._id, {
+                          title: editTitle,
+                          mood: editMood,
+                          energy_level: editEnergy,
+                          text: editContent,
+                          trigger_tags: selectedEntry.trigger_tags || [],
+                          images: [...remainingOldImages, ...uploadedNewImages],
+                          voice_note_url: uploadedVoiceUrl,
+                        });
+
+                        await loadEntries();
+
+                        setSelectedEntry(null);
+                        setIsEditMode(false);
+                      } catch (err) {
+                        console.error(err);
+                      }
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={() => setIsEditMode(true)}>Edit</Button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

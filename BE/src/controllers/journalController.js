@@ -10,22 +10,19 @@ module.exports = {
         mood: req.body.mood,
         energy_level: req.body.energy_level,
         text: req.body.text,
-        trigger_tags: req.body.trigger_tags
-          ? JSON.parse(req.body.trigger_tags)
-          : [],
-        files: req.files,
+        trigger_tags: req.body.trigger_tags || [],
+        images: req.body.images || [],
+        voice_note_url: req.body.voice_note_url || null,
       });
-      console.log(req.files);
 
-      if (data && data._id && data.text) {
-        aiService.syncEntry(data._id, req.user.id, data.text, 'add').catch(err => {
-          console.error('Sync to vector store failed for create:', err);
-        });
+      if (data?._id && data.text) {
+        aiService
+          .syncEntry(data._id, req.user.id, data.text, "add")
+          .catch(console.error);
       }
 
       res.status(201).json(data);
     } catch (err) {
-      console.error(err);
       res.status(400).json({ message: err.message });
     }
   },
@@ -66,13 +63,19 @@ module.exports = {
       const data = await journalService.update({
         id: req.params.id,
         userId: req.user.id,
-        ...req.body,
+        title: req.body.title,
+        mood: req.body.mood,
+        energy_level: req.body.energy_level,
+        text: req.body.text,
+        trigger_tags: req.body.trigger_tags,
+        images: req.body.images,
+        voice_note_url: req.body.voice_note_url,
       });
 
-      if (data && data._id && data.text) {
-        aiService.syncEntry(data._id, req.user.id, data.text, 'update').catch(err => {
-          console.error('Sync to vector store failed for update:', err);
-        });
+      if (data?._id && data.text) {
+        aiService
+          .syncEntry(data._id, req.user.id, data.text, "update")
+          .catch(console.error);
       }
 
       res.json(data);
@@ -88,8 +91,8 @@ module.exports = {
         userId: req.user.id,
       });
 
-      aiService.deleteEntry(req.params.id, req.user.id).catch(err => {
-        console.error('Delete from vector store failed:', err);
+      aiService.deleteEntry(req.params.id, req.user.id).catch((err) => {
+        console.error("Delete from vector store failed:", err);
       });
 
       res.json({ message: "Deleted successfully" });
@@ -106,9 +109,11 @@ module.exports = {
       });
 
       if (data && data._id && data.text) {
-        aiService.syncEntry(data._id, req.user.id, data.text, 'add').catch(err => {
-          console.error('Sync to vector store failed for restore:', err);
-        });
+        aiService
+          .syncEntry(data._id, req.user.id, data.text, "add")
+          .catch((err) => {
+            console.error("Sync to vector store failed for restore:", err);
+          });
       }
 
       res.json({ message: "Restored successfully" });
@@ -124,8 +129,11 @@ module.exports = {
         userId: req.user.id,
       });
 
-      aiService.deleteEntry(req.params.id, req.user.id).catch(err => {
-        console.error('Delete from vector store failed for permanent delete:', err);
+      aiService.deleteEntry(req.params.id, req.user.id).catch((err) => {
+        console.error(
+          "Delete from vector store failed for permanent delete:",
+          err
+        );
       });
 
       res.json({ message: "Deleted permanently" });
