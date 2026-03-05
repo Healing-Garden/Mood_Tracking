@@ -47,8 +47,12 @@ http.interceptors.response.use(
       _retry?: boolean;
     };
 
+    // Create proper error with message from API response
+    const errorMessage = (error.response?.data as any)?.message || error.message || 'Unknown error occurred';
+    const apiError = new Error(errorMessage);
+
     if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(error);
+      return Promise.reject(apiError);
     }
 
     if (isRefreshing) {
@@ -81,7 +85,8 @@ http.interceptors.response.use(
       processQueue(err as AxiosError, null);
       localStorage.removeItem("access_token");
       window.location.href = "/login";
-      return Promise.reject(err);
+      const errorMessage = (err as any)?.response?.data?.message || (err as Error)?.message || 'Token refresh failed';
+      return Promise.reject(new Error(errorMessage));
     } finally {
       isRefreshing = false;
     }

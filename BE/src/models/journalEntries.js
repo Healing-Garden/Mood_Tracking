@@ -9,6 +9,20 @@ const versionSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const sentimentSchema = new mongoose.Schema(
+  {
+    sentiment: { type: String, enum: ['positive', 'negative', 'neutral'] },
+    score: Number,
+    confidence: Number,
+    emotions: [{
+      label: String,
+      score: Number,
+      _id: false
+    }]
+  },
+  { _id: false }
+);
+
 const journalEntrySchema = new mongoose.Schema(
   {
     user_id: {
@@ -25,6 +39,8 @@ const journalEntrySchema = new mongoose.Schema(
     images: [String],
     voice_note_url: String,
     trigger_tags: [String],
+
+    sentiment: sentimentSchema,
 
     created_at: {
       type: Date,
