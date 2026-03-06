@@ -4,6 +4,7 @@ interface UserProfile {
   _id: string;
   fullName: string;
   email: string;
+  role?: string;
   age?: number;
   heightCm?: number;
   weight?: number;
@@ -42,7 +43,16 @@ export const userApi = {
   changePassword(payload: {
     currentPassword: string;
     newPassword: string;
+    recoveryCode?: string;
   }): Promise<{ message: string }> {
     return http.post("/user/change-password", payload);
+  },
+
+  getAdminRecoveryCodes(): Promise<{ codes: string[] }> {
+    return http.get("/user/admin/recovery-codes");
+  },
+
+  regenerateAdminRecoveryCodes(): Promise<{ message: string; codes: string[] }> {
+    return http.post("/user/admin/recovery-codes/regenerate");
   },
 };
