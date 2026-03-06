@@ -7,6 +7,7 @@ const userRouters = require("./routes/userRoutes");
 const journalRouters = require("./routes/journalRoutes");
 const aiRoutes = require('./routes/aiRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const feedbackRouters = require('./routes/feedbackRoutes');
 const chatHandler = require('./socket/chatHandler');
 const cookieParser = require("cookie-parser");
 
@@ -16,7 +17,7 @@ const io = socketIo(server, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST'],
-    credentials: true, 
+    credentials: true,
   }
 });
 
@@ -32,6 +33,7 @@ app.use("/api/journals", journalRouters);
 
 app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/feedback', feedbackRouters);
 
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
