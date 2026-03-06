@@ -1,7 +1,4 @@
-/**
- * Image optimization utility for frontend
- * Handles resizing and compression before upload
- */
+
 
 export const compressImage = async (file: File, maxWidth = 1200, quality = 0.8): Promise<Blob> => {
   return new Promise((resolve, reject) => {
