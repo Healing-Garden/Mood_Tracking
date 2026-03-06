@@ -7,6 +7,7 @@ const userRouters = require("./routes/userRoutes");
 const journalRouters = require("./routes/journalRoutes");
 const aiRoutes = require('./routes/aiRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const feedbackRouters = require('./routes/feedbackRoutes');
 const notificationSettingRoutes = require('./routes/notificationSettingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
@@ -37,6 +38,7 @@ app.use("/api/journals", journalRouters);
 
 app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/feedback', feedbackRouters);
 app.use('/api/notifications/settings', notificationSettingRoutes);
 app.use('/api/notifications', notificationRoutes);

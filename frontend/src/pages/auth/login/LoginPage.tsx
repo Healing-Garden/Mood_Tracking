@@ -13,6 +13,7 @@ import { useDailyCheckInStore } from "../../../store/dailyCheckInStore";
 import { useOnboardingStore } from "../../../store/onboardingStore";
 import { AxiosError } from "axios";
 import GoogleLogin from "../login/GoogleLogin";
+import { BannedUserModal } from "../../../components/auth/BannedUserModal";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -23,6 +24,13 @@ export default function LoginPage() {
   const [password, setPassword] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+
+  // Ban management state
+  const [showBannedModal, setShowBannedModal] = useState<boolean>(false);
+  const [bannedInfo, setBannedInfo] = useState<{
+    expiresAt: string | null;
+    reason: string;
+  }>({ expiresAt: null, reason: "" });
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -72,19 +80,39 @@ export default function LoginPage() {
           navigate("/user/dashboard");
         }
       }
-    } catch (err) {
+    } catch (err: unknown) {
+      let errMsg = err instanceof Error ? err.message : "Login failed";
+      const errRes = (err as any)?.response?.data;
+      if (errRes && typeof errRes.message === "string") {
+        errMsg = errRes.message;
+      }
+
+      if (errMsg.includes('"isBanned":true')) {
+        try {
+          const parsed = JSON.parse(errMsg);
+          setBannedInfo({
+            expiresAt: parsed.banExpiresAt || null,
+            reason: parsed.banReason || ""
+          });
+          setShowBannedModal(true);
+          return;
+        } catch (e) {
+          // Fallback to normal error handling
+        }
+      }
+
+      // Try resolving standard nested axios error structures just in case
       type ErrorResponse = { response?: { data?: { message?: string } } };
       if (
         typeof err === "object" &&
         err !== null &&
         "response" in err &&
-        typeof (err as ErrorResponse).response === "object"
+        typeof (err as ErrorResponse).response === "object" &&
+        (err as ErrorResponse).response?.data?.message
       ) {
-        setError(
-          (err as ErrorResponse).response?.data?.message || "Login failed"
-        );
+        setError((err as ErrorResponse).response!.data!.message!);
       } else {
-        setError("Login failed");
+        setError(errMsg || "Login failed");
       }
     } finally {
       setIsLoading(false);
@@ -141,13 +169,34 @@ export default function LoginPage() {
         }
       }
     } catch (err: unknown) {
-      if (err instanceof AxiosError) {
-        if (err.response?.data?.code === "LINK_GOOGLE_REQUIRED") {
+      let errMsg = err instanceof Error ? err.message : "Google login failed";
+      const errRes = (err as any)?.response?.data;
+      if (errRes && typeof errRes.message === "string") {
+        errMsg = errRes.message;
+      }
+
+      if (errMsg.includes('"isBanned":true')) {
+        try {
+          const parsed = JSON.parse(errMsg);
+          setBannedInfo({
+            expiresAt: parsed.banExpiresAt || null,
+            reason: parsed.banReason || ""
+          });
+          setShowBannedModal(true);
+          return;
+        } catch (e) {
+          // Fallback
+        }
+      }
+
+      if (err instanceof AxiosError && err.response?.data) {
+        const responseData = err.response.data;
+        if (responseData.code === "LINK_GOOGLE_REQUIRED") {
           // show link account modal
           return;
         }
       }
-      setError("Google login failed");
+      setError(errMsg || "Google login failed");
     } finally {
       setIsLoading(false);
     }
@@ -279,6 +328,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <BannedUserModal
+        isOpen={showBannedModal}
+        onClose={() => setShowBannedModal(false)}
+        banExpiresAt={bannedInfo.expiresAt}
+        banReason={bannedInfo.reason}
+      />
     </div>
   );
 }
