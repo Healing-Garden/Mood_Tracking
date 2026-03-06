@@ -1,10 +1,9 @@
 import http from "./http";
-import type { Journal } from "../types/journal";
+import type { Journal, JournalRequest } from "../types/journal";
 
 export const journalApi = {
-  async create(formData: FormData): Promise<Journal> {
-    const res = await http.post("/journals", formData, {
-    });
+  async create(data: JournalRequest): Promise<Journal> {
+    const res = await http.post("/journals", data);
     return res.data;
   },
 
@@ -13,20 +12,15 @@ export const journalApi = {
   },
 
   async getDeleted(): Promise<Journal[]> {
-    const res = await http.get("/journals/deleted");
-    return res.data;
+    return await http.get("/journals/deleted");
   },
 
   async search(query: string): Promise<Journal[]> {
-    const res = await http.get(`/journals/search?q=${query}`);
-    return res.data;
+    return await http.get(`/journals/search?q=${query}`);
   },
 
-  async update(id: string, formData: FormData): Promise<Journal> {
-    const res = await http.put(`/journals/${id}`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    return res.data;
+  async update(id: string, data: JournalRequest): Promise<Journal> {
+    return await http.put(`/journals/${id}`, data);
   },
 
   async delete(id: string): Promise<void> {
