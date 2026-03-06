@@ -1,8 +1,10 @@
 require("dotenv").config();
-const { server } = require("./app");  
+const { server } = require("./app");
 const connectDB = require("./config/db");
+const { initSchedulers } = require("./utils/scheduler");
 
 connectDB();
+initSchedulers();
 
 const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
