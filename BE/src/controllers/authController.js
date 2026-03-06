@@ -77,6 +77,15 @@ module.exports = {
         user: data.user,
       });
     } catch (err) {
+      if (err.isBanned) {
+        return res.status(403).json({
+          message: JSON.stringify({
+            isBanned: true,
+            banExpiresAt: err.banExpiresAt,
+            banReason: err.banReason
+          })
+        });
+      }
       res.status(400).json({ message: err.message });
     }
   },
@@ -94,6 +103,15 @@ module.exports = {
 
       res.json(data);
     } catch (err) {
+      if (err.isBanned) {
+        return res.status(403).json({
+          message: JSON.stringify({
+            isBanned: true,
+            banExpiresAt: err.banExpiresAt,
+            banReason: err.banReason
+          })
+        });
+      }
       if (err.code === "LINK_GOOGLE_REQUIRED") {
         return res.status(409).json({
           code: "LINK_GOOGLE_REQUIRED",

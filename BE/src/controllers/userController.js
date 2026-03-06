@@ -1,6 +1,9 @@
 const User = require("../models/users");
 const DailyCheckIn = require("../models/dailyCheckIn");
 const Onboarding = require("../models/onboarding");
+const aiService = require("../services/aiService");
+const SmartNotification = require("../models/SmartNotification");
+const webNotification = require("../services/webNotification");
 const JournalEntry = require("../models/journalEntries");
 const ChatSession = require("../models/chatSession");
 
@@ -144,6 +147,24 @@ module.exports = {
         payload,
         { new: true, upsert: true, runValidators: true }
       );
+
+      // Trigger instant AI insight/tip - non-blocking
+      (async () => {
+        try {
+          const aiTips = await aiService.suggestPracticalActions(userId, mood, 1);
+          if (aiTips && aiTips.success && aiTips.actions?.length > 0) {
+            const firstTip = aiTips.actions[0];
+            await webNotification.send(
+              userId,
+              `Small Tip: ${firstTip.title}`,
+              firstTip.description,
+              { type: 'tip', context: 'mood_check', ai_generated: true }
+            );
+          }
+        } catch (e) {
+          console.error("Failed to generate instant AI tip after check-in:", e?.message);
+        }
+      })();
 
       return res.status(200).json(entry);
     } catch (err) {

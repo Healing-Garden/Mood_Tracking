@@ -1,22 +1,23 @@
 const aiService = require('../services/aiService');
 const mongoose = require('mongoose');
-const { ObjectId } = require('mongodb');
+const { ObjectId } = mongoose.Types;
 
-async function getMongoDB() {
-    if (!mongoose.connection || !mongoose.connection.db) {
-        throw new Error('MongoDB connection not initialized');
+const getMongoDB = async () => {
+    const conn = mongoose.connection;
+    if (!conn || conn.readyState !== 1) {
+        throw new Error('MongoDB not connected');
     }
-    return mongoose.connection.db;
-}
+    return conn.db;
+};
 
 class AIController {
     // Suggest prompting questions
     async suggestQuestions(req, res) {
         try {
             const { userId, recentMood, count = 3 } = req.body;
-            
+
             const result = await aiService.suggestQuestions(userId, recentMood, count);
-            
+
             if (result.success) {
                 res.json({
                     success: true,
@@ -31,7 +32,7 @@ class AIController {
                     success: false,
                     error: result.error,
                     data: {
-                        questions: result.questions 
+                        questions: result.questions
                     }
                 });
             }
@@ -42,14 +43,14 @@ class AIController {
             });
         }
     }
-    
+
     // Generate daily summary
     async generateDailySummary(req, res) {
         try {
             const { userId, date } = req.body;
-            
+
             const result = await aiService.generateDailySummary(userId, date);
-            
+
             if (result.success) {
                 res.json({
                     success: true,
@@ -61,31 +62,23 @@ class AIController {
                     }
                 });
             } else {
-                res.json({
+                res.status(500).json({
                     success: false,
                     error: result.error,
                     data: {
-                        summary: result.summary,
-                        metadata: result.metadata || { fallback: true },
-                        type: result.type || 'fallback',
-                        generatedAt: result.generatedAt || new Date().toISOString(),
+                        summary: result.summary
                     }
                 });
             }
         } catch (error) {
-            res.json({
+            res.status(500).json({
                 success: false,
-                error: error.message,
-                data: {
-                    summary: "Today's data could not be summarized by AI right now. Keep checking in — your consistency matters.",
-                    metadata: { fallback: true },
-                    type: 'fallback',
-                    generatedAt: new Date().toISOString(),
-                }
+                error: error.message
             });
         }
     }
 
+    // Get daily summary
     async getDailySummary(req, res) {
         try {
             const { userId } = req.params;
@@ -130,14 +123,14 @@ class AIController {
             res.status(500).json({ success: false, error: error.message });
         }
     }
-    
+
     // Semantic search
     async semanticSearch(req, res) {
         try {
             const { userId, query, limit = 10 } = req.body;
-            
+
             const result = await aiService.semanticSearch(userId, query, limit);
-            
+
             res.json({
                 success: result.success,
                 data: {
@@ -156,14 +149,14 @@ class AIController {
             });
         }
     }
-    
+
     // Analyze emotional trends
     async analyzeEmotionalTrends(req, res) {
         try {
             const { userId, days = 30 } = req.body;
-            
+
             const result = await aiService.analyzeEmotionalTrends(userId, days);
-            
+
             if (result.success) {
                 res.json({
                     success: true,
@@ -178,7 +171,6 @@ class AIController {
                     }
                 });
             } else {
-                // Still return 200 so UI can show fallback/stub trend data
                 res.json({
                     success: false,
                     error: result.error,
@@ -200,14 +192,14 @@ class AIController {
             });
         }
     }
-    
+
     // Suggest practical actions
     async suggestPracticalActions(req, res) {
         try {
             const { userId, currentMood, count = 3 } = req.body;
-            
+
             const result = await aiService.suggestPracticalActions(userId, currentMood, count);
-            
+
             if (result.success) {
                 res.json({
                     success: true,
@@ -222,7 +214,7 @@ class AIController {
                     success: false,
                     error: result.error,
                     data: {
-                        actions: result.actions || [] 
+                        actions: result.actions || []
                     }
                 });
             }
@@ -233,14 +225,14 @@ class AIController {
             });
         }
     }
-    
+
     // Analyze sentiment
     async analyzeSentiment(req, res) {
         try {
             const { text } = req.body;
-            
+
             const result = await aiService.analyzeSentiment(text);
-            
+
             res.json({
                 success: result.success,
                 data: {
@@ -257,12 +249,12 @@ class AIController {
             });
         }
     }
-    
+
     // Health check
     async healthCheck(req, res) {
         try {
             const health = await aiService.getHealth();
-            
+
             res.json({
                 success: health.status === 'healthy',
                 data: health

@@ -15,10 +15,12 @@ import Step4 from "../pages/user/onboarding/Step4";
 import Step5 from "../pages/user/onboarding/Step5";
 import NotificationsPage from "../pages/user/notifications/NotificationPage";
 import ChatBot from "../pages/user/ai-partner/ChatBot";
+import FeedbackPage from "../pages/user/feedback/FeedbackPage";
 import AdminDashboardPage from "../pages/admin/dashboard/AdminDashboardPage";
 import AdminProfilePage from "../pages/admin/profile/AdminProfilePage";
 import AdminSetupPinPage from "../pages/admin/setup-pin/AdminSetupPinPage";
 import AdminVerifyPinPage from "../pages/admin/verify-pin/AdminVerifyPinPage";
+import AdminUserList from "../pages/admin/users/AdminUserList";
 import ProtectedRoute from "./ProtectedRoute";
 
 const routes = [
@@ -107,6 +109,14 @@ const routes = [
     element: <ChatBot />,
   },
   {
+    path: "/user/feedback",
+    element: (
+      <ProtectedRoute role="user">
+        <FeedbackPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/user/profile",
     element: <UserProfilePage />,
   },
@@ -137,6 +147,14 @@ const routes = [
   {
     path: "/admin/profile",
     element: <AdminProfilePage />,
+  },
+  {
+    path: "/admin/users",
+    element: (
+      <ProtectedRoute role="admin">
+        <AdminUserList />
+      </ProtectedRoute>
+    ),
   },
 ];
 
