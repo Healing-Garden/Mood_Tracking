@@ -136,7 +136,7 @@ export default function LoginPage() {
           setShowModal(true);
           navigate("/user/dashboard");
         } else {
-          console.error("Failed to check today check-in after Google login:", err);
+          console.error("Failed to check today check-in:", err);
           navigate("/user/dashboard");
         }
       }

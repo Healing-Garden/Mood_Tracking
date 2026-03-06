@@ -31,7 +31,8 @@ const processQueue = (
 
 // Gắn access token
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token =
+    localStorage.getItem("accessToken") || localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -70,6 +71,7 @@ http.interceptors.response.use(
       );
 
       const newToken = res.data.accessToken;
+      localStorage.setItem("accessToken", newToken);
       localStorage.setItem("access_token", newToken);
 
       processQueue(null, newToken);
