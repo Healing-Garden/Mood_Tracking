@@ -1,9 +1,5 @@
 import axios from "axios";
-import type {
-  AxiosError,
-  AxiosResponse,
-  InternalAxiosRequestConfig,
-} from "axios";
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
 
 interface FailedQueueItem {
   resolve: (value: AxiosResponse) => void;
@@ -19,7 +15,10 @@ const http = axios.create({
 let isRefreshing = false;
 let failedQueue: FailedQueueItem[] = [];
 
-const processQueue = (error: AxiosError | null, token: string | null) => {
+const processQueue = (
+  error: AxiosError | null,
+  token: string | null
+) => {
   failedQueue.forEach((p) => {
     if (error) {
       p.reject(error);
@@ -83,8 +82,7 @@ http.interceptors.response.use(
       processQueue(err as AxiosError, null);
       localStorage.removeItem("access_token");
       window.location.href = "/login";
-      const errorMessage = (err as any)?.response?.data?.message || (err as Error)?.message || 'Token refresh failed';
-      return Promise.reject(new Error(errorMessage));
+      return Promise.reject(err);
     } finally {
       isRefreshing = false;
     }

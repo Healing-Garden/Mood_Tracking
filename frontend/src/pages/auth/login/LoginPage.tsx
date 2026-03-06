@@ -100,6 +100,7 @@ export default function LoginPage() {
       });
 
       localStorage.setItem("accessToken", res.accessToken);
+      localStorage.setItem("access_token", res.accessToken); // Ensure compatibility with http.ts
       localStorage.setItem("user", JSON.stringify(res.user));
 
       resetDailyStore();
@@ -110,6 +111,7 @@ export default function LoginPage() {
         return;
       }
 
+      // Check onboarding status
       let isOnboarded = false;
       try {
         const statusRes = await userApi.getOnboardingStatus();
@@ -123,6 +125,7 @@ export default function LoginPage() {
         return;
       }
 
+      // Check today's check-in status
       try {
         await dailyCheckInApi.getToday();
         navigate("/user/dashboard");
