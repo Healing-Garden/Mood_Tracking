@@ -14,17 +14,11 @@ import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
 
-
-const emotionBreakdownData = [
-  { name: 'Happy', value: 35, fill: '#52b788' },
-  { name: 'Calm', value: 28, fill: '#7fdb8e' },
-  { name: 'Anxious', value: 18, fill: '#f4d35e' },
-  { name: 'Sad', value: 19, fill: '#8b5cf6' },
-]
-
 const UserDashboardPage = () => {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
+  const [dashboardData, setDashboardData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [weeklyStats, setWeeklyStats] = useState({
     checkIns: 0,
     avgMood: 0,
@@ -119,12 +113,14 @@ const UserDashboardPage = () => {
               {/* Welcome Section */}
               <div className="bg-gradient-to-r from-muted to-muted/50 rounded-2xl p-8 border border-border/30">
                 <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>
-                <p className="text-muted-foreground">You're on day 7 of your wellness journey. Keep going!</p>
+                <p className="text-muted-foreground">
+                  {loading ? '...' : `You're on day ${dashboardData?.journeyDays || 1} of your wellness journey. Keep going!`}
+                </p>
               </div>
 
               {/* Mood Trend Chart */}
               <MoodFlow
-                defaultPeriod="month"
+                defaultPeriod="week"
                 onDataChange={handleMoodDataChange}
               />
 
@@ -139,8 +135,17 @@ const UserDashboardPage = () => {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
-                      <Pie data={emotionBreakdownData} cx="50%" cy="50%" labelLine={false} label={({ name, value }) => `${name} ${value}%`} outerRadius={100} fill="#8884d8" dataKey="value">
-                        {emotionBreakdownData.map((entry, index) => (
+                      <Pie
+                        data={dashboardData?.moodDistribution || []}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, value }) => value > 0 ? `${name} ${value}%` : ''}
+                        outerRadius={100}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {(dashboardData?.moodDistribution || []).map((entry: any, index: number) => (
                           <Cell key={`cell-${index}`} fill={entry.fill} />
                         ))}
                       </Pie>
@@ -151,7 +156,7 @@ const UserDashboardPage = () => {
               </Card>
 
               {/* Trigger Heatmap */}
-              <TriggerHeatmap />
+              <TriggerHeatmap defaultPeriod="week" />
             </div>
 
             {/* Right Sidebar */}

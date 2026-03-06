@@ -11,6 +11,8 @@ router.get("/profile", userController.getProfile);
 router.put("/profile", userController.updateProfile);
 router.post("/avatar", upload.single("avatar"), userController.uploadAvatar);
 router.post("/change-password", userController.changePassword);
+router.get("/admin/recovery-codes", userController.getAdminRecoveryCodes);
+router.post("/admin/recovery-codes/regenerate", userController.regenerateAdminRecoveryCodes);
 
 // Onboarding preferences
 router.get("/onboarding/status", userController.getOnboardingStatus);
@@ -25,7 +27,11 @@ router.get("/checkins/flow", userController.getMoodFlow);
 // Analytics
 router.get("/analytics/trigger-heatmap", userController.getTriggerHeatmap);
 router.get("/analytics/word-cloud", userController.getWordCloud);
+router.get("/analytics/summary", userController.getAnalyticsSummary);
 router.get("/analytics/mood-history", userController.getMoodHistory);
+
+// Dashboard
+router.get("/dashboard/data", userController.getDashboardData);
 
 module.exports = router;
 

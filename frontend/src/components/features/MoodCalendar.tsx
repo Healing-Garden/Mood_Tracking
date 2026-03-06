@@ -82,9 +82,36 @@ export default function MoodCalendar() {
                         >
                             <ChevronLeft size={20} />
                         </button>
-                        <span className="text-sm font-semibold min-w-[100px] text-center">
-                            {monthName} {year}
-                        </span>
+
+                        <div className="flex items-center gap-1">
+                            <select
+                                value={month - 1}
+                                onChange={(e) => setCurrentDate(new Date(year, parseInt(e.target.value), 1))}
+                                className="bg-transparent font-semibold text-sm cursor-pointer hover:text-primary outline-none focus:ring-0 appearance-none px-1"
+                            >
+                                {Array.from({ length: 12 }, (_, i) => (
+                                    <option key={i} value={i}>
+                                        {new Date(0, i).toLocaleString('default', { month: 'long' })}
+                                    </option>
+                                ))}
+                            </select>
+
+                            <select
+                                value={year}
+                                onChange={(e) => setCurrentDate(new Date(parseInt(e.target.value), month - 1, 1))}
+                                className="bg-transparent font-semibold text-sm cursor-pointer hover:text-primary outline-none focus:ring-0 appearance-none px-1"
+                            >
+                                {Array.from({ length: 10 }, (_, i) => {
+                                    const y = new Date().getFullYear() - 5 + i;
+                                    return (
+                                        <option key={y} value={y}>
+                                            {y}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+
                         <button
                             onClick={nextMonth}
                             disabled={new Date(year, month, 1) > new Date()}
