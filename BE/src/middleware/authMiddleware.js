@@ -9,6 +9,9 @@ module.exports = (req, res, next) => {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     req.user = decoded;
 
+    // Some controllers expect req.userId
+    req.userId = decoded?.id || decoded?.userId || decoded?._id;
+
     next();
   } catch {
     return res.status(401).json({ message: "Invalid token" });
