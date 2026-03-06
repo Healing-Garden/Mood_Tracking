@@ -80,8 +80,13 @@ export default function LoginPage() {
           navigate("/user/dashboard");
         }
       }
-    } catch (err) {
-      const errMsg = err instanceof Error ? err.message : "";
+    } catch (err: unknown) {
+      let errMsg = err instanceof Error ? err.message : "Login failed";
+      const errRes = (err as any)?.response?.data;
+      if (errRes && typeof errRes.message === "string") {
+        errMsg = errRes.message;
+      }
+
       if (errMsg.includes('"isBanned":true')) {
         try {
           const parsed = JSON.parse(errMsg);
@@ -123,11 +128,53 @@ export default function LoginPage() {
       });
 
       localStorage.setItem("accessToken", res.accessToken);
+      localStorage.setItem("access_token", res.accessToken); // Ensure compatibility with http.ts
       localStorage.setItem("user", JSON.stringify(res.user));
 
-      navigate("/user/dashboard");
+      resetDailyStore();
+      resetOnboarding();
+
+      if (res.user.role === "admin") {
+        navigate("/admin/dashboard");
+        return;
+      }
+
+      // Check onboarding status
+      let isOnboarded = false;
+      try {
+        const statusRes = await userApi.getOnboardingStatus();
+        isOnboarded = !!statusRes.isOnboarded;
+      } catch {
+        isOnboarded = false;
+      }
+
+      if (!isOnboarded) {
+        navigate("/onboarding/step-1");
+        return;
+      }
+
+      // Check today's check-in status
+      try {
+        await dailyCheckInApi.getToday();
+        navigate("/user/dashboard");
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } }).response
+          ?.status;
+        if (status === 404) {
+          setShowModal(true);
+          navigate("/user/dashboard");
+        } else {
+          console.error("Failed to check today check-in:", err);
+          navigate("/user/dashboard");
+        }
+      }
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "";
+      let errMsg = err instanceof Error ? err.message : "Google login failed";
+      const errRes = (err as any)?.response?.data;
+      if (errRes && typeof errRes.message === "string") {
+        errMsg = errRes.message;
+      }
+
       if (errMsg.includes('"isBanned":true')) {
         try {
           const parsed = JSON.parse(errMsg);

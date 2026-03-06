@@ -8,7 +8,11 @@ const journalRouters = require("./routes/journalRoutes");
 const aiRoutes = require('./routes/aiRoutes');
 const chatRoutes = require('./routes/chatRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const feedbackRouters = require('./routes/feedbackRoutes');
+const notificationSettingRoutes = require('./routes/notificationSettingRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 const chatHandler = require('./socket/chatHandler');
+const socketManager = require('./socketManager');
 const cookieParser = require("cookie-parser");
 
 const app = express();
@@ -20,6 +24,7 @@ const io = socketIo(server, {
     credentials: true,
   }
 });
+socketManager.init(io);
 
 const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
 app.use(cors({ origin: clientURL, credentials: true }));
@@ -34,6 +39,9 @@ app.use("/api/journals", journalRouters);
 app.use('/api/ai', aiRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/feedback', feedbackRouters);
+app.use('/api/notifications/settings', notificationSettingRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
