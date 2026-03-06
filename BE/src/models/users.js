@@ -62,6 +62,21 @@ const userSchema = new mongoose.Schema(
 
     healthGoals: [{ type: String }],
 
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+
+    banExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    banReason: {
+      type: String,
+      default: "",
+    },
+
     accountStatus: {
       type: String,
       enum: ["active", "banned"],
