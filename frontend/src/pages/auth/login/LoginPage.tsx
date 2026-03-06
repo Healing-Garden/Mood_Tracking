@@ -102,7 +102,41 @@ export default function LoginPage() {
       localStorage.setItem("accessToken", res.accessToken);
       localStorage.setItem("user", JSON.stringify(res.user));
 
-      navigate("/user/dashboard");
+      resetDailyStore();
+      resetOnboarding();
+
+      if (res.user.role === "admin") {
+        navigate("/admin/dashboard");
+        return;
+      }
+
+      let isOnboarded = false;
+      try {
+        const statusRes = await userApi.getOnboardingStatus();
+        isOnboarded = !!statusRes.isOnboarded;
+      } catch {
+        isOnboarded = false;
+      }
+
+      if (!isOnboarded) {
+        navigate("/onboarding/step-1");
+        return;
+      }
+
+      try {
+        await dailyCheckInApi.getToday();
+        navigate("/user/dashboard");
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } }).response
+          ?.status;
+        if (status === 404) {
+          setShowModal(true);
+          navigate("/user/dashboard");
+        } else {
+          console.error("Failed to check today check-in:", err);
+          navigate("/user/dashboard");
+        }
+      }
     } catch (err: unknown) {
       if (err instanceof AxiosError) {
         if (err.response?.data?.code === "LINK_GOOGLE_REQUIRED") {

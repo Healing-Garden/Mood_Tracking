@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
-import { Link } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { Brain, BookOpen, TrendingUp, Menu, X } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
@@ -9,6 +9,7 @@ import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
 import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
+import { userApi } from '../../../api/userApi'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
@@ -22,6 +23,7 @@ const emotionBreakdownData = [
 ]
 
 const UserDashboardPage = () => {
+  const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [weeklyStats, setWeeklyStats] = useState({
     checkIns: 0,
@@ -32,32 +34,38 @@ const UserDashboardPage = () => {
 
   const { setShowModal, resetStore } = useDailyCheckInStore()
 
-  // Kiểm tra trạng thái check-in hôm nay từ database khi mở dashboard
+  // Kiểm tra onboarding và trạng thái check-in hôm nay
   useEffect(() => {
-    const checkTodayFromServer = async () => {
+    const checkStatus = async () => {
+      // 1. Kiểm tra onboarding trước
+      try {
+        const onboardingRes = await userApi.getOnboardingStatus()
+        if (!onboardingRes.isOnboarded) {
+          navigate('/onboarding/step-1', { replace: true })
+          return
+        }
+      } catch (error) {
+        console.error('Failed to fetch onboarding status:', error)
+      }
+
+      // 2. Kiểm tra check-in hôm nay
       try {
         await dailyCheckInApi.getToday()
-        // Đã có check-in hôm nay
       } catch (error) {
         if (axios.isAxiosError(error)) {
           const status = error.response?.status
-
           if (status === 404) {
-            // Chưa check-in hôm nay
             resetStore()
-            // Mở modal
             setShowModal(true)
           } else {
             console.error('Failed to fetch today check-in:', error.message)
           }
-        } else {
-          console.error('Unexpected error:', error)
         }
       }
     }
 
-    checkTodayFromServer()
-  }, [setShowModal, resetStore])
+    checkStatus()
+  }, [setShowModal, resetStore, navigate])
 
   const handleMoodDataChange = useCallback((points: any[]) => {
     if (points.length === 0) {

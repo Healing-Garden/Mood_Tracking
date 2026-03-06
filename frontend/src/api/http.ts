@@ -32,7 +32,8 @@ const processQueue = (error: AxiosError | null, token: string | null) => {
 
 // Gắn access token
 http.interceptors.request.use((config) => {
-  const token = localStorage.getItem("access_token");
+  const token =
+    localStorage.getItem("accessToken") || localStorage.getItem("access_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -47,12 +48,8 @@ http.interceptors.response.use(
       _retry?: boolean;
     };
 
-    // Create proper error with message from API response
-    const errorMessage = (error.response?.data as any)?.message || error.message || 'Unknown error occurred';
-    const apiError = new Error(errorMessage);
-
     if (error.response?.status !== 401 || original._retry) {
-      return Promise.reject(apiError);
+      return Promise.reject(error);
     }
 
     if (isRefreshing) {
@@ -75,6 +72,7 @@ http.interceptors.response.use(
       );
 
       const newToken = res.data.accessToken;
+      localStorage.setItem("accessToken", newToken);
       localStorage.setItem("access_token", newToken);
 
       processQueue(null, newToken);
