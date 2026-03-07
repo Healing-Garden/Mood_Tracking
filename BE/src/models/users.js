@@ -46,8 +46,34 @@ const userSchema = new mongoose.Schema(
     dateOfBirth: Date,
     heightCm: Number,
     healthGoals: [{ type: String }],
-    accountStatus: { type: String, enum: ["active", "banned"], default: "active", },
-    authProvider: { type: String, enum: ["local", "google", "both"], default: "local", },
+
+    isBanned: {
+      type: Boolean,
+      default: false,
+    },
+
+    banExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    banReason: {
+      type: String,
+      default: "",
+    },
+
+    accountStatus: {
+      type: String,
+      enum: ["active", "banned"],
+      default: "active",
+    },
+
+    authProvider: {
+      type: String,
+      enum: ["local", "google", "both"],
+      default: "local",
+    },
+
     googleId: String,
     resetPasswordToken: String,
     resetPasswordExpires: Date,

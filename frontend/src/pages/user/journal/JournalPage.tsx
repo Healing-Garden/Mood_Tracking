@@ -6,7 +6,6 @@ import { Input } from "../../../components/ui/Input";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "../../../components/ui/Card";
@@ -30,6 +29,8 @@ import {
   Trash,
   Image as ImageIcon,
 } from "lucide-react";
+import { uploadToCloudinary } from "../../../utils/cloudinary";
+import { compressImage } from "../../../utils/imageOptimizer";
 import DashboardSidebar from "../../../components/layout/DashboardSideBar";
 import { journalApi } from "../../../api/journalApi";
 import { aiApi } from "../../../api/aiApi";
@@ -44,10 +45,10 @@ import type { SearchResult } from "../../../types/ai";
 declare global {
   interface Window {
     SpeechRecognition?: {
-      new (): SpeechRecognition;
+      new(): SpeechRecognition;
     };
     webkitSpeechRecognition?: {
-      new (): SpeechRecognition;
+      new(): SpeechRecognition;
     };
   }
 }
@@ -116,34 +117,6 @@ export default function JournalPage() {
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<string[]>([]);
   const [voiceFile, setVoiceFile] = useState<File | null>(null);
-
-  const uploadToCloudinary = async (file: File) => {
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("upload_preset", "journal_unsigned");
-
-    const res = await fetch(
-      "https://api.cloudinary.com/v1_1/difg4vgbw/auto/upload",
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
-
-    if (!res.ok) {
-      throw new Error("Upload failed");
-    }
-
-    const data = await res.json();
-
-    if (!data.secure_url) {
-      throw new Error("Cloudinary did not return URL");
-    }
-
-    console.log("Uploaded:", data.secure_url);
-
-    return data.secure_url;
-  };
 
   const loadEntries = async () => {
     try {
@@ -361,21 +334,25 @@ export default function JournalPage() {
     setIsSaving(true);
 
     try {
-      // 1️⃣ Upload images trực tiếp lên Cloudinary
-      const imageUrls = await Promise.all(
-        imageFiles.map((file) => uploadToCloudinary(file))
-      );
-
-      // 2️⃣ Upload audio nếu có
-      let voiceUrl: string | null = null;
-
-      if (audioBlob) {
-        const audioFile = new File([audioBlob], "voice.webm", {
-          type: "audio/webm",
-        });
-
-        voiceUrl = await uploadToCloudinary(audioFile);
-      }
+      // 1️⃣ Parallelize optimization and upload
+      const [imageUrls, voiceUrl] = await Promise.all([
+        // Optimize and upload all images in parallel
+        Promise.all(
+          imageFiles.map(async (file) => {
+            const compressed = await compressImage(file);
+            return uploadToCloudinary(compressed as File);
+          })
+        ),
+        // Upload audio if it exists
+        audioBlob
+          ? (async () => {
+            const audioFile = new File([audioBlob], "voice.webm", {
+              type: "audio/webm",
+            });
+            return uploadToCloudinary(audioFile);
+          })()
+          : Promise.resolve(null),
+      ]);
 
       // 3️⃣ Gửi URL về backend
       await journalApi.create({
@@ -423,6 +400,27 @@ export default function JournalPage() {
     setImagePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const handleRestoreEntry = async (id: string) => {
+    try {
+      await journalApi.restore(id);
+      await loadEntries();
+      await loadDeletedEntries();
+    } catch (error) {
+      console.error("Restore error:", error);
+    }
+  };
+
+  const handlePermanentDeleteEntry = async (id: string) => {
+    if (!confirm("Delete this entry PERMANENTLY? This cannot be undone.")) return;
+
+    try {
+      await journalApi.permanentDelete(id);
+      await loadDeletedEntries();
+    } catch (error) {
+      console.error("Permanent delete error:", error);
+    }
+  };
+
   const toggleEmotion = (emotion: string) => {
     setSelectedEmotions((prev) =>
       prev.includes(emotion)
@@ -437,9 +435,8 @@ export default function JournalPage() {
     <div className="flex min-h-screen bg-background">
       {/* Sidebar */}
       <div
-        className={`fixed inset-y-0 left-0 z-30 ${
-          sidebarOpen ? "block" : "hidden"
-        } lg:static lg:block`}
+        className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? "block" : "hidden"
+          } lg:static lg:block`}
       >
         <DashboardSidebar
           userType="user"
@@ -546,11 +543,10 @@ export default function JournalPage() {
                           <button
                             key={mood}
                             onClick={() => setSelectedMood(mood)}
-                            className={`text-2xl p-1.5 rounded transition-all ${
-                              selectedMood === mood
-                                ? "bg-primary/20 scale-110"
-                                : "hover:bg-secondary/50"
-                            }`}
+                            className={`text-2xl p-1.5 rounded transition-all ${selectedMood === mood
+                              ? "bg-primary/20 scale-110"
+                              : "hover:bg-secondary/50"
+                              }`}
                           >
                             {mood}
                           </button>
@@ -566,11 +562,10 @@ export default function JournalPage() {
                           <button
                             key={emotion}
                             onClick={() => toggleEmotion(emotion)}
-                            className={`px-3 py-1 rounded-full text-xs transition ${
-                              selectedEmotions.includes(emotion)
-                                ? "bg-primary text-white"
-                                : "bg-secondary text-foreground hover:bg-secondary/80"
-                            }`}
+                            className={`px-3 py-1 rounded-full text-xs transition ${selectedEmotions.includes(emotion)
+                              ? "bg-primary text-white"
+                              : "bg-secondary text-foreground hover:bg-secondary/80"
+                              }`}
                           >
                             {emotion}
                           </button>
@@ -602,19 +597,18 @@ export default function JournalPage() {
                       {/* Audio Recording */}
                       <button
                         onClick={isRecording ? stopRecording : startRecording}
-                        className={`flex items-center gap-1.5 text-xs transition ${
-                          isRecording
-                            ? "text-red-600 animate-pulse"
-                            : "hover:text-primary"
-                        }`}
+                        className={`flex items-center gap-1.5 text-xs transition ${isRecording
+                          ? "text-red-600 animate-pulse"
+                          : "hover:text-primary"
+                          }`}
                       >
                         {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
                         <span>
                           {audioUrl
                             ? "Audio attached"
                             : isRecording
-                            ? "Recording..."
-                            : "Voice"}
+                              ? "Recording..."
+                              : "Voice"}
                         </span>
                       </button>
 
@@ -770,75 +764,75 @@ export default function JournalPage() {
                     </div>
                   )
                 ) : // Hiển thị tất cả entries khi không tìm kiếm
-                entries.length === 0 ? (
-                  <Card className="text-center p-12">
-                    <BookOpen
-                      size={48}
-                      className="mx-auto text-muted-foreground mb-4"
-                    />
-                    <p className="text-muted-foreground">
-                      No entries yet. Start writing your first entry!
-                    </p>
-                  </Card>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {entries.map((entry) => (
-                      <Card
-                        key={entry._id}
-                        className="hover:shadow-lg transition-shadow flex flex-col"
-                      >
-                        <CardHeader className="pb-3">
-                          <div className="flex justify-between items-start mb-2">
-                            <span className="text-2xl">{entry.mood}</span>
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Calendar size={14} />
-                              {new Date(entry.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <CardTitle className="text-base line-clamp-2">
-                            {entry.title}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 flex-1 flex flex-col">
-                          <p className="text-sm text-muted-foreground line-clamp-3">
-                            {entry.text}
-                          </p>
-                          <div className="flex gap-2 pt-2 border-t mt-auto">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="flex-1 bg-transparent h-8"
-                              onClick={() => {
-                                setSelectedEntry(entry);
-                                setEditTitle(entry.title);
-                                setEditContent(entry.text);
-                                setEditMood(entry.mood);
-                                setEditEnergy(entry.energy_level);
+                  entries.length === 0 ? (
+                    <Card className="text-center p-12">
+                      <BookOpen
+                        size={48}
+                        className="mx-auto text-muted-foreground mb-4"
+                      />
+                      <p className="text-muted-foreground">
+                        No entries yet. Start writing your first entry!
+                      </p>
+                    </Card>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {entries.map((entry) => (
+                        <Card
+                          key={entry._id}
+                          className="hover:shadow-lg transition-shadow flex flex-col"
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="text-2xl">{entry.mood}</span>
+                              <span className="text-xs text-muted-foreground flex items-center gap-1">
+                                <Calendar size={14} />
+                                {new Date(entry.created_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <CardTitle className="text-base line-clamp-2">
+                              {entry.title}
+                            </CardTitle>
+                          </CardHeader>
+                          <CardContent className="space-y-3 flex-1 flex flex-col">
+                            <p className="text-sm text-muted-foreground line-clamp-3">
+                              {entry.text}
+                            </p>
+                            <div className="flex gap-2 pt-2 border-t mt-auto">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1 bg-transparent h-8"
+                                onClick={() => {
+                                  setSelectedEntry(entry);
+                                  setEditTitle(entry.title);
+                                  setEditContent(entry.text);
+                                  setEditMood(entry.mood);
+                                  setEditEnergy(entry.energy_level);
 
-                                setNewImages([]);
-                                setPreviewImages([]);
-                                setRemovedImages([]);
-                                setVoiceFile(null);
+                                  setNewImages([]);
+                                  setPreviewImages([]);
+                                  setRemovedImages([]);
+                                  setVoiceFile(null);
 
-                                setIsEditMode(false);
-                              }}
-                            >
-                              Read
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDeleteEntry(entry._id)}
-                              className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
-                            >
-                              <Trash2 size={14} />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                                  setIsEditMode(false);
+                                }}
+                              >
+                                Read
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteEntry(entry._id)}
+                                className="flex-1 bg-transparent border-red-200 text-red-600 hover:bg-red-50 h-8"
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
               </TabsContent>
 
               {/* Trash Tab */}
@@ -853,30 +847,50 @@ export default function JournalPage() {
                   </Card>
                 ) : (
                   <div className="space-y-4">
-                    {deletedEntries.map((entry) => (
-                      <Card key={entry._id}>
-                        <CardHeader>
-                          <div className="flex justify-between items-start">
-                            <div>
-                              <CardTitle>{entry.title}</CardTitle>
-                              <CardDescription>
-                                Deleted{" "}
-                                {entry.deleted_at &&
-                                  new Date(
-                                    entry.deleted_at
-                                  ).toLocaleDateString()}
-                              </CardDescription>
+                    {deletedEntries.map((entry) => {
+                      const deleteDate = entry.deleted_at ? new Date(entry.deleted_at) : new Date();
+                      const expiryDate = new Date(deleteDate.getTime() + 30 * 24 * 60 * 60 * 1000);
+                      const now = new Date();
+                      const diffDays = Math.ceil((expiryDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+                      return (
+                        <Card key={entry._id} className="border-red-100 bg-red-50/10">
+                          <CardHeader className="pb-3">
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <CardTitle className="text-lg">{entry.title}</CardTitle>
+                                <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                  <Calendar size={12} />
+                                  Deleted on: {deleteDate.toLocaleDateString()}
+                                </p>
+                              </div>
+                              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${diffDays <= 3 ? "bg-red-100 text-red-600" : "bg-orange-100 text-orange-600"
+                                }`}>
+                                {diffDays > 0 ? `${diffDays} days left` : "Expiring soon"}
+                              </span>
                             </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="flex gap-2">
-                          <Button size="sm">Restore</Button>
-                          <Button size="sm" variant="outline">
-                            Delete Permanently
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
+                          </CardHeader>
+                          <CardContent className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleRestoreEntry(entry._id)}
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white h-8"
+                            >
+                              Restore
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handlePermanentDeleteEntry(entry._id)}
+                              className="text-red-600 hover:bg-red-50 border-red-200 h-8"
+                            >
+                              Delete Permanently
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
                   </div>
                 )}
               </TabsContent>
@@ -1032,19 +1046,24 @@ export default function JournalPage() {
                       if (!selectedEntry) return;
 
                       try {
-                        // Upload new images
-                        const uploadedNewImages = await Promise.all(
-                          newImages.map((file) => uploadToCloudinary(file))
+                        // 1️⃣ Optimize and upload new images in parallel
+                        const uploadedNewImagesPromise = Promise.all(
+                          newImages.map(async (file) => {
+                            const compressed = await compressImage(file);
+                            return uploadToCloudinary(compressed as File);
+                          })
                         );
 
-                        let uploadedVoiceUrl =
-                          selectedEntry.voice_note_url || null;
+                        // 2️⃣ Upload audio if it exists
+                        const uploadedVoiceUrlPromise = voiceFile
+                          ? uploadToCloudinary(voiceFile)
+                          : Promise.resolve(selectedEntry.voice_note_url || null);
 
-                        if (voiceFile) {
-                          uploadedVoiceUrl = await uploadToCloudinary(
-                            voiceFile
-                          );
-                        }
+                        // Wait for all uploads to complete in parallel
+                        const [uploadedNewImages, uploadedVoiceUrl] = await Promise.all([
+                          uploadedNewImagesPromise,
+                          uploadedVoiceUrlPromise
+                        ]);
 
                         // Giữ lại ảnh cũ không bị xóa
                         const remainingOldImages = selectedEntry.images.filter(

@@ -656,7 +656,7 @@ module.exports = {
     } catch (err) {
       console.error("changePassword error:", err);
       return res.status(400).json({ message: err.message || "Internal server error" });
-    }  
+    }
   },
 
   // GET /api/user/admin/recovery-codes

@@ -29,11 +29,42 @@ const issueJwt = (user) => {
   };
 };
 
+// Check if user is banned and handle auto-unban if duration has passed
+const checkBannedStatus = async (user) => {
+  if (user.accountStatus === "banned" || user.isBanned) {
+    // If there is an expiration date
+    if (user.banExpiresAt) {
+      if (new Date() > user.banExpiresAt) {
+        // Ban expired, auto-unban
+        user.isBanned = false;
+        user.accountStatus = "active";
+        user.banExpiresAt = null;
+        user.banReason = "";
+        await user.save();
+        return; // proceed with login
+      } else {
+        // Still banned
+        const error = new Error("Account is banned");
+        error.isBanned = true;
+        error.banExpiresAt = user.banExpiresAt;
+        error.banReason = user.banReason;
+        throw error;
+      }
+    } else {
+      // Permanent ban (no expiration date)
+      const error = new Error("Account is permanently banned");
+      error.isBanned = true;
+      error.banExpiresAt = null;
+      error.banReason = user.banReason;
+      throw error;
+    }
+  }
+};
+
 module.exports = {
   login: async ({ email, password }) => {
     const user = await User.findOne({ email });
     if (!user) throw new Error("User not found");
-    if (user.accountStatus === "banned") throw new Error("Account is banned");
 
     if (!user.password) {
       throw new Error("Please set password before using email login");
@@ -41,6 +72,8 @@ module.exports = {
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) throw new Error("Invalid password");
+
+    await checkBannedStatus(user);
 
     return issueJwt(user);
   },
@@ -72,6 +105,8 @@ module.exports = {
 
       return issueJwt(user);
     }
+
+    await checkBannedStatus(user);
 
     if (user.authProvider === "local") {
       user.googleId = googleId;
