@@ -80,6 +80,7 @@ export default function DashboardSidebar({
       icon: <TrendingUp size={20} />,
       href: "/admin/reports",
     },
+    { label: "Healing Content", icon: <BookOpen size={20} />, href: "/admin/healing-content" },
     { label: "Notifications", icon: <Bell size={20} />, href: "/admin/notifications" },
   ];
 

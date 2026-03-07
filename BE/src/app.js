@@ -12,6 +12,7 @@ const feedbackRouters = require('./routes/feedbackRoutes');
 const notificationSettingRoutes = require('./routes/notificationSettingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const aggregatedInsightRoutes = require('./routes/aggregatedInsightRoutes');
+const adminHealingContentRoutes = require('./routes/adminHealingContentRoutes');
 const chatHandler = require('./socket/chatHandler');
 const socketManager = require('./socketManager');
 const cookieParser = require("cookie-parser");
@@ -43,6 +44,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/feedback', feedbackRouters);
 app.use('/api/notifications/settings', notificationSettingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use("/api/admin/healing-content", adminHealingContentRoutes);
 
 app.use('/api/admin', aggregatedInsightRoutes);
 
