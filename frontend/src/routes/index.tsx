@@ -20,6 +20,7 @@ import AdminDashboardPage from "../pages/admin/dashboard/AdminDashboardPage";
 import AdminProfilePage from "../pages/admin/profile/AdminProfilePage";
 import AdminSetupPinPage from "../pages/admin/setup-pin/AdminSetupPinPage";
 import AdminVerifyPinPage from "../pages/admin/verify-pin/AdminVerifyPinPage";
+import AnalyticPage from "../pages/admin/analytics/AnalyticsPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 const routes = [
@@ -97,7 +98,11 @@ const routes = [
   },
   {
     path: "/user/analytics",
-    element: <AnalyticsPage />,
+    element: (
+      <ProtectedRoute role="user">
+        <AnalyticsPage />
+      </ProtectedRoute>
+    ),
   },
   {
     path: "/user/notifications",
@@ -146,6 +151,14 @@ const routes = [
   {
     path: "/admin/profile",
     element: <AdminProfilePage />,
+  },
+  {
+    path: "/admin/analytics",
+    element: (
+      <ProtectedRoute role="admin">
+        <AnalyticPage />
+      </ProtectedRoute>
+    ),
   },
 ];
 

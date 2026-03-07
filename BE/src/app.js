@@ -10,6 +10,7 @@ const chatRoutes = require('./routes/chatRoutes');
 const feedbackRouters = require('./routes/feedbackRoutes');
 const notificationSettingRoutes = require('./routes/notificationSettingRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const chatHandler = require('./socket/chatHandler');
 const socketManager = require('./socketManager');
 const cookieParser = require("cookie-parser");
@@ -40,6 +41,8 @@ app.use('/api/chat', chatRoutes);
 app.use('/api/feedback', feedbackRouters);
 app.use('/api/notifications/settings', notificationSettingRoutes);
 app.use('/api/notifications', notificationRoutes);
+
+app.use('/api/admin', adminRoutes);
 
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id);
