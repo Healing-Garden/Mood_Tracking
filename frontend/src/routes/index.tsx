@@ -20,6 +20,7 @@ import AdminDashboardPage from "../pages/admin/dashboard/AdminDashboardPage";
 import AdminProfilePage from "../pages/admin/profile/AdminProfilePage";
 import AdminSetupPinPage from "../pages/admin/setup-pin/AdminSetupPinPage";
 import AdminVerifyPinPage from "../pages/admin/verify-pin/AdminVerifyPinPage";
+import HealingContentPage from "../pages/admin/healing/HealingContentPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 const routes = [
@@ -140,6 +141,14 @@ const routes = [
     element: (
       <ProtectedRoute role="admin">
         <AdminDashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/healing-content",
+    element: (
+      <ProtectedRoute role="admin">
+        <HealingContentPage />
       </ProtectedRoute>
     ),
   },
