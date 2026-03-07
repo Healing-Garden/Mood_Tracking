@@ -113,6 +113,25 @@ const AdminProfilePage: React.FC = () => {
     }
   }
 
+  const handleAvatarRemove = async () => {
+    setSuccessMessage('')
+    setIsUploadingAvatar(true)
+    try {
+      const response = await userApi.removeAvatar()
+      setAvatar(response.user.avatarUrl || '')
+      showSuccess('Avatar đã được gỡ bỏ.')
+    } catch (error) {
+      console.error('Admin avatar removal error:', error)
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể gỡ bỏ avatar',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
   const handlePersonalInfoSave = async (e: FormEvent) => {
     e.preventDefault()
     setSuccessMessage('')
@@ -356,6 +375,7 @@ const AdminProfilePage: React.FC = () => {
                 <AvatarUpload
                   currentAvatar={avatar}
                   onAvatarChange={handleAvatarUpload}
+                  onRemove={handleAvatarRemove}
                   isLoading={isUploadingAvatar}
                 />
                 <div className="mt-6 pt-4 border-t border-border w-full text-center">

@@ -65,7 +65,7 @@ exports.updateHealingContent = async (req, res) => {
         // Delete old video if replacing it OR explicitly removing it
         if (existingContent.type === "video" && videoUrl) {
             if (req.file || removeVideo) {
-                await cloudinaryService.deleteVideoByUrl(videoUrl);
+                await cloudinaryService.deleteResourceByUrl(videoUrl, "video");
                 videoUrl = null;
             }
         }
@@ -101,7 +101,7 @@ exports.deleteHealingContent = async (req, res) => {
         }
 
         if (deletedContent.type === "video" && deletedContent.videoUrl) {
-            await cloudinaryService.deleteVideoByUrl(deletedContent.videoUrl);
+            await cloudinaryService.deleteResourceByUrl(deletedContent.videoUrl, "video");
         }
 
         res.status(200).json({ message: "Healing content deleted successfully" });

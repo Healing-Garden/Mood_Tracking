@@ -636,6 +636,19 @@ module.exports = {
     }
   },
 
+  // DELETE /api/user/avatar
+  removeAvatar: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const userService = require("../services/userService");
+      const user = await userService.removeAvatar(userId);
+      return res.json({ message: "Avatar removed successfully", user });
+    } catch (err) {
+      console.error("removeAvatar error:", err);
+      return res.status(500).json({ message: err.message || "Internal server error" });
+    }
+  },
+
   // POST /api/user/change-password
   changePassword: async (req, res) => {
     try {

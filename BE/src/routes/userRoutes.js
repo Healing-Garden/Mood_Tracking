@@ -10,6 +10,7 @@ router.use(authMiddleware);
 router.get("/profile", userController.getProfile);
 router.put("/profile", userController.updateProfile);
 router.post("/avatar", upload.single("avatar"), userController.uploadAvatar);
+router.delete("/avatar", userController.removeAvatar);
 router.post("/change-password", userController.changePassword);
 router.get("/admin/recovery-codes", userController.getAdminRecoveryCodes);
 router.post("/admin/recovery-codes/regenerate", userController.regenerateAdminRecoveryCodes);

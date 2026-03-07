@@ -66,7 +66,8 @@ const UserProfilePage: React.FC = () => {
         })
       } finally {
         setIsLoadingProfile(false)
-      }    }
+      }
+    }
 
     loadProfile()
   }, [toast])
@@ -89,6 +90,25 @@ const UserProfilePage: React.FC = () => {
       toast({
         title: 'Lỗi',
         description: avatarError instanceof Error ? avatarError.message : 'Không thể cập nhật avatar',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
+  const handleAvatarRemove = async () => {
+    setSuccessMessage('')
+    setIsUploadingAvatar(true)
+    try {
+      const response = await userApi.removeAvatar()
+      setAvatar(response.user.avatarUrl || '')
+      showSuccess('Avatar đã được gỡ bỏ.')
+    } catch (error) {
+      console.error('Avatar removal error:', error)
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể gỡ bỏ avatar',
         variant: 'destructive',
       })
     } finally {
@@ -302,6 +322,7 @@ const UserProfilePage: React.FC = () => {
                 <AvatarUpload
                   currentAvatar={avatar}
                   onAvatarChange={handleAvatarUpload}
+                  onRemove={handleAvatarRemove}
                   isLoading={isUploadingAvatar}
                 />
                 <div className="mt-6 pt-4 border-t border-border w-full text-center">

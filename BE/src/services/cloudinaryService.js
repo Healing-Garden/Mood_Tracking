@@ -27,6 +27,8 @@ const uploadVideoToCloudinary = (file) => {
             {
                 folder: "healing_videos",
                 resource_type: "video",
+                use_filename: true,
+                unique_filename: true,
             },
             (error, result) => {
                 if (error) {
@@ -42,12 +44,13 @@ const uploadVideoToCloudinary = (file) => {
 };
 
 /**
- * Deletes a video from Cloudinary given its URL.
+ * Deletes a resource from Cloudinary given its URL.
  *
- * @param {string} url - The URL of the video on Cloudinary
+ * @param {string} url - The URL of the resource on Cloudinary
+ * @param {string} resourceType - The type of resource ('image', 'video', 'raw')
  * @returns {Promise<any>}
  */
-const deleteVideoByUrl = async (url) => {
+const deleteResourceByUrl = async (url, resourceType = "image") => {
     if (!url) return;
 
     try {
@@ -64,10 +67,10 @@ const deleteVideoByUrl = async (url) => {
         const publicId = fileWithExt.substring(0, fileWithExt.lastIndexOf('.')) || fileWithExt;
 
         return new Promise((resolve) => {
-            cloudinary.uploader.destroy(publicId, { resource_type: "video" }, (error, result) => {
+            cloudinary.uploader.destroy(publicId, { resource_type: resourceType }, (error, result) => {
                 if (error) {
-                    console.error("Cloudinary delete error:", error);
-                    return resolve(false); // resolve false instead of rejecting to prevent crashes on missing file
+                    console.error(`Cloudinary delete error (${resourceType}):`, error);
+                    return resolve(false);
                 }
                 resolve(result);
             });
@@ -77,7 +80,40 @@ const deleteVideoByUrl = async (url) => {
     }
 };
 
+/**
+ * Uploads an image file buffer to Cloudinary using upload_stream.
+ *
+ * @param {Object} file - The file object from multer containing the buffer
+ * @returns {Promise<string>} - The secure URL of the uploaded image
+ */
+const uploadImageToCloudinary = (file) => {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.buffer) {
+            return reject(new Error("No file buffer provided"));
+        }
+
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                folder: "avatars",
+                resource_type: "image",
+                use_filename: true,
+                unique_filename: true,
+            },
+            (error, result) => {
+                if (error) {
+                    console.error("Cloudinary upload error:", error);
+                    return reject(error);
+                }
+                resolve(result.secure_url);
+            }
+        );
+
+        streamifier.createReadStream(file.buffer).pipe(uploadStream);
+    });
+};
+
 module.exports = {
     uploadVideoToCloudinary,
-    deleteVideoByUrl,
+    uploadImageToCloudinary,
+    deleteResourceByUrl,
 };
