@@ -1,21 +1,8 @@
 const Journal = require("../models/journalEntries");
 const cloudinary = require("../config/cloudinary");
-const streamifier = require("streamifier");
 const aiService = require("../services/aiService");
+const imageService = require("./imageService");
 
-const uploadToCloudinary = (fileBuffer) => {
-  return new Promise((resolve, reject) => {
-    const stream = cloudinary.uploader.upload_stream(
-      { resource_type: "auto" },
-      (error, result) => {
-        if (error) reject(error);
-        else resolve(result);
-      }
-    );
-
-    streamifier.createReadStream(fileBuffer).pipe(stream);
-  });
-};
 module.exports = {
   create: async ({
     userId,
@@ -47,7 +34,7 @@ module.exports = {
             sentiment: sentimentResult.sentiment,
             score: sentimentResult.score,
             confidence: sentimentResult.confidence,
-            emotions: sentimentResult.emotions || [] 
+            emotions: sentimentResult.emotions || []
           };
         }
       } catch (error) {
@@ -99,6 +86,12 @@ module.exports = {
     images,
     voice_note_url,
   }) => {
+    const oldJournal = await Journal.findOne({ _id: id, user_id: userId });
+    if (!oldJournal) throw new Error("Journal not found");
+
+    const oldImages = oldJournal.images || [];
+    const oldVoiceNote = oldJournal.voice_note_url;
+
     const journal = await Journal.findOneAndUpdate(
       { _id: id, user_id: userId },
       {
@@ -106,15 +99,28 @@ module.exports = {
           title,
           mood,
           energy_level: Number(energy_level),
-          text,
-          trigger_tags,
-          images,
-          voice_note_url,
+          text: text !== undefined ? text : oldJournal.text,
+          trigger_tags: trigger_tags !== undefined ? trigger_tags : oldJournal.trigger_tags,
+          images: images !== undefined ? images : oldJournal.images,
+          voice_note_url: voice_note_url !== undefined ? voice_note_url : oldJournal.voice_note_url,
           updated_at: new Date(),
         },
       },
       { new: true }
     );
+
+    // After update, check for images that were removed
+    if (images !== undefined) {
+      const removedImages = oldImages.filter(img => !images.includes(img));
+      for (const imgUrl of removedImages) {
+        await imageService.deleteImageIfUnused(imgUrl);
+      }
+    }
+
+    // Check for voice note replacement
+    if (voice_note_url !== undefined && oldVoiceNote && oldVoiceNote !== voice_note_url) {
+      await imageService.deleteImageIfUnused(oldVoiceNote);
+    }
 
     if (!journal) throw new Error("Journal not found");
 
@@ -144,13 +150,50 @@ module.exports = {
   },
 
   permanentDelete: async ({ id, userId }) => {
-    const journal = await Journal.findOneAndDelete({
+    const journal = await Journal.findOne({
       _id: id,
       user_id: userId,
     });
 
     if (!journal) throw new Error("Journal not found");
 
+    const imagesToDelete = journal.images || [];
+    const voiceNoteToDelete = journal.voice_note_url;
+
+    await Journal.deleteOne({ _id: id });
+
+    // Cleanup Cloudinary
+    for (const imgUrl of imagesToDelete) {
+      await imageService.deleteImageIfUnused(imgUrl);
+    }
+    if (voiceNoteToDelete) {
+      await imageService.deleteImageIfUnused(voiceNoteToDelete);
+    }
+
     return journal;
+  },
+
+  cleanupSoftDeleted: async () => {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const entriesToPurge = await Journal.find({
+      deleted_at: { $lt: thirtyDaysAgo, $ne: null }
+    });
+
+    console.log(`Found ${entriesToPurge.length} entries to permanently purge (older than 30 days).`);
+
+    for (const entry of entriesToPurge) {
+      try {
+        await module.exports.permanentDelete({
+          id: entry._id,
+          userId: entry.user_id
+        });
+      } catch (error) {
+        console.error(`Failed to purge entry ${entry._id}:`, error);
+      }
+    }
+
+    return entriesToPurge.length;
   },
 };

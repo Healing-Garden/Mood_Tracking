@@ -39,6 +39,16 @@ export interface JournalState {
   restoreVersion: (entryId: string, versionId: string) => void
 }
 
+export interface JournalRequest {
+  title: string;
+  text: string;
+  mood: string;
+  energy_level?: number;
+  trigger_tags: string[];
+  images: string[];
+  voice_note_url?: string | null;
+}
+
 export interface Journal {
   _id: string;
   title: string;             

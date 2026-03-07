@@ -57,4 +57,7 @@ const journalEntrySchema = new mongoose.Schema(
   { collection: "journal_entries" }
 );
 
+journalEntrySchema.index({ images: 1 });
+journalEntrySchema.index({ voice_note_url: 1 });
+
 module.exports = mongoose.model("JournalEntry", journalEntrySchema);
