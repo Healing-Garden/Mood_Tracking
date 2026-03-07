@@ -33,6 +33,12 @@ router.get("/analytics/mood-history", userController.getMoodHistory);
 // Dashboard
 router.get("/dashboard/data", userController.getDashboardData);
 
+// App Lock / PIN routes
+router.put("/app-lock/pin", userController.setAppLockPin);
+router.post("/app-lock/verify", userController.verifyAppLockPin);
+router.put("/app-lock/toggle", userController.toggleAppLock);
+
 module.exports = router;
+
 
 

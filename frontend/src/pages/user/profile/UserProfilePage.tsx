@@ -39,6 +39,8 @@ const UserProfilePage: React.FC = () => {
   const [showPinForm, setShowPinForm] = useState<boolean>(false)
   const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(''))
   const [confirmPinDigits, setConfirmPinDigits] = useState<string[]>(Array(6).fill(''))
+  const [isAppLockEnabled, setIsAppLockEnabled] = useState<boolean>(false)
+  const [hasPinSet, setHasPinSet] = useState<boolean>(false)
 
   const showSuccess = (message: string) => {
     setSuccessMessage(message)
@@ -57,6 +59,10 @@ const UserProfilePage: React.FC = () => {
         setHeight(profile.heightCm?.toString() || '')
         setWeight(profile.weight?.toString() || '')
         setAvatar(profile.avatarUrl || '')
+
+        // App Lock stats
+        setIsAppLockEnabled(!!(profile as any).appLockEnabled)
+        setHasPinSet(!!(profile as any).appLockPinHash)
       } catch (error) {
         console.error('Failed to load profile:', error)
         toast({
@@ -66,7 +72,8 @@ const UserProfilePage: React.FC = () => {
         })
       } finally {
         setIsLoadingProfile(false)
-      }    }
+      }
+    }
 
     loadProfile()
   }, [toast])
@@ -205,19 +212,50 @@ const UserProfilePage: React.FC = () => {
     }
 
     setIsLoading(true)
-    // TODO: API call to set PIN
-    console.log('Setting PIN:', pin)
-    await new Promise(resolve => setTimeout(resolve, 1200))
-    setIsLoading(false)
-    setShowPinForm(false)
-    setPinDigits(Array(6).fill(''))
-    setConfirmPinDigits(Array(6).fill(''))
+    try {
+      await userApi.setAppLockPin(pin)
+      setHasPinSet(true)
+      setIsAppLockEnabled(true)
+      setShowPinForm(false)
+      setPinDigits(Array(6).fill(''))
+      setConfirmPinDigits(Array(6).fill(''))
 
-    toast({
-      title: 'Thành công',
-      description: 'Mã PIN của bạn đã được đặt thành công!',
-      variant: 'default',
-    })
+      toast({
+        title: 'Thành công',
+        description: 'Mã PIN của bạn đã được đặt thành công!',
+        variant: 'default',
+      })
+    } catch (error) {
+      console.error('Set PIN error:', error)
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể đặt mã PIN',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleToggleAppLock = async (enabled: boolean) => {
+    setIsLoading(true)
+    try {
+      await userApi.toggleAppLock(enabled)
+      setIsAppLockEnabled(enabled)
+      toast({
+        title: 'Thành công',
+        description: `Đã ${enabled ? 'bật' : 'tắt'} khóa ứng dụng`,
+      })
+    } catch (error) {
+      console.error('Toggle App Lock error:', error)
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể thay đổi trạng thái khóa',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handlePinDigitChange = (
@@ -504,14 +542,28 @@ const UserProfilePage: React.FC = () => {
                   {/* Security / PIN Setup */}
                   <TabsContent value="security" className="mt-6 space-y-6">
                     <div className="bg-secondary/40 border border-border rounded-lg p-5">
-                      <div className="flex items-start gap-3">
-                        <Lock className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
-                        <div>
-                          <h4 className="font-semibold text-primary mb-1.5">App Lock PIN</h4>
-                          <p className="text-sm text-muted-foreground leading-relaxed">
-                            Set a 6-digit PIN to protect your journal data when using the web browser.
-                          </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex gap-3">
+                          <Lock className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                          <div>
+                            <h4 className="font-semibold text-primary mb-1.5">App Lock PIN</h4>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              Set a 4-digit PIN to protect your journal data when using the web browser.
+                            </p>
+                          </div>
                         </div>
+                        {hasPinSet && (
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              variant={isAppLockEnabled ? "default" : "outline"}
+                              size="sm"
+                              onClick={() => handleToggleAppLock(!isAppLockEnabled)}
+                              disabled={isLoading}
+                            >
+                              {isAppLockEnabled ? 'Disable Lock' : 'Enable Lock'}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -519,9 +571,10 @@ const UserProfilePage: React.FC = () => {
                       <Button
                         onClick={() => setShowPinForm(true)}
                         className="w-full h-11 bg-primary hover:bg-primary/90 gap-2"
+                        disabled={isLoading}
                       >
                         <Lock size={18} />
-                        Set App Lock PIN
+                        {hasPinSet ? 'Change App Lock PIN' : 'Set App Lock PIN'}
                       </Button>
                     ) : (
                       <form onSubmit={handlePinSetup} className="space-y-6">
@@ -573,6 +626,7 @@ const UserProfilePage: React.FC = () => {
                               setConfirmPinDigits(Array(6).fill(''))
                             }}
                             className="flex-1 h-11"
+                            disabled={isLoading}
                           >
                             Cancel
                           </Button>
@@ -585,7 +639,7 @@ const UserProfilePage: React.FC = () => {
                             }
                             className="flex-1 h-11 bg-primary hover:bg-primary/90"
                           >
-                            {isLoading ? 'Setting...' : 'Set PIN'}
+                            {isLoading ? 'Setting...' : hasPinSet ? 'Update PIN' : 'Set PIN'}
                           </Button>
                         </div>
                       </form>

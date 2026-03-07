@@ -44,6 +44,7 @@ export default function DashboardSidebar({
       localStorage.removeItem("accessToken");
       localStorage.removeItem("access_token");
       localStorage.removeItem("user");
+      sessionStorage.removeItem("journalUnlocked");
       // Xoá luôn state liên quan tới user hiện tại trong các store
       useDailyCheckInStore.getState().resetStore();
       useOnboardingStore.getState().resetOnboarding();
@@ -55,10 +56,10 @@ export default function DashboardSidebar({
 
   const userMenuItems: MenuItem[] = [
     { label: "Home", icon: <Home size={20} />, href: "/user/dashboard" },
-    { label: "Journal",    icon: <BookOpen size={20} />, href: "/user/journal" },
-    { label: "Analytics",  icon: <TrendingUp size={20} />, href: "/user/analytics" },
+    { label: "Journal", icon: <BookOpen size={20} />, href: "/user/journal" },
+    { label: "Analytics", icon: <TrendingUp size={20} />, href: "/user/analytics" },
     { label: "AI Partner", icon: <Brain size={20} />, href: "/user/ai-partner" },
-    { label: "Notifications", icon: <Bell size={20} />, href: "/user/notifications" }, 
+    { label: "Notifications", icon: <Bell size={20} />, href: "/user/notifications" },
   ];
 
   const adminMenuItems: MenuItem[] = [
@@ -118,10 +119,9 @@ export default function DashboardSidebar({
             to={item.href}
             onClick={onClose}
             className={({ isActive: navActive }) =>
-              `flex items-center justify-between px-4 py-3 rounded-lg transition-all ${
-                navActive || isActive(item.href)
-                  ? "bg-primary text-white"
-                  : "text-foreground hover:bg-muted"
+              `flex items-center justify-between px-4 py-3 rounded-lg transition-all ${navActive || isActive(item.href)
+                ? "bg-primary text-white"
+                : "text-foreground hover:bg-muted"
               }`
             }
           >

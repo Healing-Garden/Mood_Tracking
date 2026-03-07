@@ -55,4 +55,16 @@ export const userApi = {
   regenerateAdminRecoveryCodes(): Promise<{ message: string; codes: string[] }> {
     return http.post("/user/admin/recovery-codes/regenerate");
   },
+
+  setAppLockPin(pin: string): Promise<{ message: string }> {
+    return http.put("/user/app-lock/pin", { pin });
+  },
+
+  verifyAppLockPin(pin: string): Promise<{ message: string }> {
+    return http.post("/user/app-lock/verify", { pin });
+  },
+
+  toggleAppLock(enabled: boolean): Promise<{ message: string }> {
+    return http.put("/user/app-lock/toggle", { enabled });
+  },
 };

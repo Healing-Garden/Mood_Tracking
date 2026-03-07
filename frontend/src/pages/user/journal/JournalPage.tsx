@@ -28,11 +28,13 @@ import {
   Search,
   Trash,
   Image as ImageIcon,
+  Lock,
 } from "lucide-react";
 import { uploadToCloudinary } from "../../../utils/cloudinary";
 import { compressImage } from "../../../utils/imageOptimizer";
 import DashboardSidebar from "../../../components/layout/DashboardSideBar";
 import { journalApi } from "../../../api/journalApi";
+import { userApi } from "../../../api/userApi";
 import { aiApi } from "../../../api/aiApi";
 import { useAuth } from "../../../hooks/useAuth";
 import type {
@@ -139,13 +141,68 @@ export default function JournalPage() {
     }
   };
 
+  const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [isCheckingLock, setIsCheckingLock] = useState<boolean>(true);
+  const [pinInput, setPinInput] = useState<string[]>(Array(6).fill(''));
+  const [verifyingPin, setVerifyingPin] = useState<boolean>(false);
+
+  const checkAppLock = async () => {
+    try {
+      setIsCheckingLock(true);
+      if (sessionStorage.getItem("journalUnlocked") === "true") {
+        setIsLocked(false);
+        setIsCheckingLock(false);
+        return;
+      }
+
+      const profile = await userApi.getProfile();
+      if ((profile as any).appLockEnabled) {
+        setIsLocked(true);
+      }
+    } catch (err) {
+      console.error("Check app lock error:", err);
+    } finally {
+      setIsCheckingLock(false);
+    }
+  };
+
+  const handleVerifyPin = async () => {
+    const pin = pinInput.join('');
+    if (pin.length !== 6) return;
+
+    setVerifyingPin(true);
+    try {
+      await userApi.verifyAppLockPin(pin);
+      sessionStorage.setItem("journalUnlocked", "true");
+      setIsLocked(false);
+    } catch (err) {
+      console.error("PIN verification failed:", err);
+      alert("Mã PIN không chính xác");
+      setPinInput(Array(6).fill(''));
+      document.getElementById('pin-0')?.focus();
+    } finally {
+      setVerifyingPin(false);
+    }
+  };
+
+  const handlePinInputChange = (index: number, value: string) => {
+    const digit = value.replace(/[^0-9]/g, '').slice(0, 1);
+    const newInput = [...pinInput];
+    newInput[index] = digit;
+    setPinInput(newInput);
+
+    if (digit && index < 5) {
+      document.getElementById(`pin-${index + 1}`)?.focus();
+    }
+  };
+
   useEffect(() => {
+    checkAppLock();
     loadEntries();
     loadDeletedEntries();
   }, []);
 
   useEffect(() => {
-    // Chỉ active khi đang ở tab "write" và nội dung trống
     if (activeTab === "write" && !content.trim()) {
       if (!timerRef.current) {
         timerRef.current = setTimeout(() => {
@@ -153,7 +210,6 @@ export default function JournalPage() {
         }, 15000);
       }
     } else {
-      // Hủy timer nếu người dùng bắt đầu nhập hoặc chuyển tab
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = undefined;
@@ -430,6 +486,59 @@ export default function JournalPage() {
   };
 
   if (!hydrated) return null;
+
+  if (isCheckingLock) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isLocked) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm p-8 flex flex-col items-center text-center shadow-2xl border-primary/20 bg-white rounded-3xl">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <Lock className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-primary mb-2">Journal Protected</h2>
+          <p className="text-muted-foreground mb-8">Please enter your 6-digit PIN to access your journals</p>
+
+          <div className="grid grid-cols-6 gap-3 mb-8">
+            {pinInput.map((digit, i) => (
+              <Input
+                key={i}
+                id={`pin-${i}`}
+                type="password"
+                inputMode="numeric"
+                maxLength={1}
+                value={digit}
+                onChange={(e) => handlePinInputChange(i, e.target.value)}
+                className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
+                autoFocus={i === 0}
+              />
+            ))}
+          </div>
+
+          <Button
+            onClick={handleVerifyPin}
+            disabled={pinInput.some(d => !d) || verifyingPin}
+            className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-semibold shadow-lg"
+          >
+            {verifyingPin ? "Verifying..." : "Unlock Journals"}
+          </Button>
+
+          <button
+            onClick={() => window.location.href = '/user/dashboard'}
+            className="mt-6 text-sm text-muted-foreground hover:text-primary transition"
+          >
+            Back to Dashboard
+          </button>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-background">
