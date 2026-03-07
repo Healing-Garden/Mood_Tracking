@@ -38,14 +38,13 @@ export default function DashboardSidebar({
 
   const handleLogout = async () => {
     try {
-      await authApi.logout(); // optional nếu backend có
+      await authApi.logout(); 
     } catch (err) {
       console.error("Logout error", err);
     } finally {
       localStorage.removeItem("accessToken");
       localStorage.removeItem("access_token");
       localStorage.removeItem("user");
-      // Xoá luôn state liên quan tới user hiện tại trong các store
       useDailyCheckInStore.getState().resetStore();
       useOnboardingStore.getState().resetOnboarding();
       navigate("/", { replace: true });

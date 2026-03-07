@@ -101,7 +101,6 @@ async def suggest_smart_times(user_id: str, category: str, days: int = 30) -> Li
         user_obj_id = user_id
 
     if category == "mood_check":
-        # Match BE schema: user field and createdAt timestamp
         cursor = db.dailycheckins.find({
             "user": user_obj_id,
             "createdAt": {"$gte": since}
