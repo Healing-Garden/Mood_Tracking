@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authMiddleware = require('../middleware/authMiddleware'); 
 const authorizeAdmin = require('../middleware/authorizeAdmin');
-const adminController = require('../controllers/adminController');
+const adminController = require('../controllers/aggregatedInsightController');
 
 // Route cho aggregated insights
 router.get(
