@@ -91,50 +91,20 @@ module.exports = {
       const user = await User.findById(userId).select("avatarUrl");
       if (!user) throw new Error("User not found");
 
-      const safeFileName = (file.originalname || "avatar")
-        .replace(/\s+/g, "_")
-        .replace(/[()]/g, "")
-        .replace(/[^a-zA-Z0-9_.-]/g, "");
-
-      // Upload buffer to Cloudinary using upload_stream
-      const uploadResult = await new Promise((resolve, reject) => {
-        const uploadStream = cloudinary.uploader.upload_stream(
-          {
-            folder: "avatars",
-            resource_type: "image",
-            use_filename: true,
-            unique_filename: true,
-            overwrite: false,
-            filename_override: `${Date.now()}_${safeFileName || "avatar"}`,
-            max_bytes: 5242880, // 5MB
-          },
-          (error, result) => {
-            if (error) {
-              reject(new Error(`Cloudinary upload failed: ${error.message}`));
-            } else {
-              resolve(result);
-            }
-          }
-        );
-
-        // Create readable stream from buffer and pipe to cloudinary
-        const stream = Readable.from(file.buffer);
-        stream.pipe(uploadStream);
-      });
+      const cloudinaryService = require("./cloudinaryService");
+      const imageUrl = await cloudinaryService.uploadImageToCloudinary(file);
 
       const previousAvatarUrl = normalizeAvatarUrl(user.avatarUrl);
       if (
         previousAvatarUrl &&
         previousAvatarUrl !== DEFAULT_AVATAR_URL &&
         !previousAvatarUrl.startsWith("data:") &&
-        previousAvatarUrl !== uploadResult.secure_url
+        previousAvatarUrl !== imageUrl
       ) {
         const publicId = extractCloudinaryPublicId(previousAvatarUrl);
         if (publicId) {
           try {
-            await cloudinary.uploader.destroy(publicId, {
-              resource_type: "image",
-            });
+            await cloudinaryService.deleteResourceByUrl(previousAvatarUrl, "image");
           } catch (error) {
             console.error("Delete old avatar failed:", error.message);
           }
@@ -143,16 +113,44 @@ module.exports = {
 
       const updatedUser = await User.findByIdAndUpdate(
         userId,
-        { avatarUrl: uploadResult.secure_url },
+        { avatarUrl: imageUrl },
         { new: true }
       ).select("-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes");
 
       return {
         user: applyDefaultAvatar(updatedUser),
-        imageUrl: uploadResult.secure_url,
+        imageUrl: imageUrl,
       };
     } catch (error) {
       throw new Error(`Avatar upload failed: ${error.message}`);
+    }
+  },
+
+  removeAvatar: async (userId) => {
+    try {
+      const user = await User.findById(userId).select("avatarUrl googleAvatarUrl");
+      if (!user) throw new Error("User not found");
+
+      const currentAvatarUrl = normalizeAvatarUrl(user.avatarUrl);
+
+      // Delete from Cloudinary if it's a Cloudinary resource
+      if (currentAvatarUrl && currentAvatarUrl.includes("cloudinary.com")) {
+        const cloudinaryService = require("./cloudinaryService");
+        await cloudinaryService.deleteResourceByUrl(currentAvatarUrl, "image");
+      }
+
+      // Revert to Google avatar or default
+      const nextAvatar = user.googleAvatarUrl || DEFAULT_AVATAR_URL;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { avatarUrl: nextAvatar },
+        { new: true }
+      ).select("-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes");
+
+      return applyDefaultAvatar(updatedUser);
+    } catch (error) {
+      throw new Error(`Remove avatar failed: ${error.message}`);
     }
   },
 

@@ -5,6 +5,7 @@ import { Upload, X, Check } from "lucide-react"
 interface AvatarUploadProps {
   currentAvatar?: string
   onAvatarChange: (file: File) => void
+  onRemove?: () => void
   isLoading?: boolean
 }
 
@@ -13,6 +14,7 @@ const DEFAULT_AVATAR = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCA
 export default function AvatarUpload({
   currentAvatar,
   onAvatarChange,
+  onRemove,
   isLoading = false,
 }: AvatarUploadProps) {
   const [preview, setPreview] = useState<string | null>(
@@ -63,6 +65,7 @@ export default function AvatarUpload({
   }
 
   const handleRemove = () => {
+    if (onRemove) onRemove();
     setPreview(null)
     setTempPreview(null)
     if (fileInputRef.current) {

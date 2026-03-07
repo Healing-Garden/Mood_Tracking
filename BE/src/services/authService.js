@@ -96,6 +96,7 @@ module.exports = {
         fullName: name,
         email,
         avatarUrl: picture,
+        googleAvatarUrl: picture,
         googleId,
         authProvider: "google",
         role: "user",
@@ -112,6 +113,7 @@ module.exports = {
       user.googleId = googleId;
       user.authProvider = "both";
       if (!user.avatarUrl) user.avatarUrl = picture;
+      user.googleAvatarUrl = picture;
       await user.save();
 
       return issueJwt(user);
@@ -121,6 +123,7 @@ module.exports = {
       user.googleId = googleId;
       user.authProvider = "both";
       if (!user.avatarUrl) user.avatarUrl = picture;
+      user.googleAvatarUrl = picture;
       await user.save();
     }
 
@@ -137,6 +140,7 @@ module.exports = {
     user.googleId = googleId;
     user.authProvider = "both";
     if (!user.avatarUrl) user.avatarUrl = avatarUrl;
+    user.googleAvatarUrl = avatarUrl;
 
     await user.save();
     return issueJwt(user);

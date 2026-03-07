@@ -43,6 +43,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, default: null, },
     role: { type: String, enum: ["user", "admin"], default: "user", },
     avatarUrl: String,
+    googleAvatarUrl: String,
     dateOfBirth: Date,
     heightCm: Number,
     healthGoals: [{ type: String }],

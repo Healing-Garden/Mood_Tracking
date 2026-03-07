@@ -40,6 +40,10 @@ export const userApi = {
     return http.post("/user/avatar", formData);
   },
 
+  removeAvatar(): Promise<{ message: string; user: UserProfile }> {
+    return http.delete("/user/avatar");
+  },
+
   changePassword(payload: {
     currentPassword: string;
     newPassword: string;
