@@ -18,10 +18,11 @@ const AdminProfilePage: React.FC = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false)
-  const [isRefreshingCodes, setIsRefreshingCodes] = useState<boolean>(false)
   const [successMessage, setSuccessMessage] = useState<string>('')
   const [showEditModal, setShowEditModal] = useState<boolean>(false)
   const [copiedCode, setCopiedCode] = useState<number | null>(null)
+  const [hasDownloaded, setHasDownloaded] = useState<boolean>(false)
+  const [recoveryCodesCount, setRecoveryCodesCount] = useState<number>(0)
 
   // Personal Info
   const [name, setName] = useState<string>('')
@@ -79,6 +80,8 @@ const AdminProfilePage: React.FC = () => {
     try {
       const response = await userApi.getAdminRecoveryCodes()
       setRecoveryCodes(response.codes || [])
+      setRecoveryCodesCount(response.count || 0)
+      setHasDownloaded(response.hasDownloaded || false)
     } catch (error) {
       console.error('Failed to load recovery codes:', error)
       toast({
@@ -199,6 +202,7 @@ const AdminProfilePage: React.FC = () => {
       setRecoveryCodes((prev) =>
         prev.filter((code) => code.toUpperCase() !== normalizedRecoveryCode)
       )
+      setRecoveryCodesCount((prev) => Math.max(0, prev - 1))
 
       showSuccess('Mật khẩu đã được thay đổi thành công.')
       setCurrentPassword('')
@@ -217,25 +221,6 @@ const AdminProfilePage: React.FC = () => {
       })
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleRegenerateRecoveryCodes = async () => {
-    setSuccessMessage('')
-    setIsRefreshingCodes(true)
-    try {
-      const response = await userApi.regenerateAdminRecoveryCodes()
-      setRecoveryCodes(response.codes || [])
-      showSuccess('Đã tạo mới 10 recovery codes thành công.')
-    } catch (error) {
-      console.error('Regenerate recovery codes error:', error)
-      toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể tạo lại recovery codes',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsRefreshingCodes(false)
     }
   }
 
@@ -303,7 +288,7 @@ const AdminProfilePage: React.FC = () => {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
-  const handleDownloadCodes = () => {
+  const handleDownloadCodes = async () => {
     if (!recoveryCodes.length) return
     const content = recoveryCodes.join('\n')
     const blob = new Blob([content], { type: 'text/plain' })
@@ -313,6 +298,19 @@ const AdminProfilePage: React.FC = () => {
     link.download = 'recovery-codes.txt'
     link.click()
     URL.revokeObjectURL(url)
+
+    try {
+      await userApi.markAdminRecoveryCodesDownloaded()
+      setHasDownloaded(true)
+      setRecoveryCodes([])
+    } catch (error) {
+      console.error('Failed to mark codes as downloaded:', error)
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể đánh dấu mã khôi phục đã tải xuống',
+        variant: 'destructive',
+      })
+    }
   }
 
   if (isLoadingProfile) {
@@ -472,7 +470,7 @@ const AdminProfilePage: React.FC = () => {
                           required
                         />
                         <p className="text-xs text-muted-foreground">
-                          Còn lại {recoveryCodes.length} mã có thể sử dụng.
+                          Còn lại {recoveryCodesCount} mã có thể sử dụng.
                         </p>
                       </div>
 
@@ -533,7 +531,7 @@ const AdminProfilePage: React.FC = () => {
 
                       <Button
                         type="submit"
-                        disabled={isLoading || !recoveryCodes.length}
+                        disabled={isLoading || recoveryCodesCount === 0}
                         className="w-full h-11 bg-primary hover:bg-primary/90"
                       >
                         {isLoading ? 'Updating...' : 'Change Password'}
@@ -645,13 +643,6 @@ const AdminProfilePage: React.FC = () => {
 
                     <div className="flex gap-3">
                       <Button
-                        onClick={handleRegenerateRecoveryCodes}
-                        disabled={isRefreshingCodes}
-                        className="h-11 bg-primary hover:bg-primary/90"
-                      >
-                        {isRefreshingCodes ? 'Generating...' : 'Regenerate 10 Codes'}
-                      </Button>
-                      <Button
                         variant="outline"
                         className="h-11 border-primary text-primary hover:bg-primary/10"
                         onClick={handleDownloadCodes}
@@ -661,9 +652,13 @@ const AdminProfilePage: React.FC = () => {
                       </Button>
                     </div>
 
-                    {!recoveryCodes.length ? (
+                    {!recoveryCodes.length && !hasDownloaded ? (
                       <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-                        Chưa có recovery code nào. Hãy bấm "Regenerate 10 Codes" để tạo mã.
+                        Không có mã khôi phục nào để hiển thị.
+                      </div>
+                    ) : hasDownloaded ? (
+                      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground text-center">
+                        Mã khôi phục đã được tải xuống. Nếu bạn muốn xem lại mã khôi phục hãy liên hệ kĩ thuật viên.
                       </div>
                     ) : (
                       <div className="space-y-3">

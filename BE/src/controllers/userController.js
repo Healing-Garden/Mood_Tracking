@@ -689,8 +689,8 @@ module.exports = {
     }
   },
 
-  // POST /api/user/admin/recovery-codes/regenerate
-  regenerateAdminRecoveryCodes: async (req, res) => {
+  // POST /api/user/admin/recovery-codes/download
+  downloadAdminRecoveryCodes: async (req, res) => {
     try {
       if (req.user.role !== "admin") {
         return res.status(403).json({ message: "Forbidden" });
@@ -698,10 +698,10 @@ module.exports = {
 
       const userId = req.user.id;
       const userService = require("../services/userService");
-      const result = await userService.regenerateAdminRecoveryCodes(userId);
+      const result = await userService.downloadAdminRecoveryCodes(userId);
       return res.json(result);
     } catch (err) {
-      console.error("regenerateAdminRecoveryCodes error:", err);
+      console.error("downloadAdminRecoveryCodes error:", err);
       return res.status(400).json({ message: err.message || "Internal server error" });
     }
   },

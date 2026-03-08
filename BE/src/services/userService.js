@@ -155,31 +155,30 @@ module.exports = {
   },
 
   getAdminRecoveryCodes: async (userId) => {
-    const user = await User.findById(userId).select("role adminRecoveryCodes");
+    const user = await User.findById(userId).select("role adminRecoveryCodes hasDownloadedRecoveryCodes");
     if (!user) throw new Error("User not found");
     ensureAdmin(user);
+
+    if (user.hasDownloadedRecoveryCodes) {
+      return { codes: [], count: (user.adminRecoveryCodes || []).length, hasDownloaded: true };
+    }
 
     if (!Array.isArray(user.adminRecoveryCodes) || !user.adminRecoveryCodes.length) {
       user.adminRecoveryCodes = generateRecoveryCodes(RECOVERY_CODE_COUNT);
       await user.save();
     }
 
-    return { codes: user.adminRecoveryCodes };
+    return { codes: user.adminRecoveryCodes, count: user.adminRecoveryCodes.length, hasDownloaded: false };
   },
 
-  regenerateAdminRecoveryCodes: async (userId) => {
-    const user = await User.findById(userId).select("role adminRecoveryCodes");
+  downloadAdminRecoveryCodes: async (userId) => {
+    const user = await User.findById(userId).select("role hasDownloadedRecoveryCodes");
     if (!user) throw new Error("User not found");
     ensureAdmin(user);
 
-    const codes = generateRecoveryCodes(RECOVERY_CODE_COUNT);
-    user.adminRecoveryCodes = codes;
+    user.hasDownloadedRecoveryCodes = true;
     await user.save();
-
-    return {
-      message: "Recovery codes regenerated successfully",
-      codes,
-    };
+    return { message: "Recovery codes marked as downloaded" };
   },
 
   changePassword: async (userId, { currentPassword, newPassword, recoveryCode }) => {
