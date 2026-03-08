@@ -1,10 +1,6 @@
 const cloudinary = require("cloudinary").v2;
 const streamifier = require("streamifier");
 
-// Configure Cloudinary explicitly if not already done in the main app,
-// though normally it relies on process.env.CLOUDINARY_URL or explicit config.
-// Assuming your environment variables are set correctly:
-// CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
