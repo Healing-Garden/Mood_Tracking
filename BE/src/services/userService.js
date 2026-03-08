@@ -25,8 +25,12 @@ const extractCloudinaryPublicId = (url) => {
 const applyDefaultAvatar = (user) => {
   if (!user) return user;
   const userObj = user.toObject ? user.toObject() : user;
-  if (!userObj.avatarUrl || userObj.avatarUrl.trim() === "") {
-    userObj.avatarUrl = DEFAULT_AVATAR_URL;
+  if (
+    !userObj.avatarUrl ||
+    userObj.avatarUrl.trim() === "" ||
+    userObj.avatarUrl === DEFAULT_AVATAR_URL
+  ) {
+    userObj.avatarUrl = userObj.googleAvatarUrl || DEFAULT_AVATAR_URL;
   }
   return userObj;
 };
@@ -62,6 +66,7 @@ const ensureAdmin = (user) => {
 };
 
 module.exports = {
+  applyDefaultAvatar,
   getProfile: async (userId) => {
     const user = await User.findById(userId).select(
       "-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes"
