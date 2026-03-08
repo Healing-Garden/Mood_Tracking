@@ -100,6 +100,11 @@ const userSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+
+    hasDownloadedRecoveryCodes: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

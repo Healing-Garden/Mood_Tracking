@@ -13,7 +13,7 @@ router.post("/avatar", upload.single("avatar"), userController.uploadAvatar);
 router.delete("/avatar", userController.removeAvatar);
 router.post("/change-password", userController.changePassword);
 router.get("/admin/recovery-codes", userController.getAdminRecoveryCodes);
-router.post("/admin/recovery-codes/regenerate", userController.regenerateAdminRecoveryCodes);
+router.post("/admin/recovery-codes/download", userController.downloadAdminRecoveryCodes);
 
 // Onboarding preferences
 router.get("/onboarding/status", userController.getOnboardingStatus);
