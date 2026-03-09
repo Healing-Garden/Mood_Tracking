@@ -40,6 +40,10 @@ export const userApi = {
     return http.post("/user/avatar", formData);
   },
 
+  removeAvatar(): Promise<{ message: string; user: UserProfile }> {
+    return http.delete("/user/avatar");
+  },
+
   changePassword(payload: {
     currentPassword: string;
     newPassword: string;
@@ -48,12 +52,12 @@ export const userApi = {
     return http.post("/user/change-password", payload);
   },
 
-  getAdminRecoveryCodes(): Promise<{ codes: string[] }> {
+  getAdminRecoveryCodes(): Promise<{ codes: string[]; count: number; hasDownloaded: boolean }> {
     return http.get("/user/admin/recovery-codes");
   },
 
-  regenerateAdminRecoveryCodes(): Promise<{ message: string; codes: string[] }> {
-    return http.post("/user/admin/recovery-codes/regenerate");
+  markAdminRecoveryCodesDownloaded(): Promise<{ message: string }> {
+    return http.post("/user/admin/recovery-codes/download");
   },
 
   setAppLockPin(pin: string): Promise<{ message: string }> {

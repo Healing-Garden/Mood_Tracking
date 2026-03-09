@@ -11,6 +11,9 @@ router.get('/summary/daily/:userId', aiController.getDailySummary);
 router.post('/search/semantic', aiController.semanticSearch);
 router.post('/trends/analyze', aiController.analyzeEmotionalTrends);
 router.post('/actions/suggest', aiController.suggestPracticalActions);
+router.post('/actions/log-completion', aiController.logActionCompletion);
+router.post('/actions/skip', aiController.logSkip);
+router.get('/actions/history/:userId', aiController.getActionHistory);
 router.post('/sentiment/analyze', aiController.analyzeSentiment);
 router.get('/health', aiController.healthCheck);
 

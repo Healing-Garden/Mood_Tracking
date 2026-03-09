@@ -19,6 +19,7 @@ const UserProfilePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false)
   const [successMessage, setSuccessMessage] = useState<string>('')
+  const [showEditModal, setShowEditModal] = useState<boolean>(false)
 
   // Personal Info
   const [name, setName] = useState<string>('')
@@ -103,6 +104,25 @@ const UserProfilePage: React.FC = () => {
     }
   }
 
+  const handleAvatarRemove = async () => {
+    setSuccessMessage('')
+    setIsUploadingAvatar(true)
+    try {
+      const response = await userApi.removeAvatar()
+      setAvatar(response.user.avatarUrl || '')
+      showSuccess('Avatar đã được gỡ bỏ.')
+    } catch (error) {
+      console.error('Avatar removal error:', error)
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể gỡ bỏ avatar',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
   const handlePersonalInfoSave = async (e: FormEvent) => {
     e.preventDefault()
     setSuccessMessage('')
@@ -121,6 +141,7 @@ const UserProfilePage: React.FC = () => {
         setAvatar((prev) => response.user.avatarUrl || prev || '')
 
         showSuccess('Thông tin cá nhân đã được cập nhật thành công.')
+        setShowEditModal(false)
       } catch (profileError) {
         console.error('Profile update error:', profileError)
         toast({
@@ -340,6 +361,7 @@ const UserProfilePage: React.FC = () => {
                 <AvatarUpload
                   currentAvatar={avatar}
                   onAvatarChange={handleAvatarUpload}
+                  onRemove={handleAvatarRemove}
                   isLoading={isUploadingAvatar}
                 />
                 <div className="mt-6 pt-4 border-t border-border w-full text-center">
@@ -381,88 +403,37 @@ const UserProfilePage: React.FC = () => {
 
                   {/* Personal Info */}
                   <TabsContent value="personal" className="mt-6 space-y-6">
-                    <form onSubmit={handlePersonalInfoSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <Label htmlFor="name" className="text-primary font-medium">
-                          Full Name
-                        </Label>
-                        <Input
-                          id="name"
-                          value={name}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                          className="h-11"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="email" className="text-primary font-medium">
-                          Email
-                        </Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                          className="h-11"
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="age" className="text-primary font-medium">
-                          Age
-                        </Label>
-                        <Input
-                          id="age"
-                          type="number"
-                          value={age}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setAge(e.target.value)}
-                          className="h-11"
-                          min="0"
-                          max="120"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="height" className="text-primary font-medium">
-                          Height (cm)
-                        </Label>
-                        <Input
-                          id="height"
-                          type="number"
-                          value={height}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)}
-                          className="h-11"
-                          min="0"
-                          max="300"
-                        />
-                      </div>
-
-                      <div className="space-y-2 md:col-span-2">
-                        <Label htmlFor="weight" className="text-primary font-medium">
-                          Weight (kg)
-                        </Label>
-                        <Input
-                          id="weight"
-                          type="number"
-                          step="0.1"
-                          value={weight}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
-                          className="h-11"
-                          min="0"
-                          max="500"
-                        />
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                          <p className="text-base font-semibold text-foreground">{name || 'Not provided'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Email</p>
+                          <p className="text-base font-semibold text-foreground">{email}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Age</p>
+                          <p className="text-base font-semibold text-foreground">{age || 'Not provided'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Height (cm)</p>
+                          <p className="text-base font-semibold text-foreground">{height || 'Not provided'}</p>
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                          <p className="text-sm font-medium text-muted-foreground">Weight (kg)</p>
+                          <p className="text-base font-semibold text-foreground">{weight || 'Not provided'}</p>
+                        </div>
                       </div>
 
                       <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="md:col-span-2 w-full h-11 bg-primary hover:bg-primary/90"
+                        onClick={() => setShowEditModal(true)}
+                        className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
                       >
-                        {isLoading ? 'Saving...' : 'Save Changes'}
+                        Update Profile
                       </Button>
-                    </form>
+                    </div>
                   </TabsContent>
 
                   {/* Password Change */}
@@ -651,6 +622,130 @@ const UserProfilePage: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-2xl shadow-2xl bg-white overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-secondary/10">
+              <h2 className="text-2xl font-bold text-primary">Update Profile</h2>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-black/5 transition-colors"
+                aria-label="Close modal"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <form id="edit-profile-form" onSubmit={handlePersonalInfoSave} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-primary font-medium">
+                    Full Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                    className="h-11 border-2 focus:border-primary transition-colors"
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-primary font-medium">
+                    Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    className="h-11 bg-muted/50 cursor-not-allowed"
+                    disabled
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Email cannot be changed.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="age" className="text-primary font-medium">
+                    Age
+                  </Label>
+                  <Input
+                    id="age"
+                    type="number"
+                    value={age}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setAge(e.target.value)}
+                    className="h-11 border-2 focus:border-primary transition-colors"
+                    placeholder="e.g. 25"
+                    min="0"
+                    max="120"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="height" className="text-primary font-medium">
+                    Height (cm)
+                  </Label>
+                  <Input
+                    id="height"
+                    type="number"
+                    value={height}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setHeight(e.target.value)}
+                    className="h-11 border-2 focus:border-primary transition-colors"
+                    placeholder="e.g. 175"
+                    min="0"
+                    max="300"
+                  />
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="weight" className="text-primary font-medium">
+                    Weight (kg)
+                  </Label>
+                  <Input
+                    id="weight"
+                    type="number"
+                    step="0.1"
+                    value={weight}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setWeight(e.target.value)}
+                    className="h-11 border-2 focus:border-primary transition-colors"
+                    placeholder="e.g. 65.5"
+                    min="0"
+                    max="500"
+                  />
+                </div>
+              </form>
+            </div>
+            <div className="p-6 border-t border-border/50 bg-secondary/5 flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditModal(false)}
+                className="h-11 px-6 font-medium"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="edit-profile-form"
+                disabled={isLoading}
+                className="h-11 px-8 bg-primary hover:bg-primary/90 text-white font-medium shadow-md hover:shadow-lg transition-all"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </div>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

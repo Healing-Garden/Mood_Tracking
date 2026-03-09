@@ -14,7 +14,8 @@ import {
   Users,
   BarChart3,
   LogOut,
-  Bell,           // ← added
+  Bell,
+  MessageSquare,
 } from "lucide-react";
 
 interface MenuItem {
@@ -37,7 +38,7 @@ export default function DashboardSidebar({
 
   const handleLogout = async () => {
     try {
-      await authApi.logout(); // optional nếu backend có
+      await authApi.logout(); 
     } catch (err) {
       console.error("Logout error", err);
     } finally {
@@ -45,7 +46,6 @@ export default function DashboardSidebar({
       localStorage.removeItem("access_token");
       localStorage.removeItem("user");
       sessionStorage.removeItem("journalUnlocked");
-      // Xoá luôn state liên quan tới user hiện tại trong các store
       useDailyCheckInStore.getState().resetStore();
       useOnboardingStore.getState().resetOnboarding();
       navigate("/", { replace: true });
@@ -60,6 +60,7 @@ export default function DashboardSidebar({
     { label: "Analytics", icon: <TrendingUp size={20} />, href: "/user/analytics" },
     { label: "AI Partner", icon: <Brain size={20} />, href: "/user/ai-partner" },
     { label: "Notifications", icon: <Bell size={20} />, href: "/user/notifications" },
+    { label: "Feedback", icon: <MessageSquare size={20} />, href: "/user/feedback" },
   ];
 
   const adminMenuItems: MenuItem[] = [
@@ -80,6 +81,7 @@ export default function DashboardSidebar({
       icon: <TrendingUp size={20} />,
       href: "/admin/reports",
     },
+    { label: "Healing Content", icon: <BookOpen size={20} />, href: "/admin/healing-content" },
     { label: "Notifications", icon: <Bell size={20} />, href: "/admin/notifications" },
   ];
 

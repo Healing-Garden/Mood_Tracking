@@ -84,9 +84,9 @@ class AIServiceClient {
     async generateDailySummary(userId, date = null) {
         try {
             const response = await this.client.post('/api/v1/summary/daily', {
-                    user_id: userId,
-                    date: date || new Date().toISOString().split('T')[0]
-                }, { timeout: 30000 }
+                user_id: userId,
+                date: date || new Date().toISOString().split('T')[0]
+            }, { timeout: 30000 }
             );
 
             const result = response.data;
@@ -111,10 +111,10 @@ class AIServiceClient {
     }
 
     async saveDailySummary(userId, data) {
-        const db = await getMongoDB(); 
+        const db = await getMongoDB();
         const collection = db.collection('daily_summaries');
         const today = new Date();
-        today.setHours(0,0,0,0);
+        today.setHours(0, 0, 0, 0);
 
         let userObjectId = null;
         try {
@@ -128,12 +128,12 @@ class AIServiceClient {
         await collection.updateOne(
             { user_id: storedUserId, date: today },
             {
-            $set: {
-                summary: data.summary,
-                metadata: data.metadata,
-                generated_at: new Date(data.generated_at),
-                updated_at: new Date()
-            }
+                $set: {
+                    summary: data.summary,
+                    metadata: data.metadata,
+                    generated_at: new Date(data.generated_at),
+                    updated_at: new Date()
+                }
             },
             { upsert: true }
         );
@@ -273,13 +273,14 @@ class AIServiceClient {
     /**
      * UC-23: Suggest practical actions
      */
-    async suggestPracticalActions(userId, currentMood = null, count = 3) {
+    async suggestPracticalActions(userId, currentMood = null, count = 3, excludeIds = []) {
         try {
             const response = await this.client.post('/api/v1/actions/suggest', {
                 user_id: userId,
                 current_mood: currentMood,
-                count: count
-            });
+                count: count,
+                exclude_ids: excludeIds
+            }, { timeout: 5000 });
 
             return {
                 success: true,
@@ -287,7 +288,6 @@ class AIServiceClient {
                 context: response.data.context,
                 suggestedAt: response.data.suggested_at
             };
-
         } catch (error) {
             console.error('Failed to suggest actions:', error.message);
             return {
@@ -301,21 +301,45 @@ class AIServiceClient {
     /**
      * UC-23: Log action completion
      */
-    async logActionCompletion(userId, actionId, durationSeconds) {
+    async logActionCompletion(userId, actionId, durationSeconds, moodAtTime = null, source = 'suggestion') {
         try {
             const response = await this.client.post('/api/v1/actions/log_completion', {
                 user_id: userId,
                 action_id: actionId,
-                duration_seconds: durationSeconds
+                duration_seconds: durationSeconds,
+                mood_at_time: moodAtTime,
+                source: source
             });
-
             return {
                 success: true,
                 message: response.data.message
             };
-
         } catch (error) {
             console.error('Failed to log action completion:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * UC-23: Log skip
+     */
+    async logSkip(userId, mood, shownActions, reason = null) {
+        try {
+            const response = await this.client.post('/api/v1/actions/skip', {
+                user_id: userId,
+                mood: mood,
+                shown_actions: shownActions,
+                reason: reason
+            });
+            return {
+                success: true,
+                message: response.data.message
+            };
+        } catch (error) {
+            console.error('Failed to log skip:', error.message);
             return {
                 success: false,
                 error: error.message
@@ -329,7 +353,6 @@ class AIServiceClient {
     async getActionHistory(userId, days = 7) {
         try {
             const response = await this.client.get(`/api/v1/actions/history/${userId}?days=${days}`);
-
             return {
                 success: true,
                 completions: response.data.completions,
@@ -337,7 +360,6 @@ class AIServiceClient {
                 totalCompletions: response.data.total_completions,
                 stats: response.data.stats
             };
-
         } catch (error) {
             console.error('Failed to get action history:', error.message);
             return {
@@ -410,6 +432,47 @@ class AIServiceClient {
             return {
                 success: false,
                 error: error.message
+            };
+        }
+    }
+
+    /**
+     * suggest optimal times for notifications
+     */
+    async suggestSmartTimes(userId, category, daysOfData = 30) {
+        try {
+            const response = await this.client.post('/api/v1/notifications/suggest-times', {
+                user_id: String(userId),
+                category: category,
+                days_of_data: daysOfData
+            });
+            return response.data.suggested_times;
+        } catch (error) {
+            console.error('Failed to suggest smart times:', error.message);
+            // Fallback times if AI service is down
+            if (category === 'weekly_insights') return ['08:00'];
+            if (category === 'mood_check') return ['09:00', '21:00'];
+            if (category === 'journal_reminder') return ['20:00'];
+            return ['10:00'];
+        }
+    }
+
+    /**
+     * generate personalized notification content via AI
+     */
+    async generateNotificationContent(userContext, category, timeOfDay) {
+        try {
+            const response = await this.client.post('/api/v1/notifications/generate-content', {
+                user_context: userContext,
+                category: category,
+                time_of_day: timeOfDay
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to generate notification content:', error.message);
+            return {
+                title: 'Gentle Reminder',
+                content: "It's time for your " + category.replace('_', ' ') + ". Take a moment for yourself."
             };
         }
     }

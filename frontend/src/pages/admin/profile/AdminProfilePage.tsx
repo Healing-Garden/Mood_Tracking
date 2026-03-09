@@ -18,9 +18,11 @@ const AdminProfilePage: React.FC = () => {
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false)
-  const [isRefreshingCodes, setIsRefreshingCodes] = useState<boolean>(false)
   const [successMessage, setSuccessMessage] = useState<string>('')
+  const [showEditModal, setShowEditModal] = useState<boolean>(false)
   const [copiedCode, setCopiedCode] = useState<number | null>(null)
+  const [hasDownloaded, setHasDownloaded] = useState<boolean>(false)
+  const [recoveryCodesCount, setRecoveryCodesCount] = useState<number>(0)
 
   // Personal Info
   const [name, setName] = useState<string>('')
@@ -78,6 +80,8 @@ const AdminProfilePage: React.FC = () => {
     try {
       const response = await userApi.getAdminRecoveryCodes()
       setRecoveryCodes(response.codes || [])
+      setRecoveryCodesCount(response.count || 0)
+      setHasDownloaded(response.hasDownloaded || false)
     } catch (error) {
       console.error('Failed to load recovery codes:', error)
       toast({
@@ -113,6 +117,25 @@ const AdminProfilePage: React.FC = () => {
     }
   }
 
+  const handleAvatarRemove = async () => {
+    setSuccessMessage('')
+    setIsUploadingAvatar(true)
+    try {
+      const response = await userApi.removeAvatar()
+      setAvatar(response.user.avatarUrl || '')
+      showSuccess('Avatar đã được gỡ bỏ.')
+    } catch (error) {
+      console.error('Admin avatar removal error:', error)
+      toast({
+        title: 'Lỗi',
+        description: error instanceof Error ? error.message : 'Không thể gỡ bỏ avatar',
+        variant: 'destructive',
+      })
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
   const handlePersonalInfoSave = async (e: FormEvent) => {
     e.preventDefault()
     setSuccessMessage('')
@@ -121,6 +144,7 @@ const AdminProfilePage: React.FC = () => {
       const response = await userApi.updateProfile({ fullName: name })
       setAvatar((prev) => response.user.avatarUrl || prev || '')
       showSuccess('Thông tin hồ sơ đã được cập nhật thành công.')
+      setShowEditModal(false)
     } catch (profileError) {
       console.error('Admin profile update error:', profileError)
       toast({
@@ -178,6 +202,7 @@ const AdminProfilePage: React.FC = () => {
       setRecoveryCodes((prev) =>
         prev.filter((code) => code.toUpperCase() !== normalizedRecoveryCode)
       )
+      setRecoveryCodesCount((prev) => Math.max(0, prev - 1))
 
       showSuccess('Mật khẩu đã được thay đổi thành công.')
       setCurrentPassword('')
@@ -196,25 +221,6 @@ const AdminProfilePage: React.FC = () => {
       })
     } finally {
       setIsLoading(false)
-    }
-  }
-
-  const handleRegenerateRecoveryCodes = async () => {
-    setSuccessMessage('')
-    setIsRefreshingCodes(true)
-    try {
-      const response = await userApi.regenerateAdminRecoveryCodes()
-      setRecoveryCodes(response.codes || [])
-      showSuccess('Đã tạo mới 10 recovery codes thành công.')
-    } catch (error) {
-      console.error('Regenerate recovery codes error:', error)
-      toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể tạo lại recovery codes',
-        variant: 'destructive',
-      })
-    } finally {
-      setIsRefreshingCodes(false)
     }
   }
 
@@ -282,7 +288,7 @@ const AdminProfilePage: React.FC = () => {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
-  const handleDownloadCodes = () => {
+  const handleDownloadCodes = async () => {
     if (!recoveryCodes.length) return
     const content = recoveryCodes.join('\n')
     const blob = new Blob([content], { type: 'text/plain' })
@@ -292,6 +298,19 @@ const AdminProfilePage: React.FC = () => {
     link.download = 'recovery-codes.txt'
     link.click()
     URL.revokeObjectURL(url)
+
+    try {
+      await userApi.markAdminRecoveryCodesDownloaded()
+      setHasDownloaded(true)
+      setRecoveryCodes([])
+    } catch (error) {
+      console.error('Failed to mark codes as downloaded:', error)
+      toast({
+        title: 'Lỗi',
+        description: 'Không thể đánh dấu mã khôi phục đã tải xuống',
+        variant: 'destructive',
+      })
+    }
   }
 
   if (isLoadingProfile) {
@@ -356,6 +375,7 @@ const AdminProfilePage: React.FC = () => {
                 <AvatarUpload
                   currentAvatar={avatar}
                   onAvatarChange={handleAvatarUpload}
+                  onRemove={handleAvatarRemove}
                   isLoading={isUploadingAvatar}
                 />
                 <div className="mt-6 pt-4 border-t border-border w-full text-center">
@@ -403,54 +423,29 @@ const AdminProfilePage: React.FC = () => {
 
                   {/* Personal Info */}
                   <TabsContent value="personal" className="mt-6 space-y-6">
-                    <form onSubmit={handlePersonalInfoSave} className="space-y-5">
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-name" className="text-primary font-medium">
-                          Full Name
-                        </Label>
-                        <Input
-                          id="admin-name"
-                          value={name}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                          className="h-11"
-                          required
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-email" className="text-primary font-medium">
-                          Email
-                        </Label>
-                        <Input
-                          id="admin-email"
-                          type="email"
-                          value={email}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                          className="h-11"
-                          disabled
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-role" className="text-primary font-medium">
-                          Role
-                        </Label>
-                        <Input
-                          id="admin-role"
-                          value={role}
-                          className="h-11"
-                          disabled
-                        />
+                    <div className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                          <p className="text-base font-semibold text-foreground">{name || 'Not provided'}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Email</p>
+                          <p className="text-base font-semibold text-foreground">{email}</p>
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-muted-foreground">Role</p>
+                          <p className="text-base font-semibold text-foreground">{role}</p>
+                        </div>
                       </div>
 
                       <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full h-11 bg-primary hover:bg-primary/90"
+                        onClick={() => setShowEditModal(true)}
+                        className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
                       >
-                        {isLoading ? 'Saving...' : 'Save Changes'}
+                        Update Profile
                       </Button>
-                    </form>
+                    </div>
                   </TabsContent>
 
                   {/* Password Change */}
@@ -475,7 +470,7 @@ const AdminProfilePage: React.FC = () => {
                           required
                         />
                         <p className="text-xs text-muted-foreground">
-                          Còn lại {recoveryCodes.length} mã có thể sử dụng.
+                          Còn lại {recoveryCodesCount} mã có thể sử dụng.
                         </p>
                       </div>
 
@@ -536,7 +531,7 @@ const AdminProfilePage: React.FC = () => {
 
                       <Button
                         type="submit"
-                        disabled={isLoading || !recoveryCodes.length}
+                        disabled={isLoading || recoveryCodesCount === 0}
                         className="w-full h-11 bg-primary hover:bg-primary/90"
                       >
                         {isLoading ? 'Updating...' : 'Change Password'}
@@ -648,13 +643,6 @@ const AdminProfilePage: React.FC = () => {
 
                     <div className="flex gap-3">
                       <Button
-                        onClick={handleRegenerateRecoveryCodes}
-                        disabled={isRefreshingCodes}
-                        className="h-11 bg-primary hover:bg-primary/90"
-                      >
-                        {isRefreshingCodes ? 'Generating...' : 'Regenerate 10 Codes'}
-                      </Button>
-                      <Button
                         variant="outline"
                         className="h-11 border-primary text-primary hover:bg-primary/10"
                         onClick={handleDownloadCodes}
@@ -664,9 +652,13 @@ const AdminProfilePage: React.FC = () => {
                       </Button>
                     </div>
 
-                    {!recoveryCodes.length ? (
+                    {!recoveryCodes.length && !hasDownloaded ? (
                       <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-                        Chưa có recovery code nào. Hãy bấm "Regenerate 10 Codes" để tạo mã.
+                        Không có mã khôi phục nào để hiển thị.
+                      </div>
+                    ) : hasDownloaded ? (
+                      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground text-center">
+                        Mã khôi phục đã được tải xuống. Nếu bạn muốn xem lại mã khôi phục hãy liên hệ kĩ thuật viên.
                       </div>
                     ) : (
                       <div className="space-y-3">
@@ -701,6 +693,93 @@ const AdminProfilePage: React.FC = () => {
           </div>
         </main>
       </div>
+
+      {/* Edit Profile Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-2xl shadow-2xl bg-white overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-secondary/10">
+              <h2 className="text-2xl font-bold text-primary">Update Profile</h2>
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-black/5 transition-colors"
+                aria-label="Close modal"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+              <form id="edit-admin-profile-form" onSubmit={handlePersonalInfoSave} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-admin-name" className="text-primary font-medium">
+                    Full Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="edit-admin-name"
+                    value={name}
+                    onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
+                    className="h-11 border-2 focus:border-primary transition-colors"
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-admin-email" className="text-primary font-medium">
+                    Email
+                  </Label>
+                  <Input
+                    id="edit-admin-email"
+                    type="email"
+                    value={email}
+                    className="h-11 bg-muted/50 cursor-not-allowed"
+                    disabled
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Email cannot be changed.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-admin-role" className="text-primary font-medium">
+                    Role
+                  </Label>
+                  <Input
+                    id="edit-admin-role"
+                    value={role}
+                    className="h-11 bg-muted/50 cursor-not-allowed"
+                    disabled
+                  />
+                </div>
+              </form>
+            </div>
+            <div className="p-6 border-t border-border/50 bg-secondary/5 flex justify-end gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditModal(false)}
+                className="h-11 px-6 font-medium"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                form="edit-admin-profile-form"
+                disabled={isLoading}
+                className="h-11 px-8 bg-primary hover:bg-primary/90 text-white font-medium shadow-md hover:shadow-lg transition-all"
+              >
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Saving...
+                  </div>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }

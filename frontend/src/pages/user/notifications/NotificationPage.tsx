@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent } from '../../../components/ui/Card'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import { Bell, Check, Trash2, Menu, X } from 'lucide-react'
+import http from '../../../api/http'
 
 type NotificationType = 'insight' | 'reminder' | 'milestone' | 'message'
 
@@ -17,56 +18,70 @@ interface Notification {
   actionUrl?: string
 }
 
+interface ApiNotification {
+  id: string
+  type: 'insight' | 'reminder' | 'tip' | 'message' | 'other'
+  title: string
+  content: string
+  status: 'pending' | 'sent' | 'read'
+  created_at?: string
+  scheduled_for?: string
+  sent_at?: string
+  metadata?: {
+    context?: string
+    [key: string]: unknown
+  }
+}
+
 export default function NotificationsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const [notifications, setNotifications] = useState<Notification[]>(() => [
-    {
-      id: '1',
-      type: 'insight',
-      title: 'New Insight Generated',
-      description:
-        'Based on your recent entries, you might benefit from exploring body-based anxiety techniques.',
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      read: false,
-      actionUrl: '/user/journal',
-    },
-    {
-      id: '2',
-      type: 'reminder',
-      title: 'Time for Your Daily Check-in',
-      description:
-        'Start your day with intention. Complete your mood and energy check-in.',
-      timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      read: false,
-    },
-    {
-      id: '3',
-      type: 'milestone',
-      title: 'Milestone Reached!',
-      description:
-        "You've completed 30 journal entries this month. Great consistency!",
-      timestamp: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      read: true,
-    },
-    {
-      id: '4',
-      type: 'message',
-      title: 'AI Partner Response',
-      description:
-        'Your thought partner has responded to your reflection with new insights.',
-      timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      read: true,
-      actionUrl: '/user/ai-partner',
-    },
-    {
-      id: '5',
-      type: 'reminder',
-      title: 'Weekly Reflection Available',
-      description: 'Your weekly summary is ready to review.',
-      timestamp: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-      read: true,
-    },
-  ])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = (await http.get('/notifications?limit=50')) as unknown as ApiNotification[]
+
+        const mapped: Notification[] = data.map((n) => {
+          const rawDate =
+            n.created_at || n.sent_at || n.scheduled_for || new Date().toISOString()
+
+          let type: NotificationType = 'reminder'
+          if (n.type === 'insight') type = 'insight'
+          else if (n.type === 'milestone') type = 'milestone'
+          else if (n.type === 'message') type = 'message'
+
+          let actionUrl: string | undefined
+          const context = n.metadata?.context
+          if (context === 'journal_reminder') actionUrl = '/user/journal'
+          if (context === 'mood_check') actionUrl = '/user/dashboard'
+
+          return {
+            id: n.id,
+            type,
+            title: n.title,
+            description: n.content,
+            timestamp: new Date(rawDate),
+            read: n.status === 'read',
+            actionUrl,
+          }
+        })
+
+        setNotifications(mapped)
+      } catch (err) {
+        console.error(err)
+        setError('Failed to load notifications. Please try again.')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchNotifications()
+  }, [])
 
 
   const getNotificationIcon = (type: NotificationType): string => {
@@ -105,10 +120,18 @@ export default function NotificationsPage() {
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
+    // fire and forget
+    http.patch(`/notifications/${id}/read`).catch((err) => {
+      console.error('Failed to mark as read', err)
+    })
   }
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id))
+    // fire and forget
+    http.delete(`/notifications/${id}`).catch((err) => {
+      console.error('Failed to delete notification', err)
+    })
   }
 
   const unreadCount = notifications.filter(n => !n.read).length
@@ -150,7 +173,13 @@ export default function NotificationsPage() {
             <Button variant="outline" size="sm" className="text-xs">Insights</Button>
           </div>
 
-          {notifications.length === 0 ? (
+          {loading ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <p className="text-muted-foreground">Loading notifications...</p>
+              </CardContent>
+            </Card>
+          ) : notifications.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Bell className="mx-auto mb-4 opacity-50" size={48} />
@@ -209,6 +238,12 @@ export default function NotificationsPage() {
                 </CardContent>
               </Card>
             ))
+          )}
+
+          {error && (
+            <p className="text-sm text-red-600 mt-2">
+              {error}
+            </p>
           )}
         </main>
       </div>

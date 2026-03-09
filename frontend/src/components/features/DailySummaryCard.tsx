@@ -5,22 +5,34 @@ import { RefreshCw } from 'lucide-react';
 import { aiApi } from '../../api/aiApi';
 import { useAuth } from '../../hooks/useAuth';
 import http from '../../api/http';
+import type { AxiosError } from 'axios';
 
 interface DailySummaryCardProps {
     onRegenerate?: () => void;
 }
 
+interface DailySummaryMetadata {
+    entry_count: number;
+    mood_count: number;
+    avg_mood: number;
+}
+
 export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate }) => {
     const { user } = useAuth();
     const [summary, setSummary] = useState<string | null>(null);
-    const [metadata, setMetadata] = useState<any>(null);
+    const [metadata, setMetadata] = useState<DailySummaryMetadata | null>(null);
     const [loading, setLoading] = useState(true);
     const [regenerating, setRegenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
     type CachedSummaryResponse = {
         success: boolean;
-        data?: { summary: string; metadata?: any; generatedAt?: string; type?: string };
+        data?: {
+            summary: string;
+            metadata?: DailySummaryMetadata;
+            generatedAt?: string;
+            type?: string;
+        };
     };
 
     const fetchSummary = async () => {
@@ -31,18 +43,20 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
             const result = (await http.get(`/ai/summary/daily/${user.id}`)) as unknown as CachedSummaryResponse;
             if (result?.success && result.data?.summary) {
                 setSummary(result.data.summary);
-                setMetadata(result.data.metadata);
+                setMetadata(result.data.metadata ?? null);
             } else {
                 setError('Không thể tải dữ liệu');
             }
-        } catch (err: any) {
-            if (err?.response?.status === 404) {
-                // Chưa có summary -> gọi generate
+        } catch (err: unknown) {
+            const error = err as AxiosError;
+
+            if (error.response?.status === 404) {
                 await generateSummary();
                 return;
             }
-            console.error('Fetch summary error:', err);
-            setError('Lỗi kết nối');
+
+            console.error('Fetch summary error:', error);
+            setError('Connection error');
         } finally {
             setLoading(false);
         }
@@ -59,7 +73,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
             } else {
                 setError('Unable to generate summary');
             }
-        } catch (err) {
+        } catch {
             setError('Connection error');
         } finally {
             setLoading(false);
@@ -111,7 +125,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-md">
             <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center justify-between">
-                    <span>📝 Your Day in Review</span>
+                    <span>Your Day in Review</span>
                     <Button
                         variant="ghost"
                         size="sm"
