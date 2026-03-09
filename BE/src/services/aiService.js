@@ -273,13 +273,14 @@ class AIServiceClient {
     /**
      * UC-23: Suggest practical actions
      */
-    async suggestPracticalActions(userId, currentMood = null, count = 3) {
+    async suggestPracticalActions(userId, currentMood = null, count = 3, excludeIds = []) {
         try {
             const response = await this.client.post('/api/v1/actions/suggest', {
                 user_id: userId,
                 current_mood: currentMood,
-                count: count
-            });
+                count: count,
+                exclude_ids: excludeIds
+            }, { timeout: 5000 });
 
             return {
                 success: true,
@@ -287,7 +288,6 @@ class AIServiceClient {
                 context: response.data.context,
                 suggestedAt: response.data.suggested_at
             };
-
         } catch (error) {
             console.error('Failed to suggest actions:', error.message);
             return {
@@ -301,21 +301,45 @@ class AIServiceClient {
     /**
      * UC-23: Log action completion
      */
-    async logActionCompletion(userId, actionId, durationSeconds) {
+    async logActionCompletion(userId, actionId, durationSeconds, moodAtTime = null, source = 'suggestion') {
         try {
             const response = await this.client.post('/api/v1/actions/log_completion', {
                 user_id: userId,
                 action_id: actionId,
-                duration_seconds: durationSeconds
+                duration_seconds: durationSeconds,
+                mood_at_time: moodAtTime,
+                source: source
             });
-
             return {
                 success: true,
                 message: response.data.message
             };
-
         } catch (error) {
             console.error('Failed to log action completion:', error.message);
+            return {
+                success: false,
+                error: error.message
+            };
+        }
+    }
+
+    /**
+     * UC-23: Log skip
+     */
+    async logSkip(userId, mood, shownActions, reason = null) {
+        try {
+            const response = await this.client.post('/api/v1/actions/skip', {
+                user_id: userId,
+                mood: mood,
+                shown_actions: shownActions,
+                reason: reason
+            });
+            return {
+                success: true,
+                message: response.data.message
+            };
+        } catch (error) {
+            console.error('Failed to log skip:', error.message);
             return {
                 success: false,
                 error: error.message
@@ -329,7 +353,6 @@ class AIServiceClient {
     async getActionHistory(userId, days = 7) {
         try {
             const response = await this.client.get(`/api/v1/actions/history/${userId}?days=${days}`);
-
             return {
                 success: true,
                 completions: response.data.completions,
@@ -337,7 +360,6 @@ class AIServiceClient {
                 totalCompletions: response.data.total_completions,
                 stats: response.data.stats
             };
-
         } catch (error) {
             console.error('Failed to get action history:', error.message);
             return {

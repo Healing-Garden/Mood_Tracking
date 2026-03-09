@@ -13,6 +13,10 @@ import { userApi } from '../../../api/userApi'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
+import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
+import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
+
+const NEGATIVE_MOODS = ['sad', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
@@ -27,11 +31,11 @@ const UserDashboardPage = () => {
   })
 
   const { setShowModal, resetStore } = useDailyCheckInStore()
+  const { lastMood } = useDailyCheckInStore();
+  const { openModal } = useActionSuggestionStore();
 
-  // Kiểm tra onboarding và trạng thái check-in hôm nay
   useEffect(() => {
     const checkStatus = async () => {
-      // 1. Kiểm tra onboarding trước
       try {
         const onboardingRes = await userApi.getOnboardingStatus()
         if (!onboardingRes.isOnboarded) {
@@ -42,7 +46,6 @@ const UserDashboardPage = () => {
         console.error('Failed to fetch onboarding status:', error)
       }
 
-      // 2. Kiểm tra check-in hôm nay
       try {
         await dailyCheckInApi.getToday()
       } catch (error) {
@@ -60,6 +63,12 @@ const UserDashboardPage = () => {
 
     checkStatus()
   }, [setShowModal, resetStore, navigate])
+
+  useEffect(() => {
+    if (lastMood && NEGATIVE_MOODS.includes(lastMood.toLowerCase())) {
+      openModal(lastMood);
+    }
+  }, [lastMood, openModal]);
 
   const handleMoodDataChange = useCallback((points: any[]) => {
     if (points.length === 0) {
@@ -219,6 +228,7 @@ const UserDashboardPage = () => {
 
       {/* Daily Check-in Modal */}
       <DailyCheckInModal />
+      <ActionSuggestionModal />
     </div>
   )
 }
