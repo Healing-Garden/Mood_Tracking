@@ -45,6 +45,7 @@ export default function DashboardSidebar({
       localStorage.removeItem("accessToken");
       localStorage.removeItem("access_token");
       localStorage.removeItem("user");
+      sessionStorage.removeItem("journalUnlocked");
       useDailyCheckInStore.getState().resetStore();
       useOnboardingStore.getState().resetOnboarding();
       navigate("/", { replace: true });
