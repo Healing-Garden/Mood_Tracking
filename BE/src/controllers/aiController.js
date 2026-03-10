@@ -10,6 +10,13 @@ const getMongoDB = async () => {
     return conn.db;
 };
 
+const getLocalISODate = (d = new Date()) => {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+};
+
 class AIController {
     // Suggest prompting questions
     async suggestQuestions(req, res) {
@@ -92,9 +99,9 @@ class AIController {
     async getDailySummary(req, res) {
         try {
             const { userId } = req.params;
-            const date = req.query.date || new Date().toISOString().split('T')[0];
+            const date = req.query.date || getLocalISODate();
             const db = await getMongoDB();
-            
+
             const targetDate = new Date(date);
             targetDate.setHours(0, 0, 0, 0);
 
@@ -114,11 +121,11 @@ class AIController {
                     date: targetDate
                 });
             }
-            
+
             if (!summary) {
                 return res.status(404).json({ message: 'No summary for this day' });
             }
-            
+
             res.json({
                 success: true,
                 data: {

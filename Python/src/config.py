@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     gemini_api_key: Optional[SecretStr] = Field(default=None)
     gemini_model: str = Field(default="gemini-2.0-flash")
     gemini_fallback_models: List[str] = Field(
-        default=["gemini-2.0-flash-lite", "gemini-2.5-flash", "gemini-flash-latest"]
+        default=["gemini-2.0-flash-lite", "gemini-1.5-flash", "gemini-1.5-flash-8b", "gemini-flash-latest"]
     )
     gemini_temperature: float = Field(default=0.7)
     gemini_max_tokens: int = Field(default=500)

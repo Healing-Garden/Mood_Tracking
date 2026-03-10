@@ -9,6 +9,13 @@ async function getMongoDB() {
     return mongoose.connection.db;
 }
 
+function getLocalISODate(d = new Date()) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
 class AIServiceClient {
     constructor(config = {}) {
         this.baseURL = config.baseURL || process.env.AI_SERVICE_URL || 'http://localhost:8000';
@@ -85,7 +92,7 @@ class AIServiceClient {
         try {
             const response = await this.client.post('/api/v1/summary/daily', {
                 user_id: userId,
-                date: date || new Date().toISOString().split('T')[0]
+                date: date || getLocalISODate()
             }, { timeout: 30000 }
             );
 
