@@ -37,6 +37,17 @@ const HealingContentDetailModal: React.FC<HealingContentDetailModalProps> = ({ i
                         <p className="text-lg font-medium text-gray-900">{content.title}</p>
                     </div>
 
+                    {/* Author Section */}
+                    {(content.author || (content.type === 'video' && content.metadata?.author)) && (
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Author</h3>
+                            <p className="text-gray-700 font-medium italic">
+                                {content.author || content.metadata?.author}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Description Section */}
                     {content.description && (
                         <div>
                             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Description</h3>
@@ -73,55 +84,65 @@ const HealingContentDetailModal: React.FC<HealingContentDetailModalProps> = ({ i
 
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Data / Media</h3>
-                        <div className="mt-2 bg-gray-50 rounded-lg p-4 border border-gray-100">
-                            {content.type === 'quote' && (
-                                <blockquote className="text-xl italic text-gray-800 border-l-4 border-green-500 pl-4 py-2">
-                                    "{content.content}"
-                                </blockquote>
+                        <div className="mt-2 bg-gray-50 rounded-lg p-4 border border-gray-100 flex gap-4">
+                            {content.thumbnail && content.type !== 'video' && (
+                                <img
+                                    src={content.thumbnail}
+                                    alt="Thumbnail"
+                                    className="w-32 h-32 object-cover rounded-md flex-shrink-0"
+                                    onError={(e: any) => e.target.style.display = 'none'}
+                                />
                             )}
+                            <div className="flex-1 w-full overflow-hidden">
+                                {content.type === 'quote' && (
+                                    <blockquote className="text-xl italic text-gray-800 border-l-4 border-green-500 pl-4 py-2">
+                                        "{content.content}"
+                                    </blockquote>
+                                )}
 
-                            {content.type === 'article' && (
-                                <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                                    {content.content?.trim().startsWith('http') ? (
-                                        <div className="flex flex-col gap-3">
-                                            <a href={content.content.trim()} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all inline-flex items-center gap-1">
-                                                {content.content.trim()}
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                            </a>
-                                            <iframe
-                                                src={content.content.trim()}
-                                                className="w-full h-[600px] border border-gray-200 rounded-lg bg-white shadow-inner"
-                                                title={content.title}
-                                                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                                            />
-                                        </div>
-                                    ) : (
-                                        content.content
-                                    )}
-                                </div>
-                            )}
+                                {content.type === 'article' && (
+                                    <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
+                                        {content.content?.trim().startsWith('http') ? (
+                                            <div className="flex flex-col gap-3">
+                                                <a href={content.content.trim()} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all inline-flex items-center gap-1">
+                                                    {content.content.trim()}
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                                </a>
+                                                <iframe
+                                                    src={content.content.trim()}
+                                                    className="w-full h-[600px] border border-gray-200 rounded-lg bg-white shadow-inner"
+                                                    title={content.title}
+                                                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                                                />
+                                            </div>
+                                        ) : (
+                                            content.content
+                                        )}
+                                    </div>
+                                )}
 
-                            {content.type === 'video' && content.videoUrl && (
-                                <div className="rounded-lg overflow-hidden bg-black flex justify-center">
-                                    <video
-                                        src={content.videoUrl}
-                                        controls
-                                        className="w-full max-h-[500px]"
-                                        poster={content.thumbnail}
-                                    />
-                                </div>
-                            )}
+                                {content.type === 'video' && content.videoUrl && (
+                                    <div className="rounded-lg overflow-hidden bg-black flex justify-center">
+                                        <video
+                                            src={content.videoUrl}
+                                            controls
+                                            className="w-full max-h-[500px]"
+                                            poster={content.thumbnail}
+                                        />
+                                    </div>
+                                )}
 
-                            {content.type === 'video' && !content.videoUrl && (
-                                <p className="text-gray-500 italic">No video file available.</p>
-                            )}
+                                {content.type === 'video' && !content.videoUrl && (
+                                    <p className="text-gray-500 italic">No video file available.</p>
+                                )}
+                            </div>
                         </div>
-                    </div>
 
-                    <div className="text-xs text-gray-400 pt-4 border-t border-gray-100">
-                        Created on: {new Date(content.createdAt).toLocaleString()}
-                        <br />
-                        Last updated: {new Date(content.updatedAt).toLocaleString()}
+                        <div className="text-xs text-gray-400 pt-4 border-t border-gray-100">
+                            Created on: {new Date(content.createdAt).toLocaleString()}
+                            <br />
+                            Last updated: {new Date(content.updatedAt).toLocaleString()}
+                        </div>
                     </div>
                 </div>
             </div>

@@ -7,7 +7,7 @@ const healingQuoteSchema = new mongoose.Schema(
             required: true,
             trim: true,
         },
-        description: {
+        author: {
             type: String,
             trim: true,
         },
@@ -23,9 +23,6 @@ const healingQuoteSchema = new mongoose.Schema(
             default: 3,
         },
         content: {
-            type: String,
-        },
-        videoUrl: {
             type: String,
         },
         thumbnail: {

@@ -11,6 +11,10 @@ const healingArticleSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        author: {
+            type: String,
+            trim: true,
+        },
         type: {
             type: String,
             default: "article",
@@ -23,9 +27,6 @@ const healingArticleSchema = new mongoose.Schema(
             default: 3,
         },
         content: {
-            type: String,
-        },
-        videoUrl: {
             type: String,
         },
         thumbnail: {

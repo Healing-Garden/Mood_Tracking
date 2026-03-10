@@ -10,6 +10,13 @@ export interface HealingContent {
     content?: string;
     videoUrl?: string;
     thumbnail?: string;
+    author?: string;
+    metadata?: {
+        duration_seconds?: number;
+        difficulty?: 'easy' | 'medium' | 'hard';
+        mood_tags?: string[];
+        author?: string;
+    };
     createdAt: string;
     updatedAt: string;
 }

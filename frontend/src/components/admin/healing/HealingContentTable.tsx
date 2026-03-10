@@ -119,9 +119,11 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
                 <tbody className="bg-white divide-y divide-gray-200">
                     {contents.map((item) => (
                         <tr key={item._id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-6 py-4 whitespace-nowrap">
+                            <td className="px-6 py-4">
                                 <div className="text-sm font-medium text-gray-900">{item.title}</div>
-                                {item.description && <div className="text-xs text-gray-500 truncate max-w-[200px]">{item.description}</div>}
+                                {item.author && <div className="text-xs text-blue-600 font-medium italic">By: {item.author}</div>}
+                                {item.type === 'video' && item.metadata?.author && <div className="text-xs text-blue-600 font-medium italic">By: {item.metadata.author}</div>}
+                                {item.description && <div className="text-xs text-gray-400 truncate max-w-[200px] mt-1">{item.description}</div>}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <span className={`px-2 py-1 rounded text-xs font-medium ${item.moodLevel === 1 ? 'bg-red-100 text-red-800' :

@@ -36,10 +36,10 @@ const healingVideoSchema = new mongoose.Schema(
             ref: "Users",
         },
         metadata: {
-            duration_min: {
+            duration_seconds: {
                 type: Number,
                 min: 0,
-                default: 1,
+                default: 0,
             },
             difficulty: {
                 type: String,
@@ -64,7 +64,7 @@ const healingVideoSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-healingVideoSchema.index({ is_active: 1, "metadata.duration_min": 1 });
+healingVideoSchema.index({ is_active: 1, "metadata.duration_seconds": 1 });
 healingVideoSchema.index({ "metadata.mood_tags": 1 });
 
 module.exports = mongoose.model("HealingVideo", healingVideoSchema);

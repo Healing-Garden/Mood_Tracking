@@ -50,6 +50,16 @@ exports.createHealingContent = async (req, res) => {
             videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
         }
 
+        let parsedMetadata = {};
+        if (req.body.metadata) {
+            try {
+                parsedMetadata = JSON.parse(req.body.metadata);
+            } catch (err) {
+                // If it's already an object or fails to parse
+                parsedMetadata = typeof req.body.metadata === 'object' ? req.body.metadata : {};
+            }
+        }
+
         const newContent = new Model({
             title,
             description,
@@ -58,6 +68,7 @@ exports.createHealingContent = async (req, res) => {
             videoUrl,
             thumbnail,
             moodLevel: moodLevel || 3,
+            metadata: Object.keys(parsedMetadata).length > 0 ? parsedMetadata : undefined,
             is_active: is_active !== undefined ? (is_active === 'true' || is_active === true) : true,
             createdBy: req.userId,
         });
@@ -116,11 +127,23 @@ exports.updateHealingContent = async (req, res) => {
             }
         }
 
+        let parsedMetadata = {};
+        if (req.body.metadata) {
+            try {
+                parsedMetadata = typeof req.body.metadata === 'string' ? JSON.parse(req.body.metadata) : req.body.metadata;
+            } catch (err) {
+                console.error("Failed to parse metadata", err);
+            }
+        }
+
         existingContent.title = title || existingContent.title;
         existingContent.description = description !== undefined ? description : existingContent.description;
         existingContent.content = content !== undefined ? content : existingContent.content;
         existingContent.thumbnail = thumbnail !== undefined ? thumbnail : existingContent.thumbnail;
         existingContent.moodLevel = moodLevel !== undefined ? moodLevel : existingContent.moodLevel;
+        if (Object.keys(parsedMetadata).length > 0) {
+            existingContent.metadata = parsedMetadata;
+        }
         if (is_active !== undefined) {
             existingContent.is_active = (is_active === 'true' || is_active === true);
         }

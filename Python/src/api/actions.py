@@ -25,7 +25,7 @@ class ActionItem(BaseModel):
     title: str
     description: str
     type: str  # "quote", "video", "article", "exercise", "breathing", "meditation", "activity"
-    duration_min: int
+    duration_seconds: int
     difficulty: str = "easy"
     mood_category: List[str] = Field(default_factory=list)
 
@@ -57,7 +57,7 @@ def convert_healing_content_to_action(content: Dict[str, Any]) -> ActionItem:
         title=content["title"],
         description=content.get("description") or content.get("content", ""),
         type=content.get("type", "unknown"),
-        duration_min=metadata.get("duration_min", 1),
+        duration_seconds=metadata.get("duration_seconds", 60),
         difficulty=metadata.get("difficulty", "easy"),
         mood_category=metadata.get("mood_tags", [])
     )
@@ -434,16 +434,26 @@ def get_fallback_actions(count: int = 3) -> List[ActionItem]:
             title="Quick Stretch",
             description="Stand up and stretch your arms overhead for 30 seconds.",
             type="exercise",
-            duration_min=1,
+            duration_seconds=120,
             difficulty="easy",
-            mood_category=["tired", "stressed"]
+            mood_tags=["breathing", "relaxation"],
+            author="System"
         ),
         ActionItem(
             id="fallback_gratitude",
             title="Gratitude Moment",
             description="Write down 3 things you're grateful for.",
             type="activity",
-            duration_min=2,
+            duration_seconds=120,
+            difficulty="easy",
+            mood_category=["sad", "anxious", "neutral"]
+        ),
+        Action(
+            id="fallback_002",
+            title="Nghe nhạc tần số phục hồi (432Hz)",
+            description="Âm lượng vừa phải, tập trung vào hơi thở.",
+            type="video",
+            duration_seconds=60,
             difficulty="easy",
             mood_category=["sad", "anxious", "neutral"]
         ),
