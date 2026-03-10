@@ -5,7 +5,7 @@ import { Input } from '../../../components/ui/Input'
 import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
-import { Eye, EyeOff, Lock, Copy, Check, AlertCircle, Menu, X } from 'lucide-react'
+import { Eye, EyeOff, Lock, AlertCircle, Menu, X } from 'lucide-react'
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import { Card } from '../../../components/ui/Card'
 import { userApi } from '../../../api/userApi'
@@ -20,7 +20,6 @@ const AdminProfilePage: React.FC = () => {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState<boolean>(false)
   const [successMessage, setSuccessMessage] = useState<string>('')
   const [showEditModal, setShowEditModal] = useState<boolean>(false)
-  const [copiedCode, setCopiedCode] = useState<number | null>(null)
   const [hasDownloaded, setHasDownloaded] = useState<boolean>(false)
   const [recoveryCodesCount, setRecoveryCodesCount] = useState<number>(0)
 
@@ -38,13 +37,9 @@ const AdminProfilePage: React.FC = () => {
   const [showPasswords, setShowPasswords] = useState<boolean>(false)
   const [passwordError, setPasswordError] = useState<string>('')
 
-  // PIN
   const [showPinForm, setShowPinForm] = useState<boolean>(false)
   const [pinDigits, setPinDigits] = useState<string[]>(Array(6).fill(''))
   const [confirmPinDigits, setConfirmPinDigits] = useState<string[]>(Array(6).fill(''))
-
-  // Recovery Codes
-  const [recoveryCodes, setRecoveryCodes] = useState<string[]>([])
 
   const showSuccess = (message: string) => {
     setSuccessMessage(message)
@@ -79,7 +74,6 @@ const AdminProfilePage: React.FC = () => {
   const loadRecoveryCodes = async () => {
     try {
       const response = await userApi.getAdminRecoveryCodes()
-      setRecoveryCodes(response.codes || [])
       setRecoveryCodesCount(response.count || 0)
       setHasDownloaded(response.hasDownloaded || false)
     } catch (error) {
@@ -199,9 +193,6 @@ const AdminProfilePage: React.FC = () => {
         recoveryCode: normalizedRecoveryCode,
       })
 
-      setRecoveryCodes((prev) =>
-        prev.filter((code) => code.toUpperCase() !== normalizedRecoveryCode)
-      )
       setRecoveryCodesCount((prev) => Math.max(0, prev - 1))
 
       showSuccess('Mật khẩu đã được thay đổi thành công.')
@@ -282,27 +273,44 @@ const AdminProfilePage: React.FC = () => {
     }
   }
 
-  const copyToClipboard = (text: string, index: number) => {
-    navigator.clipboard.writeText(text)
-    setCopiedCode(index)
-    setTimeout(() => setCopiedCode(null), 2000)
-  }
-
   const handleDownloadCodes = async () => {
-    if (!recoveryCodes.length) return
-    const content = recoveryCodes.join('\n')
-    const blob = new Blob([content], { type: 'text/plain' })
-    const url = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = 'recovery-codes.txt'
-    link.click()
-    URL.revokeObjectURL(url)
-
     try {
-      await userApi.markAdminRecoveryCodesDownloaded()
+      if (hasDownloaded) {
+        toast({
+          title: 'Thông báo',
+          description: 'Mã khôi phục đã được tải xuống.',
+          variant: 'default',
+        })
+        return
+      }
+
+      const response = await userApi.markAdminRecoveryCodesDownloaded()
+      const codes = response.codes || []
+
+      if (!codes.length) {
+        toast({
+          title: 'Lỗi',
+          description: 'Không có mã khôi phục nào được trả về',
+          variant: 'destructive',
+        })
+        return
+      }
+
+      const content = codes.join('\n')
+      const blob = new Blob([content], { type: 'text/plain' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'recovery-codes.txt'
+      link.click()
+      URL.revokeObjectURL(url)
+
       setHasDownloaded(true)
-      setRecoveryCodes([])
+      toast({
+        title: 'Thành công',
+        description: 'Mã khôi phục đã được tải xuống.',
+        variant: 'default',
+      })
     } catch (error) {
       console.error('Failed to mark codes as downloaded:', error)
       toast({
@@ -466,7 +474,7 @@ const AdminProfilePage: React.FC = () => {
                           value={recoveryCodeInput}
                           onChange={(e: ChangeEvent<HTMLInputElement>) => setRecoveryCodeInput(e.target.value.toUpperCase())}
                           className="h-11 font-mono uppercase"
-                          placeholder="HG-2026-A1B2C3"
+                          autoComplete="off"
                           required
                         />
                         <p className="text-xs text-muted-foreground">
@@ -576,7 +584,6 @@ const AdminProfilePage: React.FC = () => {
                                 value={digit}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, false)}
                                 className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
-                                placeholder="•"
                               />
                             ))}
                           </div>
@@ -646,44 +653,19 @@ const AdminProfilePage: React.FC = () => {
                         variant="outline"
                         className="h-11 border-primary text-primary hover:bg-primary/10"
                         onClick={handleDownloadCodes}
-                        disabled={!recoveryCodes.length}
+                        disabled={hasDownloaded || recoveryCodesCount === 0}
                       >
                         Download All Codes
                       </Button>
                     </div>
 
-                    {!recoveryCodes.length && !hasDownloaded ? (
+                    {!hasDownloaded ? (
                       <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-                        Không có mã khôi phục nào để hiển thị.
-                      </div>
-                    ) : hasDownloaded ? (
-                      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground text-center">
-                        Mã khôi phục đã được tải xuống. Nếu bạn muốn xem lại mã khôi phục hãy liên hệ kĩ thuật viên.
+                        Bạn có {recoveryCodesCount} mã khôi phục chưa được tải xuống. Hãy tải xuống và cất giữ an toàn, bạn chỉ có thể tải xuống 1 lần duy nhất.
                       </div>
                     ) : (
-                      <div className="space-y-3">
-                        {recoveryCodes.map((code, index) => (
-                          <div
-                            key={code}
-                            className="flex items-center justify-between bg-secondary/30 border border-border rounded-lg px-4 py-3 hover:bg-secondary/50 transition-colors"
-                          >
-                            <code className="font-mono text-sm font-semibold text-primary tracking-wide">
-                              {code}
-                            </code>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => copyToClipboard(code, index)}
-                              aria-label="Copy recovery code"
-                            >
-                              {copiedCode === index ? (
-                                <Check className="h-5 w-5 text-green-600" />
-                              ) : (
-                                <Copy className="h-5 w-5" />
-                              )}
-                            </Button>
-                          </div>
-                        ))}
+                      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground text-center">
+                        Mã khôi phục đã được tải xuống. Nếu bạn muốn xem lại mã khôi phục hãy liên hệ kĩ thuật viên hệ thống.
                       </div>
                     )}
                   </TabsContent>

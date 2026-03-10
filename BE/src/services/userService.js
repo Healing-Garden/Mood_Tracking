@@ -187,17 +187,17 @@ module.exports = {
       await user.save();
     }
 
-    return { codes: user.adminRecoveryCodes, count: user.adminRecoveryCodes.length, hasDownloaded: false };
+    return { count: user.adminRecoveryCodes.length, hasDownloaded: false };
   },
 
   downloadAdminRecoveryCodes: async (userId) => {
-    const user = await User.findById(userId).select("role hasDownloadedRecoveryCodes");
+    const user = await User.findById(userId).select("role hasDownloadedRecoveryCodes adminRecoveryCodes");
     if (!user) throw new Error("User not found");
     ensureAdmin(user);
 
     user.hasDownloadedRecoveryCodes = true;
     await user.save();
-    return { message: "Recovery codes marked as downloaded" };
+    return { codes: user.adminRecoveryCodes, message: "Recovery codes downloaded successfully" };
   },
 
   changePassword: async (userId, { currentPassword, newPassword, recoveryCode }) => {

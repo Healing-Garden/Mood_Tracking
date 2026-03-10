@@ -53,11 +53,11 @@ export const userApi = {
     return http.post("/user/change-password", payload);
   },
 
-  getAdminRecoveryCodes(): Promise<{ codes: string[]; count: number; hasDownloaded: boolean }> {
+  getAdminRecoveryCodes(): Promise<{ count: number; hasDownloaded: boolean }> {
     return http.get("/user/admin/recovery-codes");
   },
 
-  markAdminRecoveryCodesDownloaded(): Promise<{ message: string }> {
+  markAdminRecoveryCodesDownloaded(): Promise<{ codes: string[]; message: string }> {
     return http.post("/user/admin/recovery-codes/download");
   },
 
