@@ -36,7 +36,7 @@ exports.getAllHealingContent = async (req, res) => {
 
 exports.createHealingContent = async (req, res) => {
     try {
-        const { title, description, type, content, thumbnail, moodLevel, is_active } = req.body;
+        const { title, description, author, type, content, thumbnail, moodLevel, is_active } = req.body;
         let videoUrl = null;
 
         const Model = getModelByType(type);
@@ -63,6 +63,7 @@ exports.createHealingContent = async (req, res) => {
         const newContent = new Model({
             title,
             description,
+            author,
             type,
             content,
             videoUrl,
@@ -84,7 +85,7 @@ exports.createHealingContent = async (req, res) => {
 exports.updateHealingContent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, type, content, thumbnail, moodLevel, is_active } = req.body;
+        const { title, description, author, type, content, thumbnail, moodLevel, is_active } = req.body;
 
         let existingContent = null;
         let Model = null;
@@ -138,6 +139,7 @@ exports.updateHealingContent = async (req, res) => {
 
         existingContent.title = title || existingContent.title;
         existingContent.description = description !== undefined ? description : existingContent.description;
+        existingContent.author = author !== undefined ? author : existingContent.author;
         existingContent.content = content !== undefined ? content : existingContent.content;
         existingContent.thumbnail = thumbnail !== undefined ? thumbnail : existingContent.thumbnail;
         existingContent.moodLevel = moodLevel !== undefined ? moodLevel : existingContent.moodLevel;

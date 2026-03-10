@@ -66,11 +66,12 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                     setAuthor(initialData.author || '');
                 }
             } else {
-                setThumbnailUrl('');
+                setTitle('');
                 setDescription('');
                 setMoodLevel(3);
                 setIsActive(true);
                 setContent('');
+                setThumbnailUrl('');
                 setVideoFile(null);
                 setVideoPreviewUrl(null);
                 setRemoveVideo(false);
@@ -78,10 +79,9 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                 setDifficulty('easy');
                 setMoodTags('');
                 setAuthor('');
-                setThumbnailUrl('');
             }
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, type]);
 
     useEffect(() => {
         if (!videoFile) {
