@@ -705,6 +705,45 @@ module.exports = {
       return res.status(400).json({ message: err.message || "Internal server error" });
     }
   },
+
+  setAppLockPin: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { pin } = req.body;
+      const userService = require("../services/userService");
+      const result = await userService.setAppLockPin(userId, pin);
+      return res.json(result);
+    } catch (err) {
+      console.error("setAppLockPin error:", err);
+      return res.status(400).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  verifyAppLockPin: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { pin } = req.body;
+      const userService = require("../services/userService");
+      const result = await userService.verifyAppLockPin(userId, pin);
+      return res.json(result);
+    } catch (err) {
+      console.error("verifyAppLockPin error:", err);
+      return res.status(401).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  toggleAppLock: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { enabled } = req.body;
+      const userService = require("../services/userService");
+      const result = await userService.toggleAppLock(userId, enabled);
+      return res.json(result);
+    } catch (err) {
+      console.error("toggleAppLock error:", err);
+      return res.status(400).json({ message: err.message || "Internal server error" });
+    }
+  },
 };
 
 

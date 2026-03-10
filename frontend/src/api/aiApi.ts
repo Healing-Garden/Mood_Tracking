@@ -32,8 +32,16 @@ export const aiApi = {
   },
 
   // Suggest practical actions
-  suggestActions: (userId: string, currentMood: string | null, count: number = 3) => {
-    return http.post('/ai/actions/suggest', { userId, currentMood, count }, { timeout: 30000 });
+  suggestActions: (userId: string, currentMood: string | null, count: number = 3, excludeIds: string[] = []) => {
+    return http.post('/ai/actions/suggest', { userId, currentMood, count, excludeIds }, { timeout: 30000 });
+  },
+
+  logActionCompletion: (userId: string, actionId: string, durationSeconds: number, moodAtTime?: string, source: string = 'suggestion') => {
+    return http.post('/ai/actions/log-completion', { userId, actionId, durationSeconds, moodAtTime, source });
+  },
+
+  logSkip: (userId: string, mood: string | null, shownActions: string[], reason?: string) => {
+    return http.post('/ai/actions/skip', { userId, mood, shownActions, reason });
   },
 
   // Analyze sentiment

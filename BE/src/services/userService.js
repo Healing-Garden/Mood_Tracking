@@ -238,4 +238,43 @@ module.exports = {
 
     return { message: "Password updated successfully" };
   },
+
+  setAppLockPin: async (userId, pin) => {
+    if (!/^\d{6}$/.test(pin)) {
+      throw new Error("PIN must be exactly 6 digits");
+    }
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(pin, salt);
+
+    await User.findByIdAndUpdate(userId, {
+      appLockPinHash: hash,
+      appLockEnabled: true
+    });
+
+    return { message: "PIN set successfully" };
+  },
+
+  verifyAppLockPin: async (userId, pin) => {
+    const user = await User.findById(userId).select("appLockPinHash");
+    if (!user || !user.appLockPinHash) {
+      throw new Error("PIN not set");
+    }
+
+    const isValid = await bcrypt.compare(pin, user.appLockPinHash);
+    if (!isValid) {
+      throw new Error("Invalid PIN");
+    }
+
+    return { message: "PIN verified" };
+  },
+
+  toggleAppLock: async (userId, enabled) => {
+    const user = await User.findById(userId).select("appLockPinHash");
+    if (enabled && (!user || !user.appLockPinHash)) {
+      throw new Error("Must set PIN before enabling App Lock");
+    }
+
+    await User.findByIdAndUpdate(userId, { appLockEnabled: enabled });
+    return { message: `App Lock ${enabled ? "enabled" : "disabled"}` };
+  },
 };

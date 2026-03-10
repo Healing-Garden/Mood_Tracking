@@ -47,7 +47,7 @@ class Settings(BaseSettings):
 
     # OpenAI 
     openai_api_key: Optional[SecretStr] = Field(default=None)
-    openai_model: str = Field(default="gpt-4-1106-preview")
+    openai_model: str = Field(default="gpt-4o-mini")
 
     # Gemini
     gemini_api_key: Optional[SecretStr] = Field(default=None)
