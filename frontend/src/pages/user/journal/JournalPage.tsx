@@ -207,7 +207,7 @@ export default function JournalPage() {
       if (!timerRef.current) {
         timerRef.current = setTimeout(() => {
           fetchPromptQuestions();
-        }, 15000);
+        }, 5000);
       }
     } else {
       if (timerRef.current) {
@@ -255,10 +255,10 @@ export default function JournalPage() {
       setIsSearching(true);
       setSearchError(null);
       try {
-        const response = await aiApi.semanticSearch(user.id, searchQuery, 10);
-        if (response.data?.success) {
-          setSearchResults(response.data.data.results || []);
-          setSearchMeta({ searchType: response.data.data.searchType });
+        const response = (await aiApi.semanticSearch(user.id, searchQuery, 10)) as any;
+        if (response.success) {
+          setSearchResults(response.data.results || []);
+          setSearchMeta({ searchType: response.data.searchType });
         } else {
           setSearchError("Search failed");
           setSearchResults([]);

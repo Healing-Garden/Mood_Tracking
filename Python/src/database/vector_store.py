@@ -50,7 +50,11 @@ class VectorStore:
         
         try:
             if create:
-                collection = self.client.get_or_create_collection(name=name)
+                # Use cosine similarity by default for semantic search
+                collection = self.client.get_or_create_collection(
+                    name=name,
+                    metadata={"hnsw:space": "cosine"}
+                )
             else:
                 collection = self.client.get_collection(name=name)
             
