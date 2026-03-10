@@ -63,48 +63,73 @@ class GeminiClient:
         Gọi Gemini với fallback model chain:
         1. Thử primary model (từ settings)
         2. Nếu 429 → thử các fallback model lần lượt
-        3. Nếu tất cả fail → trả về None (rule-based sẽ xử lý)
+        3. Nếu tất cả fail → thử OpenAI nếu có key
+        4. Nếu tất cả fail → trả về None (rule-based sẽ xử lý)
         """
-        if not self.api_key:
-            return None
+        # 1. Thử Gemini models
+        if self.api_key:
+            models_to_try = [self.primary_model] + settings.gemini_fallback_models
 
-        models_to_try = [self.primary_model] + settings.gemini_fallback_models
+            for i, model in enumerate(models_to_try):
+                try:
+                    logger.debug(f"Trying Gemini model: {model}")
+                    result = await self._call_model(model, prompt, system_instruction)
+                    if result:
+                        if i > 0:
+                            logger.info(f"Gemini responded via fallback model: {model}")
+                        return result
 
-        for i, model in enumerate(models_to_try):
-            try:
-                logger.debug(f"Trying Gemini model: {model}")
-                result = await self._call_model(model, prompt, system_instruction)
-                if result:
-                    if i > 0:
-                        logger.info(f"Gemini responded via fallback model: {model}")
-                    return result
-
-            except asyncio.TimeoutError:
-                logger.warning(f"Gemini timeout on model {model}")
-                # timeout → thử model tiếp theo ngay
-                continue
-
-            except Exception as e:
-                err_str = str(e)
-
-                if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                    delay = self._parse_retry_delay(err_str)
-                    logger.warning(
-                        f"Rate limited on model {model}. "
-                        f"Trying next fallback in {delay:.1f}s..."
-                    )
-                    await asyncio.sleep(delay)
-                    continue  # thử model fallback tiếp theo
-
-                elif "404" in err_str or "NOT_FOUND" in err_str:
-                    logger.warning(f"Model {model} not found, skipping.")
+                except asyncio.TimeoutError:
+                    logger.warning(f"Gemini timeout on model {model}")
                     continue
 
-                else:
-                    logger.error(f"Gemini generation failed on {model}: {e}")
-                    continue  # thử model tiếp theo thay vì dừng hẳn
+                except Exception as e:
+                    err_str = str(e)
 
-        logger.warning("All Gemini models exhausted. Falling back to rule-based.")
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
+                        delay = self._parse_retry_delay(err_str)
+                        logger.warning(
+                            f"Rate limited on model {model}. "
+                            f"Trying next fallback in {delay:.1f}s..."
+                        )
+                        await asyncio.sleep(delay)
+                        continue
+
+                    elif "404" in err_str or "NOT_FOUND" in err_str:
+                        logger.warning(f"Model {model} not found, skipping.")
+                        continue
+
+                    else:
+                        logger.error(f"Gemini generation failed on {model}: {e}")
+                        continue
+
+        # 2. Nếu Gemini fail hết, thử OpenAI nếu có API Key
+        openai_key = settings.get_openai_api_key()
+        if openai_key:
+            try:
+                logger.info("Gemini failed, trying OpenAI fallback...")
+                from openai import AsyncOpenAI
+                client = AsyncOpenAI(api_key=openai_key)
+                
+                messages = []
+                if system_instruction:
+                    messages.append({"role": "system", "content": system_instruction})
+                messages.append({"role": "user", "content": prompt})
+                
+                response = await client.chat.completions.create(
+                    model=settings.openai_model,
+                    messages=messages,
+                    temperature=settings.gemini_temperature,
+                    max_tokens=settings.gemini_max_tokens
+                )
+                
+                if response.choices and response.choices[0].message.content:
+                    logger.info(f"OpenAI responded via model: {settings.openai_model}")
+                    return response.choices[0].message.content.strip()
+            except Exception as e:
+                logger.error(f"OpenAI fallback also failed: {e}")
+
+        logger.warning("All AI models exhausted. Falling back to rule-based.")
         return None
 
 
