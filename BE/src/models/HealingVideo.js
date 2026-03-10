@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const healingContentSchema = new mongoose.Schema(
+const healingVideoSchema = new mongoose.Schema(
     {
         title: {
             type: String,
@@ -13,16 +13,20 @@ const healingContentSchema = new mongoose.Schema(
         },
         type: {
             type: String,
-            enum: ["quote", "video", "article"],
+            default: "video",
+        },
+        moodLevel: {
+            type: Number,
             required: true,
+            min: 1,
+            max: 5,
+            default: 3,
         },
         content: {
             type: String,
-            // Used for quote text or article content
         },
         videoUrl: {
             type: String,
-            // Used when type = video
         },
         thumbnail: {
             type: String,
@@ -31,13 +35,11 @@ const healingContentSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
         },
-
         metadata: {
-            duration_min: {
+            duration_seconds: {
                 type: Number,
                 min: 0,
-                default: 1,
-                // required: true, 
+                default: 0,
             },
             difficulty: {
                 type: String,
@@ -53,7 +55,6 @@ const healingContentSchema = new mongoose.Schema(
                 trim: true,
             },
         },
-
         is_active: {
             type: Boolean,
             default: true,
@@ -63,7 +64,7 @@ const healingContentSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-healingContentSchema.index({ is_active: 1, "metadata.duration_min": 1 });
-healingContentSchema.index({ "metadata.mood_tags": 1 });
+healingVideoSchema.index({ is_active: 1, "metadata.duration_seconds": 1 });
+healingVideoSchema.index({ "metadata.mood_tags": 1 });
 
-module.exports = mongoose.model("HealingContent", healingContentSchema);
+module.exports = mongoose.model("HealingVideo", healingVideoSchema);

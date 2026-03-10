@@ -10,7 +10,6 @@ const actionCompletionSchema = new mongoose.Schema(
         },
         action_id: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "HealingContent",
             required: true,
         },
         action_title: {

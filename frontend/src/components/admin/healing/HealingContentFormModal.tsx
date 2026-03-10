@@ -21,10 +21,20 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
 }) => {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
+    const [moodLevel, setMoodLevel] = useState<number>(3);
+    const [isActive, setIsActive] = useState<boolean>(true);
     const [content, setContent] = useState('');
     const [videoFile, setVideoFile] = useState<File | null>(null);
     const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
     const [removeVideo, setRemoveVideo] = useState(false);
+
+    // Metadata states for video
+    const [durationDisplay, setDurationDisplay] = useState<string>('01:00');
+    const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+    const [moodTags, setMoodTags] = useState<string>(''); // comma separated
+    const [author, setAuthor] = useState<string>('');
+    const [thumbnailUrl, setThumbnailUrl] = useState<string>('');
+
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
@@ -32,20 +42,46 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
             if (initialData) {
                 setTitle(initialData.title || '');
                 setDescription(initialData.description || '');
+                setMoodLevel(initialData.moodLevel || 3);
+                setIsActive(initialData.is_active !== undefined ? initialData.is_active : true);
+                setThumbnailUrl(initialData.thumbnail || '');
                 setContent(initialData.content || '');
                 setVideoFile(null); // resets file input
                 setVideoPreviewUrl(null);
                 setRemoveVideo(false);
+
+                if (initialData.type === 'video' && initialData.metadata) {
+                    const totalSec = initialData.metadata.duration_seconds || 60;
+                    const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+                    const s = (totalSec % 60).toString().padStart(2, '0');
+                    setDurationDisplay(`${m}:${s}`);
+                    setDifficulty(initialData.metadata.difficulty || 'easy');
+                    setMoodTags(initialData.metadata.mood_tags?.join(', ') || '');
+                    setAuthor(initialData.metadata.author || '');
+                } else {
+                    setDurationDisplay('01:00');
+                    setDifficulty('easy');
+                    setMoodTags('');
+                    // For quote and article, author is top-level
+                    setAuthor(initialData.author || '');
+                }
             } else {
                 setTitle('');
                 setDescription('');
+                setMoodLevel(3);
+                setIsActive(true);
                 setContent('');
+                setThumbnailUrl('');
                 setVideoFile(null);
                 setVideoPreviewUrl(null);
                 setRemoveVideo(false);
+                setDurationDisplay('01:00');
+                setDifficulty('easy');
+                setMoodTags('');
+                setAuthor('');
             }
         }
-    }, [isOpen, initialData]);
+    }, [isOpen, initialData, type]);
 
     useEffect(() => {
         if (!videoFile) {
@@ -55,6 +91,18 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
 
         const objectUrl = URL.createObjectURL(videoFile);
         setVideoPreviewUrl(objectUrl);
+
+        // Auto-extract duration from local video file
+        const videoElement = document.createElement('video');
+        videoElement.src = objectUrl;
+        videoElement.onloadedmetadata = () => {
+            const totalSec = Math.round(videoElement.duration);
+            if (!isNaN(totalSec) && totalSec > 0) {
+                const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
+                const s = (totalSec % 60).toString().padStart(2, '0');
+                setDurationDisplay(`${m}:${s}`);
+            }
+        };
 
         // free memory whenever this component is unmounted
         return () => URL.revokeObjectURL(objectUrl);
@@ -70,6 +118,23 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
             formData.append('title', title);
             formData.append('description', description);
             formData.append('type', type);
+            formData.append('moodLevel', moodLevel.toString());
+            formData.append('is_active', isActive.toString());
+
+            let parsedSec = 60;
+            if (durationDisplay.includes(':')) {
+                const [min, sec] = durationDisplay.split(':');
+                parsedSec = (parseInt(min) || 0) * 60 + (parseInt(sec) || 0);
+            } else {
+                parsedSec = parseInt(durationDisplay) || 0;
+            }
+
+            formData.append('metadata', JSON.stringify({
+                duration_seconds: parsedSec,
+                difficulty,
+                mood_tags: moodTags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+                author
+            }));
 
             if (videoFile) {
                 formData.append('video', videoFile);
@@ -79,12 +144,26 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
             }
 
             await onSubmit(formData);
-        } else {
+        } else if (type === 'quote') {
+            await onSubmit({
+                title,
+                author,
+                moodLevel,
+                is_active: isActive,
+                type,
+                content,
+                thumbnail: thumbnailUrl,
+            });
+        } else if (type === 'article') {
             await onSubmit({
                 title,
                 description,
+                author,
+                moodLevel,
+                is_active: isActive,
                 type,
                 content,
+                thumbnail: thumbnailUrl,
             });
         }
     };
@@ -120,15 +199,84 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                             />
                         </div>
 
+                        {type === 'quote' ? (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Author (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                                    value={author}
+                                    onChange={(e) => setAuthor(e.target.value)}
+                                    placeholder="Author name..."
+                                />
+                            </div>
+                        ) : (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+                                <textarea
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all resize-none"
+                                    rows={2}
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Brief description..."
+                                />
+                            </div>
+                        )}
+
+                        {type === 'article' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Author (Optional)</label>
+                                <input
+                                    type="text"
+                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                                    value={author}
+                                    onChange={(e) => setAuthor(e.target.value)}
+                                    placeholder="Author name..."
+                                />
+                            </div>
+                        )}
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
-                            <textarea
-                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all resize-none"
-                                rows={2}
-                                value={description}
-                                onChange={(e) => setDescription(e.target.value)}
-                                placeholder="Brief description..."
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL (Optional)</label>
+                            <input
+                                type="text"
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                                value={thumbnailUrl}
+                                onChange={(e) => setThumbnailUrl(e.target.value)}
+                                placeholder="https://example.com/image.jpg"
                             />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Mood Level *</label>
+                            <select
+                                required
+                                value={moodLevel}
+                                onChange={(e) => setMoodLevel(Number(e.target.value))}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all bg-white"
+                            >
+                                <option value={1}>1 - Very Low</option>
+                                <option value={2}>2 - Low</option>
+                                <option value={3}>3 - Neutral</option>
+                                <option value={4}>4 - Good</option>
+                                <option value={5}>5 - Great</option>
+                            </select>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <label className="text-sm font-medium text-gray-700">Status:</label>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    className="sr-only peer"
+                                    checked={isActive}
+                                    onChange={(e) => setIsActive(e.target.checked)}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-green-600"></div>
+                                <span className="ml-3 text-sm font-medium text-gray-700">
+                                    {isActive ? 'Active (Visible to users)' : 'Hidden (Draft)'}
+                                </span>
+                            </label>
                         </div>
 
                         {(type === 'quote' || type === 'article') && (
@@ -149,7 +297,74 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
 
                         {type === 'video' && (
                             <div className="space-y-4">
-                                <div>
+                                <h3 className="text-md font-medium text-gray-800 border-b border-gray-100 pb-2">Video Metadata & Settings</h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Duration (mm:ss)</label>
+                                        <div className="flex bg-white items-center border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-green-500 pr-3 transition-all">
+                                            <input
+                                                type="text"
+                                                className="w-full px-4 py-2 bg-transparent outline-none"
+                                                value={durationDisplay}
+                                                onChange={(e) => {
+                                                    // Allow only numbers and colon
+                                                    const val = e.target.value.replace(/[^0-9:]/g, '');
+                                                    if (val.length <= 5) {
+                                                        setDurationDisplay(val);
+                                                    }
+                                                }}
+                                                onBlur={() => {
+                                                    // Auto format to mm:ss on blur
+                                                    if (durationDisplay.length > 0 && !durationDisplay.includes(':')) {
+                                                        const num = parseInt(durationDisplay);
+                                                        if (!isNaN(num)) {
+                                                            const m = Math.floor(num / 60).toString().padStart(2, '0');
+                                                            const s = (num % 60).toString().padStart(2, '0');
+                                                            setDurationDisplay(`${m}:${s}`);
+                                                        }
+                                                    }
+                                                }}
+                                                placeholder="01:00"
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+                                        <select
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all bg-white"
+                                            value={difficulty}
+                                            onChange={(e) => setDifficulty(e.target.value as 'easy' | 'medium' | 'hard')}
+                                        >
+                                            <option value="easy">Easy</option>
+                                            <option value="medium">Medium</option>
+                                            <option value="hard">Hard</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Mood Tags (comma separated)</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                                            value={moodTags}
+                                            onChange={(e) => setMoodTags(e.target.value)}
+                                            placeholder="e.g. relaxation, sleep"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Author / Instructor</label>
+                                        <input
+                                            type="text"
+                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
+                                            value={author}
+                                            onChange={(e) => setAuthor(e.target.value)}
+                                            placeholder="Author name"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Video File {initialData ? '(Leave empty to keep existing)' : '*'}
                                     </label>

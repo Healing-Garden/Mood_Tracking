@@ -143,7 +143,7 @@ const ActionSuggestionModal: React.FC = () => {
                         <div className="flex justify-between items-start">
                           <h3 className="font-medium text-gray-900">{action.title}</h3>
                           <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            {action.duration_min} min
+                            {action.duration_seconds} sec
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 mt-1">{action.description}</p>
