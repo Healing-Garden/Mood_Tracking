@@ -56,16 +56,17 @@ class AIServiceClient {
     /**
      * UC-18: Suggest prompting questions
      */
-    async suggestQuestions(userId, recentMood = null, count = 3) {
+    async suggestQuestions(userId, recentMood = null, count = 3, language = 'en') {
         try {
             const response = await this.client.post(
                 '/api/v1/questions/suggest',
                 {
                     user_id: userId,
                     recent_mood: recentMood,
-                    count: count
+                    count: count,
+                    language: language
                 },
-                { timeout: 12000 }
+                { timeout: 35000 }  // Increased: OpenAI 429 fallback to Gemini can take up to ~25s
             );
 
             return {

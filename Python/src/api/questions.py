@@ -115,59 +115,166 @@ async def suggest_questions(request: QuestionRequest):
             generated_at=datetime.now()
         )
 
+# ---------------------------------------------------------------------------
+# Emoji → human-readable mood mapping
+# ---------------------------------------------------------------------------
+EMOJI_TO_MOOD: dict = {
+    # Happy / Positive
+    "😊": "happy and content",
+    "🙂": "slightly positive",
+    "😍": "very excited and joyful",
+    "😄": "cheerful",
+    "😁": "very happy",
+    "🥰": "loving and grateful",
+    "😎": "confident and energized",
+    "🤩": "excited and inspired",
+    # Sad / Negative
+    "😢": "sad and emotional",
+    "😭": "very sad and overwhelmed",
+    "😔": "down and disappointed",
+    "😞": "discouraged",
+    # Angry
+    "😡": "frustrated and angry",
+    "😠": "annoyed and irritated",
+    "🤬": "very angry",
+    # Neutral
+    "😐": "neutral and indifferent",
+    "😑": "expressionless",
+    "🙃": "unsure or somewhat ironic",
+    "😶": "speechless or numb",
+    # Anxious / Tired
+    "😰": "anxious and stressed",
+    "😥": "worried",
+    "😓": "tired and drained",
+    "😴": "exhausted and sleepy",
+    "🥺": "vulnerable and sensitive",
+}
+
+def _resolve_mood_label(mood: Optional[str]) -> str:
+    """Convert raw mood (emoji or text) to a descriptive label for the LLM."""
+    if not mood:
+        return "not specified"
+    # If it's already a text label, return as-is
+    if mood in EMOJI_TO_MOOD:
+        return EMOJI_TO_MOOD[mood]
+    # Check if any emoji character is in the string
+    for emoji, label in EMOJI_TO_MOOD.items():
+        if emoji in mood:
+            return label
+    return mood  # fallback: pass through as-is
+
+
+def _parse_llm_questions(content: str, count: int) -> Optional[list]:
+    """
+    Robustly extract a JSON array of strings from LLM output.
+    Handles: raw JSON array, markdown code fences, numbered lists.
+    """
+    if not content:
+        return None
+
+    # Step 1: Strip markdown code fences (```json ... ``` or ``` ... ```)
+    cleaned = re.sub(r'```(?:json)?\s*', '', content).strip()
+    cleaned = cleaned.replace('```', '').strip()
+
+    # Step 2: Try to find and parse a JSON array
+    json_match = re.search(r'(\[.*?\])', cleaned, re.DOTALL)
+    if json_match:
+        try:
+            questions = json.loads(json_match.group(1))
+            if isinstance(questions, list) and questions:
+                # Filter to only string items
+                questions = [q for q in questions if isinstance(q, str) and q.strip()]
+                if questions:
+                    return questions[:count]
+        except json.JSONDecodeError:
+            pass
+
+    # Step 3: Try parsing the whole cleaned content as JSON
+    try:
+        questions = json.loads(cleaned)
+        if isinstance(questions, list):
+            questions = [q for q in questions if isinstance(q, str) and q.strip()]
+            if questions:
+                return questions[:count]
+    except json.JSONDecodeError:
+        pass
+
+    # Step 4: Fallback - extract lines that look like questions (contain '?')
+    lines = []
+    for line in cleaned.split('\n'):
+        line = line.strip()
+        # Remove common list prefixes (1. 2. - * etc.)
+        line = re.sub(r'^[\d]+\.\s*', '', line)
+        line = re.sub(r'^[-*•]\s*', '', line)
+        line = line.strip('"').strip("'").strip()
+        if line and '?' in line and len(line) > 10:
+            lines.append(line)
+    if lines:
+        return lines[:count]
+
+    return None
+
+
 async def _generate_questions(recent_mood: Optional[str], snippets: List[str],
                               avoid_questions: List[str], count: int, language: str) -> List[str]:
     """Generate questions using LLM with language support."""
-    
-    # System message theo ngôn ngữ
-    if language == "vi":
-        system_msg = "Bạn là trợ lý sức khỏe tinh thần, chuyên tạo các câu hỏi viết nhật ký mang tính đồng cảm và khuyến khích."
-    else:
-        system_msg = "You are a compassionate mental health assistant that generates open-ended, empathetic journaling questions."
 
-    # Xây dựng snippets text
+    # Resolve emoji to readable mood label so LLM understands the context
+    mood_label = _resolve_mood_label(recent_mood)
+
+    # System message
+    if language == "vi":
+        system_msg = (
+            "Bạn là trợ lý sức khỏe tinh thần đồng cảm. "
+            "Nhiệm vụ của bạn là tạo ra các câu hỏi viết nhật ký CÁ NHÂN HÓA dựa trên tâm trạng và nhật ký của người dùng. "
+            "CHỈ trả về mảng JSON chứa các câu hỏi, KHÔNG dùng markdown code block."
+        )
+    else:
+        system_msg = (
+            "You are a compassionate mental health journaling assistant. "
+            "Your task is to generate PERSONALIZED open-ended journaling questions based on the user's current mood and past journal entries. "
+            "ONLY return a raw JSON array of question strings. Do NOT use markdown code fences."
+        )
+
+    # Build snippets context
     if snippets:
-        snippets_text = "\n".join([f"- {s}" for s in snippets])
+        snippets_text = "\n".join([f"- {s[:200]}" for s in snippets])  # cap each snippet
     else:
-        snippets_text = "No recent journal entries available." if language == "en" else "Không có dữ liệu nhật ký gần đây."
+        snippets_text = "(No journal entries available yet)" if language == "en" else "(Chưa có nhật ký nào.)"
 
-    avoid_text = ", ".join(avoid_questions[:3]) if avoid_questions else ("None" if language == "en" else "Không có")
+    avoid_text = "; ".join(avoid_questions[:3]) if avoid_questions else ("none" if language == "en" else "không có")
 
-    # User prompt theo ngôn ngữ
+    # Build prompts
     if language == "vi":
-        user_prompt = f"""Hãy tạo {count} câu hỏi mở, đồng cảm để gợi ý viết nhật ký.
+        user_prompt = f"""Tạo {count} câu hỏi nhật ký mở, đồng cảm, phù hợp với tâm trạng người dùng.
 
-Tâm trạng gần đây: {recent_mood or 'Không xác định'}
+Tâm trạng hiện tại: {mood_label}
 
-Các đoạn nhật ký trước đây của người dùng (để tham khảo):
+Các đoạn nhật ký gần đây (để hiểu ngữ cảnh):
 {snippets_text}
 
-Hướng dẫn:
-- Câu hỏi phải tích cực, khích lệ, không phán xét (BR-18-02).
-- Tránh câu hỏi đóng (có/không); hãy để người dùng suy ngẫm.
-- Liên quan đến tâm trạng hiện tại và trải nghiệm quá khứ nếu có thể.
-- KHÔNG lặp lại các câu hỏi đã hỏi gần đây: {avoid_text}
+Quy tắc:
+- Câu hỏi phải LIÊN QUAN ĐẾN TÂM TRẠNG "{mood_label}" của người dùng.
+- Câu hỏi phải tích cực, mang tính suy ngẫm, không phán xét.
+- KHÔNG hỏi câu có/không; phải mời người dùng chia sẻ sâu hơn.
+- KHÔNG lặp lại: {avoid_text}
 
-Trả về chính xác {count} câu hỏi dưới dạng mảng JSON.
-Ví dụ: ["Điều gì nhỏ bé đã mang lại bình yên cho bạn hôm nay?", "Bạn có thể làm một việc gì đó để chăm sóc bản thân ngay lúc này?"]
-"""
+Trả về CHÍNH XÁC theo format này (không thêm gì khác):
+["câu hỏi 1?", "câu hỏi 2?", "câu hỏi 3?"]"""
     else:
-        user_prompt = f"""Generate {count} open-ended, empathetic journaling questions.
+        user_prompt = f"""Generate exactly {count} personalized journaling questions for a user feeling: {mood_label}.
 
-Recent mood: {recent_mood or 'Not specified'}
-
-Relevant past journal entries (for context):
+Recent journal context:
 {snippets_text}
 
-Guidelines:
-- Questions must be positive, encouraging, and non-judgmental (BR-18-02).
-- Avoid yes/no questions; they should invite reflection.
-- Relate to the user's current mood and past experiences if possible.
-- Do NOT repeat these recently asked questions: {avoid_text}
+Rules:
+- Questions MUST reflect the user's current mood ({mood_label}).
+- Open-ended, empathetic, encouraging, non-judgmental.
+- NOT yes/no questions — invite deep reflection.
+- Do NOT repeat: {avoid_text}
 
-Return exactly {count} questions as a JSON array of strings.
-Example: ["What brought you a moment of peace today?", "What is one small step you can take to nurture yourself?"]
-"""
+Return ONLY this exact format, nothing else:
+["question 1?", "question 2?", "question 3?"]"""
 
     try:
         response = await call_llm(
@@ -176,22 +283,27 @@ Example: ["What brought you a moment of peace today?", "What is one small step y
                 {"role": "user", "content": user_prompt}
             ],
             temperature=0.7,
-            max_tokens=300
+            max_tokens=400
         )
         content = response.get("text", "")
-        json_match = re.search(r'\[.*\]', content, re.DOTALL)
-        if json_match:
-            questions = json.loads(json_match.group())
-        else:
-            questions = [line.strip() for line in content.split('\n') if line.strip() and not line.startswith('[')]
-        questions = questions[:count]
-        if len(questions) < count:
-            fallback = _get_fallback_questions(recent_mood, count - len(questions), language)
-            questions.extend(fallback)
-        return questions
+        logger.debug(f"LLM raw response for questions: {content[:300]}")
+
+        # Use robust parser
+        parsed = _parse_llm_questions(content, count)
+        if parsed and len(parsed) > 0:
+            # Pad with fallback questions if needed
+            if len(parsed) < count:
+                extra = _get_fallback_questions(mood_label, count - len(parsed), language)
+                parsed.extend(extra)
+            return parsed[:count]
+
+        logger.warning("Could not parse LLM response, using fallback questions")
+        return _get_fallback_questions(mood_label, count, language)
+
     except Exception as e:
         logger.error(f"LLM call failed: {e}")
-        return _get_fallback_questions(recent_mood, count, language)
+        return _get_fallback_questions(mood_label, count, language)
+
 
 def _get_fallback_questions(mood: Optional[str], count: int, language: str) -> List[str]:
     """Fallback questions bank with language support."""
@@ -274,10 +386,18 @@ def _get_fallback_questions(mood: Optional[str], count: int, language: str) -> L
             "What are you looking forward to?"
         ]
 
-    if mood and mood.lower() in question_banks:
-        mood_questions = question_banks[mood.lower()]
-        num_mood = min(2, len(mood_questions))
-        selected = random.sample(mood_questions, num_mood)
+    # Partial match: find the first key that appears in the mood label
+    matched_bank = None
+    if mood:
+        mood_lower = mood.lower()
+        for key in question_banks:
+            if key in mood_lower:
+                matched_bank = question_banks[key]
+                break
+
+    if matched_bank:
+        num_mood = min(2, len(matched_bank))
+        selected = random.sample(matched_bank, num_mood)
         remaining = count - len(selected)
         if remaining > 0:
             selected.extend(random.sample(default_questions, min(remaining, len(default_questions))))
