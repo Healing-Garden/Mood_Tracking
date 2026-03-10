@@ -8,6 +8,14 @@ interface HealingContentDetailModalProps {
     content: HealingContent | null;
 }
 
+const moodLabels: Record<number, string> = {
+    1: 'Very Low',
+    2: 'Low',
+    3: 'Neutral',
+    4: 'Good',
+    5: 'Great'
+};
+
 const HealingContentDetailModal: React.FC<HealingContentDetailModalProps> = ({ isOpen, onClose, content }) => {
     if (!isOpen || !content) return null;
 
@@ -36,11 +44,31 @@ const HealingContentDetailModal: React.FC<HealingContentDetailModalProps> = ({ i
                         </div>
                     )}
 
-                    <div>
-                        <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Type</h3>
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
-                            {content.type}
-                        </span>
+                    <div className="flex gap-8">
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Type</h3>
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 capitalize">
+                                {content.type}
+                            </span>
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Mood Level</h3>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${content.moodLevel === 1 ? 'bg-red-100 text-red-800' :
+                                content.moodLevel === 2 ? 'bg-orange-100 text-orange-800' :
+                                    content.moodLevel === 3 ? 'bg-gray-100 text-gray-800' :
+                                        content.moodLevel === 4 ? 'bg-green-100 text-green-800' :
+                                            'bg-teal-100 text-teal-800'
+                                }`}>
+                                {moodLabels[content.moodLevel] || 'Neutral'}
+                            </span>
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Status</h3>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${content.is_active === false ? 'bg-gray-100 text-gray-600 border border-gray-200' : 'bg-green-50 text-green-700 border border-green-200'
+                                }`}>
+                                {content.is_active === false ? 'Hidden (Draft)' : 'Active (Visible)'}
+                            </span>
+                        </div>
                     </div>
 
                     <div>

@@ -5,6 +5,8 @@ export interface HealingContent {
     title: string;
     description: string;
     type: 'quote' | 'video' | 'article';
+    moodLevel: number;
+    is_active?: boolean;
     content?: string;
     videoUrl?: string;
     thumbnail?: string;

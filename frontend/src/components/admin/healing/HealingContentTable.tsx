@@ -10,6 +10,14 @@ interface HealingContentTableProps {
     onView: (content: HealingContent) => void;
 }
 
+const moodLabels: Record<number, string> = {
+    1: 'Very Low',
+    2: 'Low',
+    3: 'Neutral',
+    4: 'Good',
+    5: 'Great'
+};
+
 const HealingContentTable: React.FC<HealingContentTableProps> = ({
     contents,
     type,
@@ -91,7 +99,13 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
                             Title
                         </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/4">
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Mood Level
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
                             Preview
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -108,6 +122,27 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
                             <td className="px-6 py-4 whitespace-nowrap">
                                 <div className="text-sm font-medium text-gray-900">{item.title}</div>
                                 {item.description && <div className="text-xs text-gray-500 truncate max-w-[200px]">{item.description}</div>}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${item.moodLevel === 1 ? 'bg-red-100 text-red-800' :
+                                    item.moodLevel === 2 ? 'bg-orange-100 text-orange-800' :
+                                        item.moodLevel === 3 ? 'bg-gray-100 text-gray-800' :
+                                            item.moodLevel === 4 ? 'bg-green-100 text-green-800' :
+                                                'bg-teal-100 text-teal-800'
+                                    }`}>
+                                    {moodLabels[item.moodLevel] || 'Neutral'}
+                                </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                                {item.is_active === false ? (
+                                    <span className="px-2 py-1 rounded bg-gray-100 text-gray-600 text-xs font-medium border border-gray-200">
+                                        Hidden
+                                    </span>
+                                ) : (
+                                    <span className="px-2 py-1 rounded bg-green-50 text-green-600 text-xs font-medium border border-green-200">
+                                        Active
+                                    </span>
+                                )}
                             </td>
                             <td className="px-6 py-4">
                                 {getPreview(item)}

@@ -20,7 +20,7 @@ exports.getAllHealingContent = async (req, res) => {
 
 exports.createHealingContent = async (req, res) => {
     try {
-        const { title, description, type, content, thumbnail } = req.body;
+        const { title, description, type, content, thumbnail, moodLevel, is_active } = req.body;
         let videoUrl = null;
 
         if (type === "video") {
@@ -38,6 +38,8 @@ exports.createHealingContent = async (req, res) => {
             content,
             videoUrl,
             thumbnail,
+            moodLevel: moodLevel || 3,
+            is_active: is_active !== undefined ? (is_active === 'true' || is_active === true) : true,
             createdBy: req.userId,
         });
 
@@ -52,7 +54,7 @@ exports.createHealingContent = async (req, res) => {
 exports.updateHealingContent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, content, thumbnail } = req.body;
+        const { title, description, content, thumbnail, moodLevel, is_active } = req.body;
 
         const existingContent = await HealingContent.findById(id);
         if (!existingContent) {
@@ -81,6 +83,10 @@ exports.updateHealingContent = async (req, res) => {
         existingContent.description = description !== undefined ? description : existingContent.description;
         existingContent.content = content !== undefined ? content : existingContent.content;
         existingContent.thumbnail = thumbnail !== undefined ? thumbnail : existingContent.thumbnail;
+        existingContent.moodLevel = moodLevel !== undefined ? moodLevel : existingContent.moodLevel;
+        if (is_active !== undefined) {
+            existingContent.is_active = (is_active === 'true' || is_active === true);
+        }
         existingContent.videoUrl = videoUrl;
 
         await existingContent.save();

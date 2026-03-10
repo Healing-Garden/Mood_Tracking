@@ -16,6 +16,13 @@ const healingContentSchema = new mongoose.Schema(
             enum: ["quote", "video", "article"],
             required: true,
         },
+        moodLevel: {
+            type: Number,
+            required: true,
+            min: 1,
+            max: 5,
+            default: 3,
+        },
         content: {
             type: String,
             // Used for quote text or article content
