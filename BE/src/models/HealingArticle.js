@@ -24,11 +24,9 @@ const healingArticleSchema = new mongoose.Schema(
         },
         content: {
             type: String,
-            // Used for quote text or article content
         },
         videoUrl: {
             type: String,
-            // Used when type = video
         },
         thumbnail: {
             type: String,
@@ -36,27 +34,6 @@ const healingArticleSchema = new mongoose.Schema(
         createdBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
-        },
-        metadata: {
-            duration_min: {
-                type: Number,
-                min: 0,
-                default: 1,
-                // required: true, 
-            },
-            difficulty: {
-                type: String,
-                enum: ["easy", "medium", "hard"],
-                default: "easy",
-            },
-            mood_tags: {
-                type: [String],
-                default: [],
-            },
-            author: {
-                type: String,
-                trim: true,
-            },
         },
         is_active: {
             type: Boolean,
@@ -66,8 +43,5 @@ const healingArticleSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-
-healingArticleSchema.index({ is_active: 1, "metadata.duration_min": 1 });
-healingArticleSchema.index({ "metadata.mood_tags": 1 });
 
 module.exports = mongoose.model("HealingArticle", healingArticleSchema);

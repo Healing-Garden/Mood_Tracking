@@ -35,26 +35,6 @@ const healingQuoteSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "Users",
         },
-        metadata: {
-            duration_min: {
-                type: Number,
-                min: 0,
-                default: 1,
-            },
-            difficulty: {
-                type: String,
-                enum: ["easy", "medium", "hard"],
-                default: "easy",
-            },
-            mood_tags: {
-                type: [String],
-                default: [],
-            },
-            author: {
-                type: String,
-                trim: true,
-            },
-        },
         is_active: {
             type: Boolean,
             default: true,
@@ -63,8 +43,5 @@ const healingQuoteSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
-
-healingQuoteSchema.index({ is_active: 1, "metadata.duration_min": 1 });
-healingQuoteSchema.index({ "metadata.mood_tags": 1 });
 
 module.exports = mongoose.model("HealingQuote", healingQuoteSchema);
