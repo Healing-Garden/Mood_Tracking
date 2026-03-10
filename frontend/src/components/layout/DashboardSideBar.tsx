@@ -38,7 +38,7 @@ export default function DashboardSidebar({
 
   const handleLogout = async () => {
     try {
-      await authApi.logout(); 
+      await authApi.logout();
     } catch (err) {
       console.error("Logout error", err);
     } finally {

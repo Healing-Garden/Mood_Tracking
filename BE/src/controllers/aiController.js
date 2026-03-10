@@ -231,9 +231,9 @@ class AIController {
             }
 
             const result = await aiService.suggestPracticalActions(
-                userId, 
-                currentMood, 
-                Number(count), 
+                userId,
+                currentMood,
+                Number(count),
                 Array.isArray(excludeIds) ? excludeIds : []
             );
 
@@ -273,10 +273,10 @@ class AIController {
             }
 
             const result = await aiService.logActionCompletion(
-                userId, 
-                actionId, 
-                Number(durationSeconds), 
-                moodAtTime, 
+                userId,
+                actionId,
+                Number(durationSeconds),
+                moodAtTime,
                 source
             );
             res.json(result);
@@ -295,9 +295,9 @@ class AIController {
             }
 
             const result = await aiService.logSkip(
-                userId, 
-                mood, 
-                Array.isArray(shownActions) ? shownActions : [], 
+                userId,
+                mood,
+                Array.isArray(shownActions) ? shownActions : [],
                 reason
             );
             res.json(result);

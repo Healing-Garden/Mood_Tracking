@@ -69,7 +69,7 @@ export default function WordCloud({ defaultPeriod = 'month' }: WordCloudProps) {
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <CardTitle className="text-primary">Word Cloud</CardTitle>
-                        <CardDescription>Most frequent words from your journal notes</CardDescription>
+                        <CardDescription>Most frequent adjectives from your journal notes</CardDescription>
                     </div>
                     <div className="flex gap-2">
                         {(['week', 'month', 'year'] as Period[]).map((p) => (
@@ -101,7 +101,7 @@ export default function WordCloud({ defaultPeriod = 'month' }: WordCloudProps) {
                 )}
                 {!loading && !error && words.length === 0 && (
                     <div className="rounded-lg border border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
-                        No journal notes yet. Start writing to see your word cloud!
+                        No adjectives found in your journal notes. Start writing about how you feel to see your word cloud!
                     </div>
                 )}
                 {!loading && !error && words.length > 0 && (
