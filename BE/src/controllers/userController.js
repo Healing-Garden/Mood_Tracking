@@ -655,8 +655,8 @@ module.exports = {
       const userId = req.user.id;
       const { currentPassword, newPassword, recoveryCode } = req.body;
 
-      if (!currentPassword || !newPassword) {
-        return res.status(400).json({ message: "Current password and new password are required" });
+      if (!newPassword) {
+        return res.status(400).json({ message: "New password is required" });
       }
 
       const userService = require("../services/userService");

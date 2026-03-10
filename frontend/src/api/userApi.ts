@@ -9,6 +9,7 @@ interface UserProfile {
   heightCm?: number;
   weight?: number;
   avatarUrl?: string;
+  hasPassword?: boolean;
   createdAt: string;
   updatedAt: string;
 }
