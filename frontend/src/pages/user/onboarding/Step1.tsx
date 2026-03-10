@@ -79,7 +79,7 @@ export default function Step1PersonalGoals() {
 
         {/* Progress */}
         <div className="flex gap-3 max-w-md mx-auto">
-          {[1, 2, 3].map((s) => (
+          {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
               className={`h-2.5 flex-1 rounded-full transition-all duration-500 ${s <= 1 ? 'bg-[#188618] shadow-sm' : 'bg-[#188618]/10'

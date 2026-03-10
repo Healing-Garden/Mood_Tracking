@@ -42,6 +42,16 @@ const UserDashboardPage = () => {
           navigate('/onboarding/step-1', { replace: true })
           return
         }
+
+        // Skip daily check-in if onboarded today
+        if (onboardingRes.onboardedAt) {
+          const onboardedDate = new Date(onboardingRes.onboardedAt).toDateString();
+          const todayDate = new Date().toDateString();
+          if (onboardedDate === todayDate) {
+            console.log('Skipping today\'s check-in (onboarded today)');
+            return;
+          }
+        }
       } catch (error) {
         console.error('Failed to fetch onboarding status:', error)
       }
@@ -58,6 +68,18 @@ const UserDashboardPage = () => {
             console.error('Failed to fetch today check-in:', error.message)
           }
         }
+      }
+      try {
+        const profile = await userApi.getProfile()
+        // For now, we'll use profile data or defaults for journeyDays
+        setDashboardData({
+          journeyDays: Math.floor((Date.now() - new Date(profile.createdAt).getTime()) / (1000 * 60 * 60 * 24)) + 1,
+          moodDistribution: [] // Placeholder
+        })
+        setLoading(false)
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error)
+        setLoading(false)
       }
     }
 

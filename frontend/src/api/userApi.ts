@@ -22,7 +22,7 @@ interface UpdateProfilePayload {
 }
 
 export const userApi = {
-  getOnboardingStatus(): Promise<{ isOnboarded: boolean }> {
+  getOnboardingStatus(): Promise<{ isOnboarded: boolean; onboardedAt?: string }> {
     return http.get("/user/onboarding/status");
   },
 

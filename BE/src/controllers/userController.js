@@ -20,12 +20,15 @@ module.exports = {
     try {
       const userId = req.user.id;
       const onboarding = await Onboarding.findOne({ user: userId }).select(
-        "isOnboarded"
+        "isOnboarded updatedAt"
       );
       if (!onboarding) {
         return res.json({ isOnboarded: false });
       }
-      return res.json({ isOnboarded: onboarding.isOnboarded || false });
+      return res.json({ 
+        isOnboarded: onboarding.isOnboarded || false,
+        onboardedAt: onboarding.updatedAt 
+      });
     } catch (err) {
       console.error("getOnboardingStatus error:", err);
       return res.status(500).json({ message: "Internal server error" });
