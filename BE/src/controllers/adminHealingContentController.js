@@ -1,19 +1,35 @@
-const HealingContent = require("../models/HealingContent");
+const HealingQuote = require("../models/HealingQuote");
+const HealingVideo = require("../models/HealingVideo");
+const HealingArticle = require("../models/HealingArticle");
 const cloudinaryService = require("../services/cloudinaryService");
+
+const getModelByType = (type) => {
+    switch (type) {
+        case 'quote': return HealingQuote;
+        case 'video': return HealingVideo;
+        case 'article': return HealingArticle;
+        default: return null;
+    }
+};
 
 exports.getAllHealingContent = async (req, res) => {
     try {
         const { type } = req.query;
-        const filter = type ? { type } : {};
-
-        // Sort by newest first
-        const content = await HealingContent.find(filter)
-            .sort({ createdAt: -1 })
-            .populate("createdBy", "fullName email"); // Optional: populate admin details
+        let content = [];
+        if (type) {
+            const Model = getModelByType(type);
+            if (!Model) return res.status(400).json({ message: "Invalid type" });
+            content = await Model.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
+        } else {
+            const quotes = await HealingQuote.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
+            const videos = await HealingVideo.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
+            const articles = await HealingArticle.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
+            content = [...quotes, ...videos, ...articles].sort((a, b) => b.createdAt - a.createdAt);
+        }
 
         res.status(200).json(content);
     } catch (error) {
-        console.error("Error heavily fetching healing content:", error);
+        console.error("Error fetching healing content from separated tables:", error);
         res.status(500).json({ message: "Server error fetching healing content" });
     }
 };
@@ -23,6 +39,9 @@ exports.createHealingContent = async (req, res) => {
         const { title, description, type, content, thumbnail, moodLevel, is_active } = req.body;
         let videoUrl = null;
 
+        const Model = getModelByType(type);
+        if (!Model) return res.status(400).json({ message: "Invalid type" });
+
         if (type === "video") {
             if (!req.file) {
                 return res.status(400).json({ message: "Video file is required for video type content" });
@@ -31,7 +50,7 @@ exports.createHealingContent = async (req, res) => {
             videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
         }
 
-        const newContent = new HealingContent({
+        const newContent = new Model({
             title,
             description,
             type,
@@ -54,10 +73,28 @@ exports.createHealingContent = async (req, res) => {
 exports.updateHealingContent = async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, description, content, thumbnail, moodLevel, is_active } = req.body;
+        const { title, description, type, content, thumbnail, moodLevel, is_active } = req.body;
 
-        const existingContent = await HealingContent.findById(id);
-        if (!existingContent) {
+        let existingContent = null;
+        let Model = null;
+
+        if (type) {
+            Model = getModelByType(type);
+            if (Model) existingContent = await Model.findById(id);
+        } else {
+            existingContent = await HealingQuote.findById(id);
+            if (existingContent) Model = HealingQuote;
+            else {
+                existingContent = await HealingVideo.findById(id);
+                if (existingContent) Model = HealingVideo;
+                else {
+                    existingContent = await HealingArticle.findById(id);
+                    if (existingContent) Model = HealingArticle;
+                }
+            }
+        }
+
+        if (!existingContent || !Model) {
             return res.status(404).json({ message: "Healing content not found" });
         }
 
@@ -100,7 +137,17 @@ exports.updateHealingContent = async (req, res) => {
 exports.deleteHealingContent = async (req, res) => {
     try {
         const { id } = req.params;
-        const deletedContent = await HealingContent.findByIdAndDelete(id);
+        const { type } = req.query;
+
+        let deletedContent = null;
+        if (type) {
+            const Model = getModelByType(type);
+            if (Model) deletedContent = await Model.findByIdAndDelete(id);
+        } else {
+            deletedContent = await HealingQuote.findByIdAndDelete(id)
+                || await HealingVideo.findByIdAndDelete(id)
+                || await HealingArticle.findByIdAndDelete(id);
+        }
 
         if (!deletedContent) {
             return res.status(404).json({ message: "Healing content not found" });
