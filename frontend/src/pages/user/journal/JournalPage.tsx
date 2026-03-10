@@ -207,7 +207,7 @@ export default function JournalPage() {
       if (!timerRef.current) {
         timerRef.current = setTimeout(() => {
           fetchPromptQuestions();
-        }, 15000);
+        }, 5000);
       }
     } else {
       if (timerRef.current) {
