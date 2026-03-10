@@ -145,7 +145,7 @@ async def generate_daily_summary(request: DailySummaryRequest):
         logger.error(f"Failed to generate daily summary: {e}")
         # Fallback: dùng summarization_service cũ (exception 2-EF)
         try:
-            # Gọi summarization_service.generate_daily_summary (vẫn giữ)
+            # Gọi summarization_service.generate_daily_summary 
             fallback_result = await summarization_service.generate_daily_summary(entries, moods)
             summary = fallback_result["summary"]
             f_type = fallback_result["type"]

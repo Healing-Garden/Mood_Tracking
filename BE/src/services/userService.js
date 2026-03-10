@@ -25,8 +25,12 @@ const extractCloudinaryPublicId = (url) => {
 const applyDefaultAvatar = (user) => {
   if (!user) return user;
   const userObj = user.toObject ? user.toObject() : user;
-  if (!userObj.avatarUrl || userObj.avatarUrl.trim() === "") {
-    userObj.avatarUrl = DEFAULT_AVATAR_URL;
+  if (
+    !userObj.avatarUrl ||
+    userObj.avatarUrl.trim() === "" ||
+    userObj.avatarUrl === DEFAULT_AVATAR_URL
+  ) {
+    userObj.avatarUrl = userObj.googleAvatarUrl || DEFAULT_AVATAR_URL;
   }
   return userObj;
 };
@@ -62,12 +66,16 @@ const ensureAdmin = (user) => {
 };
 
 module.exports = {
+  applyDefaultAvatar,
   getProfile: async (userId) => {
     const user = await User.findById(userId).select(
-      "-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes"
+      "-resetPasswordToken -resetPasswordExpires -adminRecoveryCodes"
     );
     if (!user) throw new Error("User not found");
-    return applyDefaultAvatar(user);
+    const userObj = applyDefaultAvatar(user);
+    userObj.hasPassword = !!userObj.password;
+    delete userObj.password;
+    return userObj;
   },
 
   updateProfile: async (userId, { fullName, age, heightCm, weight }) => {
@@ -78,10 +86,13 @@ module.exports = {
     if (weight !== undefined) updates.weight = weight;
 
     const user = await User.findByIdAndUpdate(userId, updates, { new: true }).select(
-      "-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes"
+      "-resetPasswordToken -resetPasswordExpires -adminRecoveryCodes"
     );
     if (!user) throw new Error("User not found");
-    return applyDefaultAvatar(user);
+    const userObj = applyDefaultAvatar(user);
+    userObj.hasPassword = !!userObj.password;
+    delete userObj.password;
+    return userObj;
   },
 
   uploadAvatar: async (userId, file) => {
@@ -115,10 +126,14 @@ module.exports = {
         userId,
         { avatarUrl: imageUrl },
         { new: true }
-      ).select("-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes");
+      ).select("-resetPasswordToken -resetPasswordExpires -adminRecoveryCodes");
+
+      const userObj = applyDefaultAvatar(updatedUser);
+      userObj.hasPassword = !!userObj.password;
+      delete userObj.password;
 
       return {
-        user: applyDefaultAvatar(updatedUser),
+        user: userObj,
         imageUrl: imageUrl,
       };
     } catch (error) {
@@ -146,9 +161,13 @@ module.exports = {
         userId,
         { avatarUrl: nextAvatar },
         { new: true }
-      ).select("-password -resetPasswordToken -resetPasswordExpires -adminRecoveryCodes");
+      ).select("-resetPasswordToken -resetPasswordExpires -adminRecoveryCodes");
 
-      return applyDefaultAvatar(updatedUser);
+      const userObj = applyDefaultAvatar(updatedUser);
+      userObj.hasPassword = !!userObj.password;
+      delete userObj.password;
+
+      return userObj;
     } catch (error) {
       throw new Error(`Remove avatar failed: ${error.message}`);
     }
@@ -168,17 +187,17 @@ module.exports = {
       await user.save();
     }
 
-    return { codes: user.adminRecoveryCodes, count: user.adminRecoveryCodes.length, hasDownloaded: false };
+    return { count: user.adminRecoveryCodes.length, hasDownloaded: false };
   },
 
   downloadAdminRecoveryCodes: async (userId) => {
-    const user = await User.findById(userId).select("role hasDownloadedRecoveryCodes");
+    const user = await User.findById(userId).select("role hasDownloadedRecoveryCodes adminRecoveryCodes");
     if (!user) throw new Error("User not found");
     ensureAdmin(user);
 
     user.hasDownloadedRecoveryCodes = true;
     await user.save();
-    return { message: "Recovery codes marked as downloaded" };
+    return { codes: user.adminRecoveryCodes, message: "Recovery codes downloaded successfully" };
   },
 
   changePassword: async (userId, { currentPassword, newPassword, recoveryCode }) => {
@@ -194,7 +213,13 @@ module.exports = {
     if (!user) throw new Error("User not found");
 
     if (!user.password) {
-      throw new Error("Current user has no password set. Please set a password first.");
+      const hash = await bcrypt.hash(newPassword, 10);
+      await User.updateOne({ _id: userId }, { password: hash, authProvider: "both" });
+      return { message: "Password set successfully" };
+    }
+
+    if (!currentPassword) {
+      throw new Error("Current password is required");
     }
 
     let matchedRecoveryCode = null;

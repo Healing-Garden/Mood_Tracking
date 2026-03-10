@@ -25,6 +25,14 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
     const [regenerating, setRegenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    const getLocalDateString = () => {
+        const d = new Date();
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    };
+
     type CachedSummaryResponse = {
         success: boolean;
         data?: {
@@ -40,12 +48,13 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
         setLoading(true);
         setError(null);
         try {
-            const result = (await http.get(`/ai/summary/daily/${user.id}`)) as unknown as CachedSummaryResponse;
+            const date = getLocalDateString();
+            const result = (await http.get(`/ai/summary/daily/${user.id}?date=${encodeURIComponent(date)}`)) as unknown as CachedSummaryResponse;
             if (result?.success && result.data?.summary) {
                 setSummary(result.data.summary);
                 setMetadata(result.data.metadata ?? null);
             } else {
-                setError('Không thể tải dữ liệu');
+                setError('Data could not be loaded');
             }
         } catch (err: unknown) {
             const error = err as AxiosError;
@@ -66,10 +75,11 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
         if (!user) return;
         setLoading(true);
         try {
-            const result = await aiApi.getDailySummary(user.id, null, force);
-            if (result.data.success) {
-                setSummary(result.data.data.summary);
-                setMetadata(result.data.data.metadata);
+            const date = getLocalDateString();
+            const result = (await aiApi.getDailySummary(user.id, date, force)) as any;
+            if (result.success) {
+                setSummary(result.data.summary);
+                setMetadata(result.data.metadata);
             } else {
                 setError('Unable to generate summary');
             }

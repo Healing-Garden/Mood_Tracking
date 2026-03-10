@@ -69,7 +69,6 @@ export default function DashboardSidebar({
       label: "Users",
       icon: <Users size={20} />,
       href: "/admin/users",
-      badge: 3,
     },
     {
       label: "Analytics",
