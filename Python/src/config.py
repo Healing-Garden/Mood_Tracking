@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        case_sensitive=True,
+        case_sensitive=False,
         env_prefix="",  
         extra="ignore"  
     )
@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     vector_store_type: str = Field(default="chroma")
     
     # AI Models
-    embedding_model: str = Field(default="all-MiniLM-L6-v2")
+    embedding_model: str = Field(default="paraphrase-multilingual-MiniLM-L12-v2")
     embedding_dimension: int = Field(default=384)
     sentiment_model: str = Field(default="cardiffnlp/twitter-roberta-base-sentiment-latest")
     emotion_model: str = Field(default="j-hartmann/emotion-english-distilroberta-base")
