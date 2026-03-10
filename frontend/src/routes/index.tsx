@@ -11,8 +11,6 @@ import SettingsPage from "../pages/user/setting/Setting";
 import Step1 from "../pages/user/onboarding/Step1";
 import Step2 from "../pages/user/onboarding/Step2";
 import Step3 from "../pages/user/onboarding/Step3";
-import Step4 from "../pages/user/onboarding/Step4";
-import Step5 from "../pages/user/onboarding/Step5";
 import NotificationsPage from "../pages/user/notifications/NotificationPage";
 import ChatBot from "../pages/user/ai-partner/ChatBot";
 import FeedbackPage from "../pages/user/feedback/FeedbackPage";
@@ -63,22 +61,6 @@ const routes = [
     element: (
       <ProtectedRoute role="user">
         <Step3 />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/onboarding/step-4",
-    element: (
-      <ProtectedRoute role="user">
-        <Step4 />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/onboarding/step-5",
-    element: (
-      <ProtectedRoute role="user">
-        <Step5 />
       </ProtectedRoute>
     ),
   },

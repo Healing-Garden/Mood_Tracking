@@ -52,6 +52,16 @@ module.exports = {
     try {
       const userId = req.user.id;
       const {
+        improveGoals = [],
+        frequentFeeling,
+        personalGoalDescription,
+        stressLevel,
+        recentState,
+        emotionalClarity,
+        reflectionFrequency,
+        negativeEmotionHandling,
+        experienceLearning,
+        // Legacy fields
         goals = [],
         emotionalSensitivity,
         reminderTone,
@@ -61,6 +71,16 @@ module.exports = {
       const payload = {
         user: userId,
         isOnboarded: true,
+        improveGoals,
+        frequentFeeling,
+        personalGoalDescription,
+        stressLevel,
+        recentState,
+        emotionalClarity,
+        reflectionFrequency,
+        negativeEmotionHandling,
+        experienceLearning,
+        // Legacy fields
         goals,
         emotionalSensitivity,
         reminderTone,

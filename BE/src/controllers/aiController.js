@@ -94,7 +94,7 @@ class AIController {
             const { userId } = req.params;
             const date = req.query.date || new Date().toISOString().split('T')[0];
             const db = await getMongoDB();
-            
+
             const targetDate = new Date(date);
             targetDate.setHours(0, 0, 0, 0);
 
@@ -114,11 +114,11 @@ class AIController {
                     date: targetDate
                 });
             }
-            
+
             if (!summary) {
                 return res.status(404).json({ message: 'No summary for this day' });
             }
-            
+
             res.json({
                 success: true,
                 data: {
@@ -224,9 +224,9 @@ class AIController {
             }
 
             const result = await aiService.suggestPracticalActions(
-                userId, 
-                currentMood, 
-                Number(count), 
+                userId,
+                currentMood,
+                Number(count),
                 Array.isArray(excludeIds) ? excludeIds : []
             );
 
@@ -266,10 +266,10 @@ class AIController {
             }
 
             const result = await aiService.logActionCompletion(
-                userId, 
-                actionId, 
-                Number(durationSeconds), 
-                moodAtTime, 
+                userId,
+                actionId,
+                Number(durationSeconds),
+                moodAtTime,
                 source
             );
             res.json(result);
@@ -288,9 +288,9 @@ class AIController {
             }
 
             const result = await aiService.logSkip(
-                userId, 
-                mood, 
-                Array.isArray(shownActions) ? shownActions : [], 
+                userId,
+                mood,
+                Array.isArray(shownActions) ? shownActions : [],
                 reason
             );
             res.json(result);

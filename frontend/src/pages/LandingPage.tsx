@@ -90,9 +90,8 @@ const LandingPage: React.FC = () => {
     <div className="min-h-screen bg-[#f6f8f6] overflow-x-hidden">
       {/* Navigation */}
       <header
-        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-          scrollY > 50 ? 'bg-white/95 backdrop-blur-sm shadow-md' : 'bg-[#f6f8f6]/80 backdrop-blur-sm'
-        }`}
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${scrollY > 50 ? 'bg-white/95 backdrop-blur-sm shadow-md' : 'bg-[#f6f8f6]/80 backdrop-blur-sm'
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
@@ -248,7 +247,7 @@ const LandingPage: React.FC = () => {
                 key={idx}
                 className="p-6 bg-gradient-to-br from-green-50 to-white border border-green-200 rounded-2xl hover:shadow-lg transition-all duration-500 reveal"
                 data-reveal={idx % 2 === 0 ? 'fade-up' : 'zoom'}
-                style={ { '--reveal-delay': `${idx * 140}ms`, } as React.CSSProperties }
+                style={{ '--reveal-delay': `${idx * 140}ms`, } as React.CSSProperties}
               >
                 <feature.icon className="w-12 h-12 text-[#188618] mb-4" />
                 <h3 className="font-bold text-[#122012] mb-2 text-lg">{feature.title}</h3>
@@ -282,7 +281,7 @@ const LandingPage: React.FC = () => {
               <div
                 key={idx}
                 className="reveal"
-                style={{ '--reveal-delay': `${idx * 180}ms`, } as React.CSSProperties }
+                style={{ '--reveal-delay': `${idx * 180}ms`, } as React.CSSProperties}
               >
                 <div className="w-14 h-14 rounded-full bg-[#188618] text-white flex items-center justify-center text-lg font-bold mx-auto mb-4">
                   {item.num}
@@ -321,7 +320,7 @@ const LandingPage: React.FC = () => {
                 key={post.id}
                 className="group cursor-pointer h-full bg-white border border-green-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 "
                 data-reveal={idx % 3 === 0 ? 'fade-up' : idx % 3 === 1 ? 'fade-left' : 'zoom'}
-                style={ { '--reveal-delay': `${idx * 140}ms`, } as React.CSSProperties }
+                style={{ '--reveal-delay': `${idx * 140}ms`, } as React.CSSProperties}
               >
                 <div className={`h-40 bg-gradient-to-br ${post.color} group-hover:scale-105 transition-transform duration-300`} />
                 <div className="p-5">
@@ -356,7 +355,7 @@ const LandingPage: React.FC = () => {
         data-reveal="fade-up"
       >
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-green-200 text-[#188618] font-semibold text-sm mb-6 reveal" style={ { '--reveal-delay': `80ms`, } as React.CSSProperties }>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/70 border border-green-200 text-[#188618] font-semibold text-sm mb-6 reveal" style={{ '--reveal-delay': `80ms`, } as React.CSSProperties}>
             Ready to start your journey?
           </div>
           <h2 className="text-4xl md:text-6xl font-bold mb-5 text-[#122012] leading-tight">

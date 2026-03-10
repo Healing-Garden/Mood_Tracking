@@ -70,6 +70,17 @@ export function useOnboarding() {
     completeOnboarding: store.completeOnboarding,
     resetOnboarding: store.resetOnboarding,
 
+    // New actions
+    setImproveGoals: store.setImproveGoals,
+    setFrequentFeeling: store.setFrequentFeeling,
+    setPersonalGoalDescription: store.setPersonalGoalDescription,
+    setStressLevel: store.setStressLevel,
+    setRecentState: store.setRecentState,
+    setEmotionalClarity: store.setEmotionalClarity,
+    setReflectionFrequency: store.setReflectionFrequency,
+    setNegativeEmotionHandling: store.setNegativeEmotionHandling,
+    setExperienceLearning: store.setExperienceLearning,
+
     // Navigation helpers
     goToStep,
     nextStep,
