@@ -2,8 +2,10 @@ const User = require("../models/users");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const googleAuthService = require("./googleAuthService");
+const { applyDefaultAvatar } = require("./userService");
 
 const issueJwt = (user) => {
+  const finalUser = applyDefaultAvatar(user);
   const accessToken = jwt.sign(
     { id: user._id, role: user.role },
     process.env.JWT_ACCESS_SECRET,
@@ -23,8 +25,8 @@ const issueJwt = (user) => {
       id: user._id,
       fullName: user.fullName,
       email: user.email,
-      role: user.role,
-      avatarUrl: user.avatarUrl,
+      role: finalUser.role,
+      avatarUrl: finalUser.avatarUrl,
     },
   };
 };

@@ -35,6 +35,8 @@ const UserProfilePage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState<string>('')
   const [showPasswords, setShowPasswords] = useState<boolean>(false)
   const [passwordError, setPasswordError] = useState<string>('')
+  const [hasPassword, setHasPassword] = useState<boolean>(true)
+  const [isSettingPassword, setIsSettingPassword] = useState<boolean>(false)
 
   // PIN
   const [showPinForm, setShowPinForm] = useState<boolean>(false)
@@ -60,6 +62,7 @@ const UserProfilePage: React.FC = () => {
         setHeight(profile.heightCm?.toString() || '')
         setWeight(profile.weight?.toString() || '')
         setAvatar(profile.avatarUrl || '')
+        setHasPassword(profile.hasPassword ?? true)
 
         // App Lock stats
         setIsAppLockEnabled(!!(profile as any).appLockEnabled)
@@ -186,16 +189,18 @@ const UserProfilePage: React.FC = () => {
     setIsLoading(true)
     try {
       await userApi.changePassword({
-        currentPassword,
+        currentPassword: currentPassword || '',
         newPassword,
       })
 
-      showSuccess('Mật khẩu đã được thay đổi thành công.')
+      showSuccess(hasPassword ? 'Mật khẩu đã được thay đổi thành công.' : 'Mật khẩu đã được thiết lập thành công.')
 
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
       setPasswordError('')
+      setHasPassword(true)
+      setIsSettingPassword(false)
     } catch (error) {
       console.error('Password change error:', error)
       const errorMsg = error instanceof Error ? error.message : 'Không thể thay đổi mật khẩu'
@@ -438,76 +443,113 @@ const UserProfilePage: React.FC = () => {
 
                   {/* Password Change */}
                   <TabsContent value="password" className="mt-6 space-y-6">
-                    <form onSubmit={handlePasswordChange} className="space-y-5">
-                      {passwordError && (
-                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                          <p className="text-sm text-red-700">{passwordError}</p>
+                    {!hasPassword && !isSettingPassword ? (
+                      <div className="space-y-4">
+                        <div className="p-4 bg-secondary/20 border border-border rounded-lg">
+                          <p className="text-sm text-foreground">
+                            You currently do not have a password set. You can set a password to log in with your email in addition to Google.
+                          </p>
                         </div>
-                      )}
+                        <Button
+                          type="button"
+                          onClick={() => setIsSettingPassword(true)}
+                          className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
+                        >
+                          Set Password
+                        </Button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handlePasswordChange} className="space-y-5">
+                        {passwordError && (
+                          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-sm text-red-700">{passwordError}</p>
+                          </div>
+                        )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="current-password" className="text-primary font-medium">
-                          Current Password
-                        </Label>
-                        <div className="relative">
+                        {hasPassword && (
+                          <div className="space-y-2">
+                            <Label htmlFor="current-password" className="text-primary font-medium">
+                              Current Password
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="current-password"
+                                type={showPasswords ? 'text' : 'password'}
+                                value={currentPassword}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                                className="h-11 pr-10"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPasswords(!showPasswords)}
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                                aria-label={showPasswords ? 'Hide password' : 'Show password'}
+                              >
+                                {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="new-password" className="text-primary font-medium">
+                            New Password
+                          </Label>
                           <Input
-                            id="current-password"
+                            id="new-password"
                             type={showPasswords ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-                            className="h-11 pr-10"
+                            value={newPassword}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                            className="h-11"
                             required
                           />
-                          <button
-                            type="button"
-                            onClick={() => setShowPasswords(!showPasswords)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            aria-label={showPasswords ? 'Hide password' : 'Show password'}
-                          >
-                            {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Must contain at least 8 characters, uppercase letters, and special characters
+                          </p>
                         </div>
-                      </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="new-password" className="text-primary font-medium">
-                          New Password
-                        </Label>
-                        <Input
-                          id="new-password"
-                          type={showPasswords ? 'text' : 'password'}
-                          value={newPassword}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                          className="h-11"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Must contain at least 8 characters, uppercase letters, and special characters
-                        </p>
-                      </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="confirm-password" className="text-primary font-medium">
+                            Confirm New Password
+                          </Label>
+                          <Input
+                            id="confirm-password"
+                            type={showPasswords ? 'text' : 'password'}
+                            value={confirmPassword}
+                            onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                            className="h-11"
+                            required
+                          />
+                        </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-password" className="text-primary font-medium">
-                          Confirm New Password
-                        </Label>
-                        <Input
-                          id="confirm-password"
-                          type={showPasswords ? 'text' : 'password'}
-                          value={confirmPassword}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                          className="h-11"
-                          required
-                        />
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full h-11 bg-primary hover:bg-primary/90"
-                      >
-                        {isLoading ? 'Updating...' : 'Change Password'}
-                      </Button>
-                    </form>
+                        <div className="flex gap-4">
+                          {!hasPassword && (
+                            <Button
+                              type="button"
+                              onClick={() => {
+                                setIsSettingPassword(false)
+                                setNewPassword('')
+                                setConfirmPassword('')
+                                setPasswordError('')
+                              }}
+                              variant="outline"
+                              className="flex-1 h-11"
+                              disabled={isLoading}
+                            >
+                              Cancel
+                            </Button>
+                          )}
+                          <Button
+                            type="submit"
+                            disabled={isLoading}
+                            className={`${!hasPassword ? 'flex-1' : 'w-full'} h-11 bg-primary hover:bg-primary/90`}
+                          >
+                            {isLoading ? 'Processing...' : hasPassword ? 'Change Password' : 'Save Password'}
+                          </Button>
+                        </div>
+                      </form>
+                    )}
                   </TabsContent>
 
                   {/* Security / PIN Setup */}
