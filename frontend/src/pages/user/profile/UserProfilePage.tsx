@@ -10,10 +10,10 @@ import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import { Card } from '../../../components/ui/Card'
 import { useToast } from '../../../hooks/use-toast'
 import { userApi } from '../../../api/userApi'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 
 const UserProfilePage: React.FC = () => {
   const { toast } = useToast()
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security'>('personal')
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -92,7 +92,6 @@ const UserProfilePage: React.FC = () => {
         avatarResponse.user?.avatarUrl ||
         avatarResponse.imageUrl ||
         ''
-
       setAvatar(nextAvatar)
 
       showSuccess('Avatar đã được cập nhật thành công.')
@@ -322,241 +321,156 @@ const UserProfilePage: React.FC = () => {
 
     if (digit && index < 5) {
       const nextId = isConfirm ? `confirm-pin-${index + 1}` : `pin-${index + 1}`
-      document.getElementById(nextId)?.focus()
+      const nextEl = document.getElementById(nextId)
+      if (nextEl) nextEl.focus()
     }
   }
 
   if (isLoadingProfile) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <div className={`fixed inset-y-0 left-0 z-30 lg:static lg:block`}>
-          <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your profile...</p>
-          </div>
+      <div className="flex-1 flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">My Profile</h1>
-
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
+    <DashboardLayout title="My Profile">
+      <div className="px-4 sm:px-6 lg:px-8 py-8">
+        {successMessage && (
+          <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
+            {successMessage}
           </div>
-        </header>
+        )}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Avatar & Member Info Sidebar */}
+          <div className="lg:col-span-1">
+            <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
+              <AvatarUpload
+                currentAvatar={avatar}
+                onAvatarChange={handleAvatarUpload}
+                onRemove={handleAvatarRemove}
+                isLoading={isUploadingAvatar}
+              />
+              <div className="mt-6 pt-4 border-t border-border w-full text-center">
+                <p className="text-sm font-semibold text-primary mb-1">Member Since</p>
+                <p className="text-sm text-muted-foreground">January 2024</p>
+              </div>
+            </Card>
+          </div>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
-          {successMessage && (
-            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              {successMessage}
-            </div>
-          )}
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Avatar & Member Info Sidebar */}
-            <div className="lg:col-span-1">
-              <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
-                <AvatarUpload
-                  currentAvatar={avatar}
-                  onAvatarChange={handleAvatarUpload}
-                  onRemove={handleAvatarRemove}
-                  isLoading={isUploadingAvatar}
-                />
-                <div className="mt-6 pt-4 border-t border-border w-full text-center">
-                  <p className="text-sm font-semibold text-primary mb-1">Member Since</p>
-                  <p className="text-sm text-muted-foreground">January 2024</p>
-                </div>
-              </Card>
-            </div>
+          {/* Main Tabs Content */}
+          <div className="lg:col-span-3">
+            <Card className="bg-white rounded-2xl shadow-lg border-border p-6">
+              <Tabs
+                value={activeTab}
+                onValueChange={(value) =>
+                  setActiveTab(value as 'personal' | 'password' | 'security')
+                }
+              >
+                <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg">
+                  <TabsTrigger
+                    value="personal"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                    Personal Info
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="password"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                    Password
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="security"
+                    className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+                  >
+                    Security
+                  </TabsTrigger>
+                </TabsList>
 
-            {/* Main Tabs Content */}
-            <div className="lg:col-span-3">
-              <Card className="bg-white rounded-2xl shadow-lg border-border p-6">
-                <Tabs
-                  value={activeTab}
-                  onValueChange={(value) =>
-                    setActiveTab(value as 'personal' | 'password' | 'security')
-                  }
-                >
-                  <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg">
-                    <TabsTrigger
-                      value="personal"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
-                    >
-                      Personal Info
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="password"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
-                    >
-                      Password
-                    </TabsTrigger>
-                    <TabsTrigger
-                      value="security"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
-                    >
-                      Security
-                    </TabsTrigger>
-                  </TabsList>
-
-                  {/* Personal Info */}
-                  <TabsContent value="personal" className="mt-6 space-y-6">
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Full Name</p>
-                          <p className="text-base font-semibold text-foreground">{name || 'Not provided'}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Email</p>
-                          <p className="text-base font-semibold text-foreground">{email}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Age</p>
-                          <p className="text-base font-semibold text-foreground">{age || 'Not provided'}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Height (cm)</p>
-                          <p className="text-base font-semibold text-foreground">{height || 'Not provided'}</p>
-                        </div>
-                        <div className="space-y-2 md:col-span-2">
-                          <p className="text-sm font-medium text-muted-foreground">Weight (kg)</p>
-                          <p className="text-base font-semibold text-foreground">{weight || 'Not provided'}</p>
-                        </div>
+                {/* Personal Info */}
+                <TabsContent value="personal" className="mt-6 space-y-6">
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Full Name</p>
+                        <p className="text-base font-semibold text-foreground">{name || 'Not provided'}</p>
                       </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Email</p>
+                        <p className="text-base font-semibold text-foreground">{email}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Age</p>
+                        <p className="text-base font-semibold text-foreground">{age || 'Not provided'}</p>
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-muted-foreground">Height (cm)</p>
+                        <p className="text-base font-semibold text-foreground">{height || 'Not provided'}</p>
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <p className="text-sm font-medium text-muted-foreground">Weight (kg)</p>
+                        <p className="text-base font-semibold text-foreground">{weight || 'Not provided'}</p>
+                      </div>
+                    </div>
 
+                    <Button
+                      onClick={() => setShowEditModal(true)}
+                      className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
+                    >
+                      Update Profile
+                    </Button>
+                  </div>
+                </TabsContent>
+
+                {/* Password Change */}
+                <TabsContent value="password" className="mt-6 space-y-6">
+                  {!hasPassword && !isSettingPassword ? (
+                    <div className="space-y-4">
+                      <div className="p-4 bg-secondary/20 border border-border rounded-lg">
+                        <p className="text-sm text-foreground">
+                          You currently do not have a password set. You can set a password to log in with your email in addition to Google.
+                        </p>
+                      </div>
                       <Button
-                        onClick={() => setShowEditModal(true)}
+                        type="button"
+                        onClick={() => setIsSettingPassword(true)}
                         className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
                       >
-                        Update Profile
+                        Set Password
                       </Button>
                     </div>
-                  </TabsContent>
-
-                  {/* Password Change */}
-                  <TabsContent value="password" className="mt-6 space-y-6">
-                    {!hasPassword && !isSettingPassword ? (
-                      <div className="space-y-4">
-                        <div className="p-4 bg-secondary/20 border border-border rounded-lg">
-                          <p className="text-sm text-foreground">
-                            You currently do not have a password set. You can set a password to log in with your email in addition to Google.
-                          </p>
+                  ) : (
+                    <form onSubmit={handlePasswordChange} className="space-y-5">
+                      {passwordError && (
+                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                          <p className="text-sm text-red-700">{passwordError}</p>
                         </div>
-                        <Button
-                          type="button"
-                          onClick={() => setIsSettingPassword(true)}
-                          className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
-                        >
-                          Set Password
-                        </Button>
-                      </div>
-                    ) : (
-                      <form onSubmit={handlePasswordChange} className="space-y-5">
-                        {passwordError && (
-                          <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                            <p className="text-sm text-red-700">{passwordError}</p>
-                          </div>
-                        )}
+                      )}
 
-                        {hasPassword && (
-                          <div className="space-y-2">
-                            <Label htmlFor="current-password" className="text-primary font-medium">
-                              Current Password
-                            </Label>
-                            <div className="relative">
-                              <Input
-                                id="current-password"
-                                type={showPasswords ? 'text' : 'password'}
-                                value={currentPassword}
-                                onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-                                className="h-11 pr-10"
-                                required
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setShowPasswords(!showPasswords)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                                aria-label={showPasswords ? 'Hide password' : 'Show password'}
-                              >
-                                {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
-                        )}
-
+                      {hasPassword && (
                         <div className="space-y-2">
-                          <Label htmlFor="new-password" className="text-primary font-medium">
-                            New Password
+                          <Label htmlFor="current-password" className="text-primary font-medium">
+                            Current Password
                           </Label>
-                          <Input
-                            id="new-password"
-                            type={showPasswords ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                            className="h-11"
-                            required
-                          />
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Must contain at least 8 characters, uppercase letters, and special characters
-                          </p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="confirm-password" className="text-primary font-medium">
-                            Confirm New Password
-                          </Label>
-                          <Input
-                            id="confirm-password"
-                            type={showPasswords ? 'text' : 'password'}
-                            value={confirmPassword}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                            className="h-11"
-                            required
-                          />
-                        </div>
-
-                        <div className="flex gap-4">
-                          {!hasPassword && (
-                            <Button
+                          <div className="relative">
+                            <Input
+                              id="current-password"
+                              type={showPasswords ? 'text' : 'password'}
+                              value={currentPassword}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                              className="h-11 pr-10"
+                              required
+                            />
+                            <button
                               type="button"
-                              onClick={() => {
-                                setIsSettingPassword(false)
-                                setNewPassword('')
-                                setConfirmPassword('')
-                                setPasswordError('')
-                              }}
-                              variant="outline"
-                              className="flex-1 h-11"
-                              disabled={isLoading}
+                              onClick={() => setShowPasswords(!showPasswords)}
+                              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                              aria-label={showPasswords ? 'Hide password' : 'Show password'}
                             >
                               Cancel
                             </Button>
@@ -609,7 +523,6 @@ const UserProfilePage: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    </div>
 
                     {!showPinForm ? (
                       <div className="space-y-4">
@@ -684,7 +597,6 @@ const UserProfilePage: React.FC = () => {
                         <div className="flex gap-4 pt-4 border-t border-border/50">
                           <Button
                             type="button"
-                            variant="outline"
                             onClick={() => {
                               setShowPinForm(false)
                               setIsVerifyingToDisable(false)
@@ -696,6 +608,34 @@ const UserProfilePage: React.FC = () => {
                           >
                             Cancel
                           </Button>
+                        )}
+                        <Button
+                          type="submit"
+                          disabled={isLoading}
+                          className={`${!hasPassword ? 'flex-1' : 'w-full'} h-11 bg-primary hover:bg-primary/90 text-white`}
+                        >
+                          {isLoading ? 'Processing...' : hasPassword ? 'Change Password' : 'Save Password'}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </TabsContent>
+
+                {/* Security / PIN Setup */}
+                <TabsContent value="security" className="mt-6 space-y-6">
+                  <div className="bg-secondary/40 border border-border rounded-lg p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex gap-3">
+                        <Lock className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                        <div>
+                          <h4 className="font-semibold text-primary mb-1.5">App Lock PIN</h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            Set a 6-digit PIN to protect your journal data when using the web browser.
+                          </p>
+                        </div>
+                      </div>
+                      {hasPinSet && (
+                        <div className="flex items-center space-x-2">
                           <Button
                             type="submit"
                             disabled={
@@ -708,14 +648,92 @@ const UserProfilePage: React.FC = () => {
                             {isLoading ? 'Processing...' : (isVerifyingToDisable ? 'Confirm Disable' : (hasPinSet ? 'Update PIN' : 'Save PIN'))}
                           </Button>
                         </div>
-                      </form>
-                    )}
-                  </TabsContent>
-                </Tabs>
-              </Card>
-            </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {!showPinForm ? (
+                    <Button
+                      onClick={() => setShowPinForm(true)}
+                      className="w-full h-11 bg-primary hover:bg-primary/90 text-white gap-2"
+                      disabled={isLoading}
+                    >
+                      <Lock size={18} />
+                      {hasPinSet ? 'Change App Lock PIN' : 'Set App Lock PIN'}
+                    </Button>
+                  ) : (
+                    <form onSubmit={handlePinSetup} className="space-y-6">
+                      <div className="space-y-3">
+                        <Label className="text-primary font-medium">Enter 6-Digit PIN</Label>
+                        <div className="grid grid-cols-6 gap-3">
+                          {pinDigits.map((digit, i) => (
+                            <Input
+                              key={i}
+                              id={`pin-${i}`}
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, false)}
+                              className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
+                              placeholder="•"
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="text-primary font-medium">Confirm PIN</Label>
+                        <div className="grid grid-cols-6 gap-3">
+                          {confirmPinDigits.map((digit, i) => (
+                            <Input
+                              key={i}
+                              id={`confirm-pin-${i}`}
+                              type="password"
+                              inputMode="numeric"
+                              maxLength={1}
+                              value={digit}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, true)}
+                              className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
+                              placeholder="•"
+                            />
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowPinForm(false)
+                            setPinDigits(Array(6).fill(''))
+                            setConfirmPinDigits(Array(6).fill(''))
+                          }}
+                          className="flex-1 h-11"
+                          disabled={isLoading}
+                        >
+                          Cancel
+                        </Button>
+                        <Button
+                          type="submit"
+                          disabled={
+                            isLoading ||
+                            pinDigits.some(d => !d) ||
+                            confirmPinDigits.some(d => !d)
+                          }
+                          className="flex-1 h-11 bg-primary hover:bg-primary/90 text-white"
+                        >
+                          {isLoading ? 'Setting...' : hasPinSet ? 'Update PIN' : 'Set PIN'}
+                        </Button>
+                      </div>
+                    </form>
+                  )}
+                </TabsContent>
+              </Tabs>
+            </Card>
           </div>
-        </main>
+        </div>
       </div>
 
       {/* Edit Profile Modal */}
@@ -841,7 +859,7 @@ const UserProfilePage: React.FC = () => {
           </Card>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   )
 }
 

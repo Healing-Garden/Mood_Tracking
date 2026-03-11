@@ -1,13 +1,12 @@
 // SettingsPage.tsx
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { useOnboarding } from '../../../hooks/useOnboarding'
-import { RotateCcw, Lock, Bell, Palette, LogOut, Menu, X, ArrowLeft } from 'lucide-react'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import { RotateCcw, Lock, Bell, Palette, LogOut, ArrowLeft } from 'lucide-react'
 import NotificationSettings from '../../../components/features/NotificationSettings'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 
 export default function SettingsPage() {
   const navigate = useNavigate()
@@ -101,50 +100,37 @@ export default function SettingsPage() {
                       <p className="text-sm text-muted-foreground mb-2">
                         Selected Goals
                       </p>
-                      {goals.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          No goals selected yet
-                        </p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {goals.map((goal) => (
-                            <span
-                              key={goal}
-                              className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm"
-                            >
-                              {goal}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Preferences */}
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Emotional Sensitivity
-                        </p>
-                        <p className="font-semibold capitalize">
-                          {sensitivity}
-                        </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {goals.map((goal) => (
+                          <span
+                            key={goal}
+                            className="bg-primary/20 text-primary px-3 py-1 rounded-full text-sm"
+                          >
+                            {goal}
+                          </span>
+                        ))}
                       </div>
+                    )}
+                  </div>
 
-                      <div>
-                        <p className="text-sm text-muted-foreground mb-1">
-                          Reminder Tone
-                        </p>
-                        <p className="font-semibold capitalize">
-                          {tone}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Theme */}
+                  {/* Preferences */}
+                  <div className="grid md:grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-muted-foreground mb-1">Theme</p>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Emotional Sensitivity
+                      </p>
                       <p className="font-semibold capitalize">
-                        {theme}
+                        {sensitivity}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm text-muted-foreground mb-1">
+                        Reminder Tone
+                      </p>
+                      <p className="font-semibold capitalize">
+                        {tone}
                       </p>
                     </div>
 
@@ -222,13 +208,28 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
               </div>
-            ) : (
-              /* View notifications */
-              <NotificationSettings />
-            )}
-          </div>
-        </main>
+
+              {/* Account Card */}
+              <Card className="border-red-200 bg-red-50">
+                <CardHeader>
+                  <CardTitle className="text-red-900">Account</CardTitle>
+                  <CardDescription className="text-red-800">
+                    Account management and logout
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button variant="destructive" className="w-full gap-2">
+                    <LogOut size={16} />
+                    Logout
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <NotificationSettings />
+          )}
+        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

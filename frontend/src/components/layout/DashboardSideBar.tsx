@@ -29,11 +29,13 @@ interface MenuItem {
 interface DashboardSidebarProps {
   userType: "user" | "admin";
   onClose?: () => void;
+  collapsed?: boolean;
 }
 
 export default function DashboardSidebar({
   userType,
   onClose,
+  collapsed,
 }: DashboardSidebarProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -92,48 +94,30 @@ export default function DashboardSidebar({
     location.pathname === href || location.pathname.startsWith(href + "/");
 
   return (
-    <aside className="w-64 bg-white border-r border-border/50 h-screen sticky top-0 flex flex-col">
-      {/* Logo */}
-      <div className="p-6 border-b border-border/50">
-        <div className="flex items-center gap-3">
-          <img
-            src="/healing-garden-logo.png"
-            alt="Healing Garden"
-            width={50}
-            height={50}
-            className="rounded-lg"
-          />
-          <div>
-            <h2 className="text-lg font-bold text-foreground">
-              Healing Garden
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {userType === "user" ? "Your Wellness" : "Administration"}
-            </p>
-          </div>
-        </div>
-      </div>
+    <aside className={`${collapsed ? "w-16" : "w-64"} fixed left-0 top-20 h-[calc(100vh-80px)] bg-white border-r border-border/50 flex flex-col transition-all duration-300`}>
 
-      {/* Menu */}
-      <nav className="flex-1 overflow-y-auto px-3 py-6 space-y-2">
+      <nav className={`flex-1 overflow-y-auto ${collapsed ? 'px-2' : 'px-3'} pt-4 pb-6 space-y-2`}>
         {menuItems.map((item) => (
           <NavLink
             key={item.href}
             to={item.href}
             onClick={onClose}
             className={({ isActive: navActive }) =>
-              `flex items-center justify-between px-4 py-3 rounded-lg transition-all ${navActive || isActive(item.href)
+              `flex items-center ${collapsed ? 'justify-center' : 'justify-between'} ${collapsed ? 'px-2' : 'px-4'} py-3 rounded-lg transition-all ${navActive || isActive(item.href)
                 ? "bg-primary text-white"
                 : "text-foreground hover:bg-muted"
               }`
             }
+            title={collapsed ? item.label : undefined}
           >
-            <div className="flex items-center gap-3">
+            <div className={`flex items-center ${collapsed ? '' : 'gap-3'}`}>
               {item.icon}
-              <span className="font-medium">{item.label}</span>
+              {!collapsed && (
+                <span className="font-medium">{item.label}</span>
+              )}
             </div>
 
-            {item.badge && (
+            {!collapsed && item.badge && (
               <span className="bg-accent text-foreground text-xs font-semibold px-2 py-1 rounded-full">
                 {item.badge}
               </span>
@@ -143,14 +127,15 @@ export default function DashboardSidebar({
       </nav>
 
       {/* Bottom actions */}
-      <div className="border-t border-border/50 p-3 space-y-3">
+      <div className={`border-t border-border/50 ${collapsed ? 'px-2' : 'p-3'} space-y-3`}>
         <NavLink
           to={userType === "user" ? "/user/profile" : "/admin/profile"}
           onClick={onClose}
         >
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 px-3 py-2 text-foreground hover:bg-muted/50 hover:text-primary"
+            className={`w-full ${collapsed ? 'justify-center' : 'justify-start'} ${collapsed ? 'px-2' : 'gap-3 px-3'} py-2 text-foreground hover:bg-muted/50 hover:text-primary`}
+            title={collapsed ? "Profile" : undefined}
           >
             {(user as any)?.avatarUrl || user?.avatar ? (
               <img
@@ -162,7 +147,7 @@ export default function DashboardSidebar({
             ) : (
               <User size={20} className="shrink-0" />
             )}
-            Profile
+            {!collapsed && "Profile"}
           </Button>
         </NavLink>
 
@@ -172,20 +157,22 @@ export default function DashboardSidebar({
         >
           <Button
             variant="ghost"
-            className="w-full justify-start gap-3 px-3 py-2 text-foreground hover:bg-muted/50 hover:text-primary"
+            className={`w-full ${collapsed ? 'justify-center' : 'justify-start'} ${collapsed ? 'px-2' : 'gap-3 px-3'} py-2 text-foreground hover:bg-muted/50 hover:text-primary`}
+            title={collapsed ? "Settings" : undefined}
           >
             <Settings size={20} />
-            Settings
+            {!collapsed && "Settings"}
           </Button>
         </NavLink>
 
         <Button
           variant="outline"
           onClick={handleLogout}
-          className="w-full justify-start gap-3 bg-transparent border-destructive/30 text-destructive hover:bg-destructive/10"
+          className={`w-full ${collapsed ? 'justify-center' : 'justify-start'} ${collapsed ? 'px-2' : 'gap-3 px-3'} py-2 bg-transparent border-destructive/30 text-destructive hover:bg-destructive/10`}
+          title={collapsed ? "Logout" : undefined}
         >
           <LogOut size={20} />
-          Logout
+          {!collapsed && "Logout"}
         </Button>
       </div>
     </aside>
