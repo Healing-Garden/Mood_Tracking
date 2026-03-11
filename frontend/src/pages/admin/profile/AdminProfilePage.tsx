@@ -5,15 +5,14 @@ import { Input } from '../../../components/ui/Input'
 import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
-import { Eye, EyeOff, Lock, AlertCircle, Menu, X } from 'lucide-react'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import { Eye, EyeOff, Lock, AlertCircle, X } from 'lucide-react'
 import { Card } from '../../../components/ui/Card'
 import { userApi } from '../../../api/userApi'
 import { useToast } from '../../../hooks/use-toast'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 
 const AdminProfilePage: React.FC = () => {
   const { toast } = useToast()
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security' | 'recovery'>('personal')
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -323,239 +322,215 @@ const AdminProfilePage: React.FC = () => {
 
   if (isLoadingProfile) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <div className={`fixed inset-y-0 left-0 z-30 lg:static lg:block`}>
-          <DashboardSidebar userType="admin" onClose={() => setSidebarOpen(false)} />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
+      <DashboardLayout title="Admin Profile" userType="admin">
+        <div className="flex-1 flex items-center justify-center min-h-[400px]">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your profile...</p>
+            <p className="text-muted-foreground font-medium">Loading your profile...</p>
           </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="admin" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">Admin Profile</h1>
-
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout title="Admin Profile" userType="admin">
+        <div className="px-4 py-8 max-w-7xl mx-auto w-full">
           {successMessage && (
-            <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
-              {successMessage}
+            <div className="mb-6 rounded-2xl border border-green-200 bg-green-50 px-6 py-4 text-sm text-green-700 animate-in slide-in-from-top duration-300">
+              <span className="flex items-center gap-2 font-medium">
+                <span className="text-lg">✅</span> {successMessage}
+              </span>
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
             {/* Avatar & Role Sidebar */}
             <div className="lg:col-span-1">
-              <Card className="bg-white rounded-2xl shadow-lg border-border flex flex-col items-center p-6">
+              <Card className="bg-white rounded-2xl shadow-sm border-border flex flex-col items-center p-8">
                 <AvatarUpload
                   currentAvatar={avatar}
                   onAvatarChange={handleAvatarUpload}
                   onRemove={handleAvatarRemove}
                   isLoading={isUploadingAvatar}
                 />
-                <div className="mt-6 pt-4 border-t border-border w-full text-center">
-                  <p className="text-sm font-semibold text-primary mb-1">Role</p>
-                  <p className="text-sm text-muted-foreground">{role}</p>
+                <div className="mt-8 pt-6 border-t border-border w-full text-center">
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1.5">Administrative Role</p>
+                  <p className="text-lg font-bold text-primary">{role}</p>
                 </div>
               </Card>
             </div>
 
             {/* Main Tabs Content */}
             <div className="lg:col-span-3">
-              <Card className="bg-white rounded-2xl shadow-lg border-border p-6">
+              <Card className="bg-white rounded-2xl shadow-sm border-border p-8">
                 <Tabs
                   value={activeTab}
                   onValueChange={(value) =>
                     setActiveTab(value as 'personal' | 'password' | 'security' | 'recovery')
                   }
                 >
-                  <TabsList className="grid w-full grid-cols-4 bg-secondary/50 rounded-lg">
+                  <TabsList className="mb-8 p-1 grid w-full grid-cols-4 bg-secondary/50 rounded-xl">
                     <TabsTrigger
                       value="personal"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm text-xs sm:text-sm"
+                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm font-medium transition-all"
                     >
                       Personal
                     </TabsTrigger>
                     <TabsTrigger
                       value="password"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm text-xs sm:text-sm"
+                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm font-medium transition-all"
                     >
                       Password
                     </TabsTrigger>
                     <TabsTrigger
                       value="security"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm text-xs sm:text-sm"
+                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm font-medium transition-all"
                     >
-                      PIN
+                      Security PIN
                     </TabsTrigger>
                     <TabsTrigger
                       value="recovery"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm text-xs sm:text-sm"
+                      className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm font-medium transition-all"
                     >
                       Recovery
                     </TabsTrigger>
                   </TabsList>
 
                   {/* Personal Info */}
-                  <TabsContent value="personal" className="mt-6 space-y-6">
-                    <div className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Full Name</p>
-                          <p className="text-base font-semibold text-foreground">{name || 'Not provided'}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Email</p>
-                          <p className="text-base font-semibold text-foreground">{email}</p>
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-sm font-medium text-muted-foreground">Role</p>
-                          <p className="text-base font-semibold text-foreground">{role}</p>
-                        </div>
+                  <TabsContent value="personal" className="mt-0 space-y-8 animate-in fade-in duration-300">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Full Display Name</p>
+                        <p className="text-xl font-bold text-foreground">{name || 'Not provided'}</p>
                       </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Primary Email Address</p>
+                        <p className="text-xl font-bold text-foreground">{email}</p>
+                      </div>
+                    </div>
 
-                      <Button
-                        onClick={() => setShowEditModal(true)}
-                        className="w-full md:w-auto h-11 bg-primary hover:bg-primary/90"
-                      >
-                        Update Profile
-                      </Button>
+                    <div className="pt-6 border-t border-border">
+                        <Button
+                          onClick={() => setShowEditModal(true)}
+                          className="w-full md:w-auto px-8 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold h-12 shadow-sm"
+                        >
+                          Update Personal Details
+                        </Button>
                     </div>
                   </TabsContent>
 
                   {/* Password Change */}
-                  <TabsContent value="password" className="mt-6 space-y-6">
-                    <form onSubmit={handlePasswordChange} className="space-y-5">
+                  <TabsContent value="password" className="mt-0 space-y-6 animate-in fade-in duration-300">
+                    <form onSubmit={handlePasswordChange} className="space-y-6">
                       {passwordError && (
-                        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                          <p className="text-sm text-red-700">{passwordError}</p>
+                        <div className="p-4 bg-red-50 border border-red-100 rounded-xl flex items-center gap-3">
+                           <AlertCircle className="text-red-500 w-5 h-5 flex-shrink-0" />
+                           <p className="text-sm font-medium text-red-700">{passwordError}</p>
                         </div>
                       )}
 
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-recovery-code" className="text-primary font-medium">
-                          Recovery Code
-                        </Label>
-                        <Input
-                          id="admin-recovery-code"
-                          value={recoveryCodeInput}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setRecoveryCodeInput(e.target.value.toUpperCase())}
-                          className="h-11 font-mono uppercase"
-                          autoComplete="off"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          Còn lại {recoveryCodesCount} mã có thể sử dụng.
-                        </p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="admin-recovery-code" className="text-sm font-bold text-foreground">
+                              Recovery Code Verification
+                            </Label>
+                            <Input
+                              id="admin-recovery-code"
+                              value={recoveryCodeInput}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => setRecoveryCodeInput(e.target.value.toUpperCase())}
+                              className="h-12 font-mono uppercase rounded-xl border-border focus:ring-primary"
+                              placeholder="Enter one recovery code"
+                              autoComplete="off"
+                              required
+                            />
+                            <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1.5">
+                              <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                              Available codes: <span className="text-foreground">{recoveryCodesCount}</span>
+                            </p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="current-password" className="text-sm font-bold text-foreground">
+                              Confirm Identity
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                id="current-password"
+                                type={showPasswords ? 'text' : 'password'}
+                                value={currentPassword}
+                                onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                                className="h-12 pr-12 rounded-xl border-border focus:ring-primary"
+                                placeholder="Enter current password"
+                                required
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPasswords(!showPasswords)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                              >
+                                {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
+                              </button>
+                            </div>
+                          </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="current-password" className="text-primary font-medium">
-                          Current Password
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            id="current-password"
-                            type={showPasswords ? 'text' : 'password'}
-                            value={currentPassword}
-                            onChange={(e: ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-                            className="h-11 pr-10"
-                            required
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPasswords(!showPasswords)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                            aria-label={showPasswords ? 'Hide password' : 'Show password'}
-                          >
-                            {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                            <Label htmlFor="new-password" className="text-sm font-bold text-foreground">
+                              New Credential
+                            </Label>
+                            <Input
+                              id="new-password"
+                              type={showPasswords ? 'text' : 'password'}
+                              value={newPassword}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                              className="h-12 rounded-xl border-border focus:ring-primary"
+                              placeholder="Enter new strong password"
+                              required
+                            />
+                             <p className="text-[10px] text-muted-foreground leading-tight">
+                              Mi8+ chars, 1 uppercase, 1 special sym
+                            </p>
+                          </div>
 
-                      <div className="space-y-2">
-                        <Label htmlFor="new-password" className="text-primary font-medium">
-                          New Password
-                        </Label>
-                        <Input
-                          id="new-password"
-                          type={showPasswords ? 'text' : 'password'}
-                          value={newPassword}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                          className="h-11"
-                          required
-                        />
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Must contain at least 8 characters, uppercase letters, and special characters
-                        </p>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-password" className="text-primary font-medium">
-                          Confirm New Password
-                        </Label>
-                        <Input
-                          id="confirm-password"
-                          type={showPasswords ? 'text' : 'password'}
-                          value={confirmPassword}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                          className="h-11"
-                          required
-                        />
+                          <div className="space-y-2">
+                            <Label htmlFor="confirm-password" className="text-sm font-bold text-foreground">
+                              Repeat New Credential
+                            </Label>
+                            <Input
+                              id="confirm-password"
+                              type={showPasswords ? 'text' : 'password'}
+                              value={confirmPassword}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                              className="h-12 rounded-xl border-border focus:ring-primary"
+                              placeholder="Confirm new password"
+                              required
+                            />
+                          </div>
                       </div>
 
                       <Button
                         type="submit"
                         disabled={isLoading || recoveryCodesCount === 0}
-                        className="w-full h-11 bg-primary hover:bg-primary/90"
+                        className="w-full h-12 rounded-xl bg-primary hover:bg-primary/90 text-white font-bold shadow-md"
                       >
-                        {isLoading ? 'Updating...' : 'Change Password'}
+                        {isLoading ? 'Processing Security Update...' : 'Commit Password Change'}
                       </Button>
                     </form>
                   </TabsContent>
 
                   {/* PIN Setup */}
-                  <TabsContent value="security" className="mt-6 space-y-6">
-                    <div className="bg-secondary/40 border border-border rounded-lg p-5">
-                      <div className="flex items-start gap-3">
-                        <Lock className="w-5 h-5 text-primary mt-1 flex-shrink-0" />
+                  <TabsContent value="security" className="mt-0 space-y-8 animate-in fade-in duration-300">
+                    <div className="bg-secondary/30 border border-border rounded-2xl p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                           <Lock className="w-5 h-5 text-primary" />
+                        </div>
                         <div>
-                          <h4 className="font-semibold text-primary mb-1.5">Admin PIN Protection</h4>
+                          <h4 className="font-bold text-foreground text-lg mb-1">Advanced PIN Protection</h4>
                           <p className="text-sm text-muted-foreground leading-relaxed">
-                            Add an extra layer of security with a 6-digit PIN required for sensitive admin actions.
+                            For highly sensitive administrative operations, a secondary 6-digit PIN is required. This ensures that even if a session is compromised, critical system settings remain protected.
                           </p>
                         </div>
                       </div>
@@ -564,16 +539,16 @@ const AdminProfilePage: React.FC = () => {
                     {!showPinForm ? (
                       <Button
                         onClick={() => setShowPinForm(true)}
-                        className="w-full h-11 bg-primary hover:bg-primary/90 gap-2"
+                        className="w-full h-12 bg-primary hover:bg-primary/90 rounded-xl gap-2 font-bold shadow-md"
                       >
                         <Lock size={18} />
-                        Set Admin PIN
+                        Establish Admin Security PIN
                       </Button>
                     ) : (
-                      <form onSubmit={handlePinSetup} className="space-y-6">
-                        <div className="space-y-3">
-                          <Label className="text-primary font-medium">Enter 6-Digit PIN</Label>
-                          <div className="grid grid-cols-6 gap-3">
+                      <form onSubmit={handlePinSetup} className="space-y-8 max-w-md mx-auto">
+                        <div className="space-y-4">
+                          <Label className="text-sm font-bold text-foreground text-center block">Set New 6-Digit PIN</Label>
+                          <div className="flex justify-between gap-2 px-2">
                             {pinDigits.map((digit, i) => (
                               <Input
                                 key={i}
@@ -583,15 +558,15 @@ const AdminProfilePage: React.FC = () => {
                                 maxLength={1}
                                 value={digit}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, false)}
-                                className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
+                                className="w-12 text-center text-xl font-bold h-14 border-2 focus:border-primary rounded-xl"
                               />
                             ))}
                           </div>
                         </div>
 
-                        <div className="space-y-3">
-                          <Label className="text-primary font-medium">Confirm PIN</Label>
-                          <div className="grid grid-cols-6 gap-3">
+                        <div className="space-y-4">
+                          <Label className="text-sm font-bold text-foreground text-center block">Confirm Security PIN</Label>
+                          <div className="flex justify-between gap-2 px-2">
                             {confirmPinDigits.map((digit, i) => (
                               <Input
                                 key={i}
@@ -601,7 +576,7 @@ const AdminProfilePage: React.FC = () => {
                                 maxLength={1}
                                 value={digit}
                                 onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, true)}
-                                className="text-center text-xl font-bold h-12 border-2 focus:border-primary rounded-lg"
+                                className="w-12 text-center text-xl font-bold h-14 border-2 focus:border-primary rounded-xl"
                                 placeholder="•"
                               />
                             ))}
@@ -611,15 +586,15 @@ const AdminProfilePage: React.FC = () => {
                         <div className="flex gap-4">
                           <Button
                             type="button"
-                            variant="outline"
+                            variant="ghost"
                             onClick={() => {
                               setShowPinForm(false)
                               setPinDigits(Array(6).fill(''))
                               setConfirmPinDigits(Array(6).fill(''))
                             }}
-                            className="flex-1 h-11"
+                            className="flex-1 h-12 rounded-xl text-muted-foreground hover:bg-secondary/50 font-bold"
                           >
-                            Cancel
+                            Discard
                           </Button>
                           <Button
                             type="submit"
@@ -628,9 +603,9 @@ const AdminProfilePage: React.FC = () => {
                               pinDigits.some((d) => !d) ||
                               confirmPinDigits.some((d) => !d)
                             }
-                            className="flex-1 h-11 bg-primary hover:bg-primary/90"
+                            className="flex-1 h-12 bg-primary hover:bg-primary/90 rounded-xl font-bold shadow-md"
                           >
-                            {isLoading ? 'Setting...' : 'Set PIN'}
+                            {isLoading ? 'Configuring...' : 'Secure System'}
                           </Button>
                         </div>
                       </form>
@@ -638,131 +613,139 @@ const AdminProfilePage: React.FC = () => {
                   </TabsContent>
 
                   {/* Recovery Codes */}
-                  <TabsContent value="recovery" className="mt-6 space-y-6">
-                    <div className="bg-accent/10 border border-accent/30 rounded-lg p-5">
-                      <div className="flex items-start gap-3">
-                        <AlertCircle className="w-5 h-5 text-accent mt-0.5" />
-                        <p className="text-sm text-muted-foreground leading-relaxed">
-                          Admin uses one recovery code for each password change. Used code is removed and cannot be reused.
-                        </p>
+                  <TabsContent value="recovery" className="mt-0 space-y-8 animate-in fade-in duration-300">
+                    <div className="bg-orange-50 border border-orange-100 rounded-2xl p-6">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 bg-orange-100 rounded-xl flex items-center justify-center shrink-0">
+                           <AlertCircle className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <div>
+                           <h4 className="font-bold text-orange-900 text-lg mb-1">Administrative Recovery</h4>
+                           <p className="text-sm text-orange-700 leading-relaxed">
+                            These codes are your ultimate failsafe. Each code can be used exactly once. Store them in a physical vault or an offline encrypted drive.
+                          </p>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex gap-3">
-                      <Button
-                        variant="outline"
-                        className="h-11 border-primary text-primary hover:bg-primary/10"
-                        onClick={handleDownloadCodes}
-                        disabled={hasDownloaded || recoveryCodesCount === 0}
-                      >
-                        Download All Codes
-                      </Button>
-                    </div>
+                    <div className="flex flex-col items-center gap-6 p-8 border-2 border-dashed border-border rounded-2xl">
+                        <div className="text-center">
+                            <p className="text-4xl font-bold text-primary mb-1">{recoveryCodesCount}</p>
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Active Recovery Keys Remaining</p>
+                        </div>
 
-                    {!hasDownloaded ? (
-                      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">
-                        Bạn có {recoveryCodesCount} mã khôi phục chưa được tải xuống. Hãy tải xuống và cất giữ an toàn, bạn chỉ có thể tải xuống 1 lần duy nhất.
-                      </div>
-                    ) : (
-                      <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground text-center">
-                        Mã khôi phục đã được tải xuống. Nếu bạn muốn xem lại mã khôi phục hãy liên hệ kĩ thuật viên hệ thống.
-                      </div>
-                    )}
+                        <Button
+                          variant="outline"
+                          className="w-full md:w-auto px-10 h-12 rounded-xl border-primary text-primary hover:bg-primary/5 font-bold transition-all"
+                          onClick={handleDownloadCodes}
+                          disabled={hasDownloaded || recoveryCodesCount === 0}
+                        >
+                          {hasDownloaded ? 'Vault Keys Downloaded' : 'Generate & Export Recovery Vault'}
+                        </Button>
+
+                        {!hasDownloaded ? (
+                          <p className="text-xs text-muted-foreground text-center max-w-sm">
+                            You have {recoveryCodesCount} keys that haven't been exported. <span className="font-bold text-foreground underline font-mono italic px-1 text-red-800">Extreme caution advised.</span>
+                          </p>
+                        ) : (
+                          <p className="text-xs font-medium text-green-600 bg-green-50 px-4 py-1.5 rounded-full border border-green-100">
+                            Vault successfully exported. Access restricted.
+                          </p>
+                        )}
+                    </div>
                   </TabsContent>
                 </Tabs>
               </Card>
             </div>
           </div>
-        </main>
-      </div>
+        </div>
 
       {/* Edit Profile Modal */}
       {showEditModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-2xl shadow-2xl bg-white overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-6 border-b border-border/50 flex justify-between items-center bg-secondary/10">
-              <h2 className="text-2xl font-bold text-primary">Update Profile</h2>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+          <Card className="w-full max-w-xl shadow-2xl bg-white overflow-hidden rounded-3xl border-0 animate-in zoom-in-95 duration-300">
+            <div className="p-8 border-b border-border/50 flex justify-between items-center bg-secondary/10">
+              <h2 className="text-2xl font-bold text-primary tracking-tight">Modify Identity</h2>
               <button
                 type="button"
                 onClick={() => setShowEditModal(false)}
-                className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-black/5 transition-colors"
-                aria-label="Close modal"
+                className="text-muted-foreground hover:text-foreground p-2 rounded-full hover:bg-black/5 transition-all"
               >
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6 overflow-y-auto">
-              <form id="edit-admin-profile-form" onSubmit={handlePersonalInfoSave} className="space-y-5">
+            <div className="p-8">
+              <form id="edit-admin-profile-form" onSubmit={handlePersonalInfoSave} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-admin-name" className="text-primary font-medium">
-                    Full Name <span className="text-red-500">*</span>
+                  <Label htmlFor="edit-admin-name" className="text-sm font-bold text-foreground">
+                    Public Administrator Name
                   </Label>
                   <Input
                     id="edit-admin-name"
                     value={name}
                     onChange={(e: ChangeEvent<HTMLInputElement>) => setName(e.target.value)}
-                    className="h-11 border-2 focus:border-primary transition-colors"
-                    placeholder="Enter your full name"
+                    className="h-12 border-2 focus:border-primary rounded-xl font-medium"
+                    placeholder="Enter official name"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-admin-email" className="text-primary font-medium">
-                    Email
+                  <Label htmlFor="edit-admin-email" className="text-sm font-bold text-foreground">
+                    System Entity Email
                   </Label>
                   <Input
                     id="edit-admin-email"
                     type="email"
                     value={email}
-                    className="h-11 bg-muted/50 cursor-not-allowed"
+                    className="h-12 bg-muted/30 border-dashed border-border text-muted-foreground rounded-xl cursor-not-allowed font-medium"
                     disabled
                   />
-                  <p className="text-xs text-muted-foreground mt-1">Email cannot be changed.</p>
+                  <p className="text-[10px] font-medium text-muted-foreground/60 italic">Immutable system attribute</p>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-admin-role" className="text-primary font-medium">
-                    Role
+                  <Label htmlFor="edit-admin-role" className="text-sm font-bold text-foreground">
+                    Assigned Authorization Tier
                   </Label>
                   <Input
                     id="edit-admin-role"
                     value={role}
-                    className="h-11 bg-muted/50 cursor-not-allowed"
+                    className="h-12 bg-muted/30 border-dashed border-border text-muted-foreground rounded-xl cursor-not-allowed font-medium"
                     disabled
                   />
                 </div>
               </form>
             </div>
-            <div className="p-6 border-t border-border/50 bg-secondary/5 flex justify-end gap-4">
+            <div className="p-8 pt-0 flex justify-end gap-4">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={() => setShowEditModal(false)}
-                className="h-11 px-6 font-medium"
+                className="h-12 px-8 font-bold rounded-xl text-muted-foreground"
               >
-                Cancel
+                Abort
               </Button>
               <Button
                 type="submit"
                 form="edit-admin-profile-form"
                 disabled={isLoading}
-                className="h-11 px-8 bg-primary hover:bg-primary/90 text-white font-medium shadow-md hover:shadow-lg transition-all"
+                className="h-12 px-10 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-lg transition-all"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Saving...
+                    Synchronizing...
                   </div>
                 ) : (
-                  'Save Changes'
+                  'Commit Updates'
                 )}
               </Button>
             </div>
           </Card>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   )
 }
 

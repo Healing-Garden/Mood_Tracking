@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { useNavigate, Link } from 'react-router-dom'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
-import { Brain, BookOpen, TrendingUp, Menu, X } from 'lucide-react'
+import { Brain, BookOpen, TrendingUp } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 import DailyCheckInModal from '../../../components/modals/DailyCheckInModal'
 import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
@@ -20,7 +20,6 @@ const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stress
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [weeklyStats, setWeeklyStats] = useState({
@@ -107,151 +106,116 @@ const UserDashboardPage = () => {
   }, [])
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-foreground">My Dashboard</h1>
-
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Welcome Section */}
-              <div className="bg-gradient-to-r from-muted to-muted/50 rounded-2xl p-8 border border-border/30">
-                <h2 className="text-3xl font-bold text-foreground mb-2">Welcome back!</h2>
-                <p className="text-muted-foreground">
-                  {loading ? '...' : `You're on day ${dashboardData?.journeyDays || 1} of your wellness journey. Keep going!`}
-                </p>
-              </div>
-
-              {/* Mood Trend Chart */}
-              <MoodFlow
-                defaultPeriod="week"
-                onDataChange={handleMoodDataChange}
-              />
-
-              {/* Emotions Breakdown */}
-              <Card className="border-border/50 shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Brain size={20} className="text-primary" />
-                    Emotions Breakdown
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={dashboardData?.moodDistribution || []}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => value > 0 ? `${name} ${value}%` : ''}
-                        outerRadius={100}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {(dashboardData?.moodDistribution || []).map((entry: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={entry.fill} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              {/* Trigger Heatmap */}
-              <TriggerHeatmap defaultPeriod="week" />
+    <DashboardLayout title="My Dashboard">
+      <main className="px-6 lg:px-10 py-10">
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* LEFT SIDE */}
+          <div className="lg:col-span-2 space-y-8">
+            {/* Welcome Card */}
+            <div className="bg-gradient-to-r from-muted/70 to-muted/30 border border-border/40 rounded-3xl p-8 shadow-sm">
+              <h2 className="text-3xl font-bold text-foreground mb-2">
+                Welcome back 👋
+              </h2>
+              <p className="text-muted-foreground text-lg">
+                {loading
+                  ? '...'
+                  : `You're on day ${dashboardData?.journeyDays || 1
+                    } of your wellness journey. Keep going!`}
+              </p>
             </div>
 
-            {/* Right Sidebar */}
-            <div className="space-y-6">
-              {/* Weekly Stats */}
-              <Card className="border-border/50 shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-lg">Weekly Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="bg-muted/50 rounded-lg p-4">
+            {/* Mood Chart Card */}
+            <Card className="border-border/40 shadow-sm rounded-3xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">
+                  Mood Flow
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <MoodFlow
+                  defaultPeriod="week"
+                  onDataChange={handleMoodDataChange}
+                />
+              </CardContent>
+            </Card>
+
+            {/* Heatmap */}
+            <Card className="border-border/40 shadow-sm rounded-3xl">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold">
+                  Emotional Frequency
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <TriggerHeatmap defaultPeriod="week" />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* RIGHT SIDEBAR */}
+          <div className="space-y-8">
+            <DailySummaryCard />
+            {/* Weekly Stats */}
+            <Card className="border-border/40 shadow-sm rounded-3xl">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">
+                  Weekly Stats
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-muted/50 rounded-xl p-4">
                     <p className="text-sm text-muted-foreground">Check-ins</p>
                     <p className="text-2xl font-bold text-primary">{weeklyStats.checkIns}</p>
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="bg-muted/50 rounded-xl p-4">
                     <p className="text-sm text-muted-foreground">Avg Mood</p>
                     <p className="text-2xl font-bold text-primary">{weeklyStats.avgMood}/5</p>
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="bg-muted/50 rounded-xl p-4">
                     <p className="text-sm text-muted-foreground">Journal Entries</p>
                     <p className="text-2xl font-bold text-primary">{weeklyStats.journalEntries}</p>
                   </div>
-                  <div className="bg-muted/50 rounded-lg p-4">
+                  <div className="bg-muted/50 rounded-xl p-4">
                     <p className="text-sm text-muted-foreground">AI Insights</p>
                     <p className="text-2xl font-bold text-primary">{weeklyStats.insightsGenerated}</p>
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              {/* Quick Actions */}
-              <Card className="border-border/50 shadow-md">
-                <CardHeader>
-                  <CardTitle className="text-lg">Quick Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Link to="/user/journal">
-                    <Button className="w-full bg-primary hover:bg-primary/90 text-white justify-start gap-2">
-                      <BookOpen size={18} />
-                      Write Journal
-                    </Button>
-                  </Link>
-                  <Link to="/user/analytics">
-                    <Button variant="outline" className="w-full border-border/50 text-foreground hover:bg-muted justify-start gap-2 bg-transparent">
-                      <TrendingUp size={18} />
-                      View Analytics
-                    </Button>
-                  </Link>
-                  <Button variant="outline" className="w-full border-border/50 text-foreground hover:bg-muted justify-start gap-2 bg-transparent">
-                    <Brain size={18} />
-                    AI Insights
+            {/* Quick Actions */}
+            <Card className="border-border/40 shadow-sm rounded-3xl">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold">
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Link to="/user/journal">
+                  <Button className="w-full bg-primary hover:bg-primary/90 text-white justify-start gap-2 rounded-xl">
+                    <BookOpen size={18} />
+                    Write Journal
                   </Button>
-                </CardContent>
-              </Card>
-
-              <DailySummaryCard />
-            </div>
+                </Link>
+                <Link to="/user/analytics">
+                  <Button variant="outline" className="w-full border-border/50 hover:bg-muted justify-start gap-2 rounded-xl">
+                    <TrendingUp size={18} />
+                    View Analytics
+                  </Button>
+                </Link>
+                <Button variant="outline" className="w-full border-border/50 hover:bg-muted justify-start gap-2 rounded-xl">
+                  <Brain size={18} />
+                  AI Insights
+                </Button>
+              </CardContent>
+            </Card>
           </div>
-        </main>
-      </div>
-
-      {/* Daily Check-in Modal */}
+        </div>
+      </main>
       <DailyCheckInModal />
       <ActionSuggestionModal />
-    </div>
+    </DashboardLayout>
   )
 }
 

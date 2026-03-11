@@ -61,12 +61,12 @@ export default function Step2CurrentSituation() {
   const isFormValid = selectedStress !== '' && selectedRecentState !== '' && selectedClarity !== ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6f8f6] to-[#e8f0e8] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-3xl space-y-10">
         {/* Header */}
         <div className="space-y-3 text-center">
-          <h1 className="text-4xl font-bold text-[#122012]">Current Situation</h1>
-          <p className="text-lg text-[#122012]/70">Tell us about what you've been experiencing</p>
+          <h1 className="text-4xl font-bold text-foreground">Current Situation</h1>
+          <p className="text-lg text-muted-foreground">Tell us about what you've been experiencing</p>
         </div>
 
         {/* Progress */}
@@ -84,8 +84,8 @@ export default function Step2CurrentSituation() {
           {/* Question 4 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">4</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">4</span>
                 How has your stress level been over the past week?
               </CardTitle>
             </CardHeader>
@@ -96,8 +96,8 @@ export default function Step2CurrentSituation() {
                     key={opt}
                     onClick={() => setSelectedStress(opt)}
                     className={`flex flex-col items-center justify-center p-4 rounded-xl border-2 transition-all ${selectedStress === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span className="text-sm text-center">{opt}</span>
@@ -111,8 +111,8 @@ export default function Step2CurrentSituation() {
           {/* Question 5 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">5</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">5</span>
                 Which state have you most frequently felt recently?
               </CardTitle>
             </CardHeader>
@@ -123,8 +123,8 @@ export default function Step2CurrentSituation() {
                     key={opt}
                     onClick={() => setSelectedRecentState(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedRecentState === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>
@@ -138,8 +138,8 @@ export default function Step2CurrentSituation() {
           {/* Question 6 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">6</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">6</span>
                 To what extent do you feel you understand your emotions?
               </CardTitle>
             </CardHeader>
@@ -150,8 +150,8 @@ export default function Step2CurrentSituation() {
                     key={opt}
                     onClick={() => setSelectedClarity(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedClarity === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>

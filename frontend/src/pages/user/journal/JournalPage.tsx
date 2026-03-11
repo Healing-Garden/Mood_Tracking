@@ -32,7 +32,7 @@ import {
 } from "lucide-react";
 import { uploadToCloudinary } from "../../../utils/cloudinary";
 import { compressImage } from "../../../utils/imageOptimizer";
-import DashboardSidebar from "../../../components/layout/DashboardSideBar";
+import DashboardLayout from "../../../components/layout/DashboardLayout";
 import { journalApi } from "../../../api/journalApi";
 import { userApi } from "../../../api/userApi";
 import { aiApi } from "../../../api/aiApi";
@@ -71,11 +71,9 @@ const MOODS = ["😊", "😢", "😡", "😠", "😐", "🙂", "🙃", "😍"];
 export default function JournalPage() {
   const { user } = useAuth();
 
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<
     "write" | "entries" | "search" | "trash"
   >("entries");
-  // const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form state
   const [title, setTitle] = useState<string>("");
@@ -541,49 +539,8 @@ export default function JournalPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? "block" : "hidden"
-          } lg:static lg:block`}
-      >
-        <DashboardSidebar
-          userType="user"
-          onClose={() => setSidebarOpen(false)}
-        />
-      </div>
-
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Multimedia Journal
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Capturing your journey of growth
-              </p>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-6xl mx-auto p-6">
+    <DashboardLayout title="Multimedia Journal">
+      <div className="max-w-6xl mx-auto p-6">
             <Tabs
               value={activeTab}
               onValueChange={(v) =>
@@ -591,17 +548,17 @@ export default function JournalPage() {
               }
               className="space-y-6"
             >
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-4">
-                <TabsTrigger value="write" className="gap-2">
-                  <Plus size={18} />
+              <TabsList className="w-full grid-cols-3 lg:grid-cols-4 p-1 bg-secondary/50 rounded-lg">
+                <TabsTrigger value="write" className="gap-2 flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
+                  <Plus size={16} />
                   <span className="hidden sm:inline">Write</span>
                 </TabsTrigger>
-                <TabsTrigger value="entries" className="gap-2">
-                  <BookOpen size={18} />
+                <TabsTrigger value="entries" className="gap-2 flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
+                  <BookOpen size={16} />
                   <span className="hidden sm:inline">My Entries</span>
                 </TabsTrigger>
-                <TabsTrigger value="trash" className="gap-2 hidden lg:flex">
-                  <Trash size={18} />
+                <TabsTrigger value="trash" className="gap-2 hidden lg:flex flex-1 items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
+                  <Trash size={16} />
                   Trash
                 </TabsTrigger>
               </TabsList>
@@ -1003,10 +960,8 @@ export default function JournalPage() {
                   </div>
                 )}
               </TabsContent>
-            </Tabs>
-          </div>
-        </main>
-      </div>
+              </Tabs>
+            </div>
       {selectedEntry && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6 relative">
@@ -1208,6 +1163,6 @@ export default function JournalPage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
