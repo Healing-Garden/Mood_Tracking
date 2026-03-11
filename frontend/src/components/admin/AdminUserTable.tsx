@@ -41,6 +41,7 @@ export const AdminUserTable: React.FC<AdminUserTableProps> = ({ users, onBan, on
                                             src={user.avatarUrl}
                                             alt={user.fullName}
                                             className="w-10 h-10 rounded-full object-cover shadow-sm m-auto block"
+                                            referrerPolicy="no-referrer"
                                         />
                                     ) : (
                                         <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold m-auto">
