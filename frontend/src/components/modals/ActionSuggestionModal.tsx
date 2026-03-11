@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Clock, BookOpen, Quote, Video, FileText, ArrowLeft, Play, CheckCircle } from 'lucide-react';
+import { X, Loader2, Clock, BookOpen, Quote, Video, FileText, Play, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { aiApi } from '../../api/aiApi';
 import { useActionSuggestionStore } from '../../store/actionSuggestionStore';
