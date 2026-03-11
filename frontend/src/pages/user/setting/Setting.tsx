@@ -33,7 +33,7 @@ export default function SettingsPage() {
   const [goals, setGoals] = useState<string[]>([])
 
   useEffect(() => {
-    setGoals(goalsSelected)
+    setGoals(goalsSelected || [])
   }, [goalsSelected])
 
   const handleRestartOnboarding = () => {

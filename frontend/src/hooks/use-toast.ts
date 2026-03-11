@@ -6,14 +6,15 @@ import type { ToastActionElement, ToastProps } from '../components/ui/Toast'
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1_000_000
 
-/* ===================== ENUM ===================== */
+export const ActionTypes = {
+  ADD_TOAST: 'ADD_TOAST',
+  UPDATE_TOAST: 'UPDATE_TOAST',
+  DISMISS_TOAST: 'DISMISS_TOAST',
+  REMOVE_TOAST: 'REMOVE_TOAST',
+} as const;
 
-export enum ActionTypes {
-  ADD_TOAST = 'ADD_TOAST',
-  UPDATE_TOAST = 'UPDATE_TOAST',
-  DISMISS_TOAST = 'DISMISS_TOAST',
-  REMOVE_TOAST = 'REMOVE_TOAST',
-}
+export type ActionType = keyof typeof ActionTypes;
+
 
 /* ===================== TYPES ===================== */
 
@@ -26,19 +27,19 @@ type ToasterToast = ToastProps & {
 
 type Action =
   | {
-    type: ActionTypes.ADD_TOAST
+    type: typeof ActionTypes.ADD_TOAST
     toast: ToasterToast
   }
   | {
-    type: ActionTypes.UPDATE_TOAST
+    type: typeof ActionTypes.UPDATE_TOAST
     toast: Partial<ToasterToast>
   }
   | {
-    type: ActionTypes.DISMISS_TOAST
+    type: typeof ActionTypes.DISMISS_TOAST
     toastId?: string
   }
   | {
-    type: ActionTypes.REMOVE_TOAST
+    type: typeof ActionTypes.REMOVE_TOAST
     toastId?: string
   }
 

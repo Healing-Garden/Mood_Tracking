@@ -3,17 +3,15 @@ import type { ChatSession, ChatMessage, DailySummary } from '../types/chat';
 
 export const chatApi = {
     getUserSessions: async (userId: string): Promise<ChatSession[]> => {
-        const res = await http.get<{ success: boolean; data: ChatSession[] }>(`/chat/sessions/${userId}`);
-        return Array.isArray(res.data) ? res.data : [];
+        const res: any = await http.get(`/chat/sessions/${userId}`);
+        return Array.isArray(res.data) ? res.data : (Array.isArray(res) ? res : []);
     },
 
     getSessionDetail: async (
         sessionId: string
     ): Promise<{ session: ChatSession; messages: ChatMessage[] }> => {
-        const res = await http.get<{ success: boolean; data: { session: ChatSession; messages: ChatMessage[] } }>(
-            `/chat/session/${sessionId}`
-        );
-        return res.data;
+        const res: any = await http.get(`/chat/session/${sessionId}`);
+        return res.data || res;
     },
 
     saveJournalNote: async (sessionId: string, note: string): Promise<void> => {
@@ -21,8 +19,8 @@ export const chatApi = {
     },
 
     getDailySummary: async (userId: string): Promise<DailySummary> => {
-        const res = await http.post<{ summary: DailySummary }>(`/ai/summary/daily`, { userId });
-        return res.summary;
+        const res: any = await http.post(`/ai/summary/daily`, { userId });
+        return res.summary || res;
     },
 
     saveSession: async (sessionData: ChatSession): Promise<void> => {
@@ -34,7 +32,7 @@ export const chatApi = {
     },
 
     loadSessionMessages: async (sessionId: string): Promise<ChatMessage[]> => {
-        const res = await http.get<{ success: boolean; messages: ChatMessage[] }>(`/chat/session/${sessionId}/messages`);
-        return Array.isArray(res.messages) ? res.messages : [];
+        const res: any = await http.get(`/chat/session/${sessionId}/messages`);
+        return Array.isArray(res.messages) ? res.messages : (Array.isArray(res) ? res : []);
     }
 };

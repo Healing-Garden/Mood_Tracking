@@ -20,7 +20,7 @@ interface Notification {
 
 interface ApiNotification {
   id: string
-  type: 'insight' | 'reminder' | 'tip' | 'message' | 'other'
+  type: 'insight' | 'reminder' | 'tip' | 'message' | 'other' | 'milestone'
   title: string
   content: string
   status: 'pending' | 'sent' | 'read'
