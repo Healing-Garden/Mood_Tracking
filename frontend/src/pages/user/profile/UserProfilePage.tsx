@@ -90,7 +90,6 @@ const UserProfilePage: React.FC = () => {
         avatarResponse.user?.avatarUrl ||
         avatarResponse.imageUrl ||
         ''
-
       setAvatar(nextAvatar)
 
       showSuccess('Avatar đã được cập nhật thành công.')
