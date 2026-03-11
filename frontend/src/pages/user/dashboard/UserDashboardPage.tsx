@@ -15,6 +15,7 @@ import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
 import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
 import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
+import FlowerMessenger from '../../../components/features/FlowerMessenger';
 
 const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
@@ -215,6 +216,7 @@ const UserDashboardPage = () => {
       </main>
       <DailyCheckInModal />
       <ActionSuggestionModal />
+      <FlowerMessenger />
     </DashboardLayout>
   )
 }

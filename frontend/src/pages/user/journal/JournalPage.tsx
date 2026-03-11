@@ -140,8 +140,11 @@ export default function JournalPage() {
   };
 
   const [isLocked, setIsLocked] = useState<boolean>(false);
+  const [isSettingPin, setIsSettingPin] = useState<boolean>(false);
   const [isCheckingLock, setIsCheckingLock] = useState<boolean>(true);
   const [pinInput, setPinInput] = useState<string[]>(Array(6).fill(''));
+  const [confirmPinInput, setConfirmPinInput] = useState<string[]>(Array(6).fill(''));
+  const [isConfirming, setIsConfirming] = useState<boolean>(false);
   const [verifyingPin, setVerifyingPin] = useState<boolean>(false);
 
   const checkAppLock = async () => {
@@ -154,7 +157,9 @@ export default function JournalPage() {
       }
 
       const profile = await userApi.getProfile();
-      if ((profile as any).appLockEnabled) {
+      if (!(profile as any).hasAppLockPin) {
+        setIsSettingPin(true);
+      } else if ((profile as any).appLockEnabled) {
         setIsLocked(true);
       }
     } catch (err) {
@@ -183,14 +188,60 @@ export default function JournalPage() {
     }
   };
 
-  const handlePinInputChange = (index: number, value: string) => {
-    const digit = value.replace(/[^0-9]/g, '').slice(0, 1);
-    const newInput = [...pinInput];
-    newInput[index] = digit;
-    setPinInput(newInput);
+  const handleSetPin = async () => {
+    const pin = pinInput.join('');
+    const confirmPin = confirmPinInput.join('');
 
-    if (digit && index < 5) {
-      document.getElementById(`pin-${index + 1}`)?.focus();
+    if (!isConfirming) {
+      if (pin.length !== 6) return;
+      setIsConfirming(true);
+      setTimeout(() => document.getElementById('confirm-pin-0')?.focus(), 100);
+      return;
+    }
+
+    if (pin !== confirmPin) {
+      alert("Mã PIN xác nhận không khớp");
+      setConfirmPinInput(Array(6).fill(''));
+      document.getElementById('confirm-pin-0')?.focus();
+      return;
+    }
+
+    setVerifyingPin(true);
+    try {
+      await userApi.setAppLockPin(pin);
+      sessionStorage.setItem("journalUnlocked", "true");
+      setIsSettingPin(false);
+      setIsLocked(false);
+    } catch (err: any) {
+      console.error("Set PIN failed:", err);
+      alert(err.message || "Không thể thiết lập mã PIN");
+    } finally {
+      setVerifyingPin(false);
+    }
+  };
+
+  const handleBackToSetPin = () => {
+    setIsConfirming(false);
+    setConfirmPinInput(Array(6).fill(''));
+    setTimeout(() => document.getElementById('pin-0')?.focus(), 100);
+  };
+
+  const handlePinInputChange = (index: number, value: string, isConfirm: boolean = false) => {
+    const digit = value.replace(/[^0-9]/g, '').slice(0, 1);
+    if (isConfirm) {
+      const newInput = [...confirmPinInput];
+      newInput[index] = digit;
+      setConfirmPinInput(newInput);
+      if (digit && index < 5) {
+        document.getElementById(`confirm-pin-${index + 1}`)?.focus();
+      }
+    } else {
+      const newInput = [...pinInput];
+      newInput[index] = digit;
+      setPinInput(newInput);
+      if (digit && index < 5) {
+        document.getElementById(`pin-${index + 1}`)?.focus();
+      }
     }
   };
 
@@ -489,6 +540,91 @@ export default function JournalPage() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (isSettingPin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm p-8 flex flex-col items-center text-center shadow-2xl border-primary/20 bg-white rounded-3xl">
+          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+            <Lock className="w-8 h-8 text-primary" />
+          </div>
+          <h2 className="text-2xl font-bold text-primary mb-2">
+            {isConfirming ? "Confirm Your PIN" : "Protect Your Journal"}
+          </h2>
+          <p className="text-muted-foreground mb-8">
+            {isConfirming
+              ? "Please re-enter your 6-digit PIN to confirm"
+              : "Set a 6-digit PIN to keep your personal thoughts safe"}
+          </p>
+
+          {!isConfirming ? (
+            <div className="grid grid-cols-6 gap-3 mb-8">
+              {pinInput.map((digit, i) => (
+                <Input
+                  key={i}
+                  id={`pin-${i}`}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handlePinInputChange(i, e.target.value)}
+                  className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
+                  autoFocus={i === 0}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-6 gap-3 mb-8">
+              {confirmPinInput.map((digit, i) => (
+                <Input
+                  key={i}
+                  id={`confirm-pin-${i}`}
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handlePinInputChange(i, e.target.value, true)}
+                  className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
+                  autoFocus={i === 0}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="space-y-3 w-full">
+            <Button
+              onClick={handleSetPin}
+              disabled={
+                (!isConfirming && pinInput.some((d) => !d)) ||
+                (isConfirming && confirmPinInput.some((d) => !d)) ||
+                verifyingPin
+              }
+              className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-semibold shadow-lg"
+            >
+              {verifyingPin ? "Saving..." : isConfirming ? "Confirm & Lock" : "Next"}
+            </Button>
+
+            {isConfirming && (
+              <Button
+                variant="outline"
+                onClick={handleBackToSetPin}
+                className="w-full h-12 border-2 rounded-xl text-lg font-semibold"
+              >
+                Back
+              </Button>
+            )}
+          </div>
+
+          <button
+            onClick={() => (window.location.href = "/user/dashboard")}
+            className="mt-6 text-sm text-muted-foreground hover:text-primary transition"
+          >
+            Back to Dashboard
+          </button>
+        </Card>
       </div>
     );
   }
