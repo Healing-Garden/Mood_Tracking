@@ -2,16 +2,17 @@ const nodemailer = require("nodemailer");
 
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false, // port 587 sử dụng STARTTLS thay vì SSL/TLS trực tiếp
+  requireTLS: true,
   auth: {
     user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS, // Bắt buộc phải là Mật khẩu ứng dụng (App Password)
+    pass: process.env.MAIL_PASS, // Mật khẩu ứng dụng 16 ký tự
   },
-  // Thêm giới hạn thời gian kết nối tránh việc bị treo trên production
-  connectionTimeout: 10000,
-  greetingTimeout: 10000,
-  socketTimeout: 10000,
+  // Giảm timeout xuống 5s để server phản hồi lỗi 500 trước khi Frontend bị timeout (thường là 10s) dẫn tới lỗi 499
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 5000,
 });
 
 exports.sendOTP = async (email, otp) => {
