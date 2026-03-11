@@ -1,6 +1,6 @@
 {
   "name": "moodtracking",
-  "version": "1.0.0",
+  "version": "1.0.0", 
   "description": "Mood Tracking API",
   "main": "src/server.js",
   "scripts": {
