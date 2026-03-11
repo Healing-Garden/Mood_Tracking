@@ -15,6 +15,18 @@ const transporter = nodemailer.createTransport({
   socketTimeout: 5000,
 });
 
+// Kiểm tra kết nối SMTP ngay khi server khởi động (để check lỗi trên Railway log)
+transporter.verify((error, success) => {
+  if (error) {
+    console.error("❌ SMTP Connection Error:", error.message);
+    if (error.response) {
+      console.error("❌ SMTP Server Response:", error.response);
+    }
+  } else {
+    console.log("✅ SMTP Server is ready to take our messages");
+  }
+});
+
 exports.sendOTP = async (email, otp) => {
   await transporter.sendMail({
     from: `"Mood Tracking" <${process.env.MAIL_USER}>`,
