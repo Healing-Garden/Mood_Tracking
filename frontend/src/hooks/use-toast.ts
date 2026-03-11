@@ -6,16 +6,14 @@ import type { ToastActionElement, ToastProps } from '../components/ui/Toast'
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1_000_000
 
-/* ===================== CONSTANTS ===================== */
-export const ActionTypes = {
-  ADD_TOAST: 'ADD_TOAST',
-  UPDATE_TOAST: 'UPDATE_TOAST',
-  DISMISS_TOAST: 'DISMISS_TOAST',
-  REMOVE_TOAST: 'REMOVE_TOAST',
-} as const;
+/* ===================== ENUM ===================== */
 
-export type ActionType = keyof typeof ActionTypes;
-
+export enum ActionTypes {
+  ADD_TOAST = 'ADD_TOAST',
+  UPDATE_TOAST = 'UPDATE_TOAST',
+  DISMISS_TOAST = 'DISMISS_TOAST',
+  REMOVE_TOAST = 'REMOVE_TOAST',
+}
 
 /* ===================== TYPES ===================== */
 
@@ -28,21 +26,21 @@ type ToasterToast = ToastProps & {
 
 type Action =
   | {
-      type: typeof ActionTypes.ADD_TOAST
-      toast: ToasterToast
-    }
+    type: ActionTypes.ADD_TOAST
+    toast: ToasterToast
+  }
   | {
-      type: typeof ActionTypes.UPDATE_TOAST
-      toast: Partial<ToasterToast>
-    }
+    type: ActionTypes.UPDATE_TOAST
+    toast: Partial<ToasterToast>
+  }
   | {
-      type: typeof ActionTypes.DISMISS_TOAST
-      toastId?: string
-    }
+    type: ActionTypes.DISMISS_TOAST
+    toastId?: string
+  }
   | {
-      type: typeof ActionTypes.REMOVE_TOAST
-      toastId?: string
-    }
+    type: ActionTypes.REMOVE_TOAST
+    toastId?: string
+  }
 
 interface State {
   toasts: ToasterToast[]

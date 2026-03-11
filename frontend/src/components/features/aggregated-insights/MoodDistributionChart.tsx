@@ -37,7 +37,7 @@ export const MoodDistributionChart: React.FC<Props> = ({ data }) => {
           fill="#8884d8"
           dataKey="value"
         >
-          {chartData.map((_, index) => (
+          {chartData.map((entry, index) => (
             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
           ))}
         </Pie>

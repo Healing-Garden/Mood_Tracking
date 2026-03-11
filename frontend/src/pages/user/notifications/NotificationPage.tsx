@@ -20,7 +20,7 @@ interface Notification {
 
 interface ApiNotification {
   id: string
-  type: 'insight' | 'reminder' | 'tip' | 'message' | 'other' | 'milestone'
+  type: 'insight' | 'reminder' | 'tip' | 'message' | 'other'
   title: string
   content: string
   status: 'pending' | 'sent' | 'read'
@@ -191,9 +191,8 @@ export default function NotificationsPage() {
             notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`overflow-hidden transition-all hover:shadow-md ${
-                  !notification.read ? 'border-primary/30 bg-primary/5' : ''
-                }`}
+                className={`overflow-hidden transition-all hover:shadow-md ${!notification.read ? 'border-primary/30 bg-primary/5' : ''
+                  }`}
               >
                 <CardContent className="p-0">
                   <div className={`${getNotificationColor(notification.type)} p-4 flex gap-4 items-start`}>

@@ -33,7 +33,7 @@ export default function SettingsPage() {
   const [goals, setGoals] = useState<string[]>([])
 
   useEffect(() => {
-    setGoals(goalsSelected || [])
+    setGoals(goalsSelected)
   }, [goalsSelected])
 
   const handleRestartOnboarding = () => {
@@ -71,7 +71,7 @@ export default function SettingsPage() {
 
       {/* Mobile Overlay */}
       {sidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-20 lg:hidden"
           onClick={() => setSidebarOpen(false)}
         />
@@ -97,7 +97,7 @@ export default function SettingsPage() {
               </h1>
             </div>
 
-            <button 
+            <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 hover:bg-muted rounded-lg"
             >
