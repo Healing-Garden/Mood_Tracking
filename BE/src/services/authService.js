@@ -111,21 +111,26 @@ module.exports = {
 
     await checkBannedStatus(user);
 
+    let needsSave = false;
+
     if (user.authProvider === "local") {
       user.googleId = googleId;
       user.authProvider = "both";
       if (!user.avatarUrl) user.avatarUrl = picture;
-      user.googleAvatarUrl = picture;
-      await user.save();
-
-      return issueJwt(user);
-    }
-
-    if (!user.googleId) {
+      needsSave = true;
+    } else if (!user.googleId) {
       user.googleId = googleId;
       user.authProvider = "both";
       if (!user.avatarUrl) user.avatarUrl = picture;
+      needsSave = true;
+    }
+
+    if (user.googleAvatarUrl !== picture) {
       user.googleAvatarUrl = picture;
+      needsSave = true;
+    }
+
+    if (needsSave) {
       await user.save();
     }
 

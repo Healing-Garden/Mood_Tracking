@@ -85,6 +85,7 @@ export default function AvatarUpload({
             src={displayAvatar}
             alt="Avatar preview"
             className="absolute inset-0 w-full h-full object-cover"
+            referrerPolicy="no-referrer"
           />
         </div>
 

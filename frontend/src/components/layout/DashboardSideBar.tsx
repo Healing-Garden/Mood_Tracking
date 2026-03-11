@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/Button";
 import { authApi } from "../../api/authApi";
 import { useDailyCheckInStore } from "../../store/dailyCheckInStore";
 import { useOnboardingStore } from "../../store/onboardingStore";
+import { useAuth } from "../../hooks/useAuth";
 import {
   Home,
   User,
@@ -35,6 +36,7 @@ export default function DashboardSidebar({
   onClose,
 }: DashboardSidebarProps) {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -150,7 +152,16 @@ export default function DashboardSidebar({
             variant="ghost"
             className="w-full justify-start gap-3 px-3 py-2 text-foreground hover:bg-muted/50 hover:text-primary"
           >
-            <User size={20} />
+            {(user as any)?.avatarUrl || user?.avatar ? (
+              <img
+                src={(user as any)?.avatarUrl || user?.avatar}
+                alt={(user as any)?.fullName || user?.name || "Profile"}
+                className="w-5 h-5 rounded-full object-cover shrink-0 block"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <User size={20} className="shrink-0" />
+            )}
             Profile
           </Button>
         </NavLink>
