@@ -74,7 +74,9 @@ module.exports = {
     if (!user) throw new Error("User not found");
     const userObj = applyDefaultAvatar(user);
     userObj.hasPassword = !!userObj.password;
+    userObj.hasAppLockPin = !!userObj.appLockPinHash;
     delete userObj.password;
+    delete userObj.appLockPinHash;
     return userObj;
   },
 
@@ -91,7 +93,9 @@ module.exports = {
     if (!user) throw new Error("User not found");
     const userObj = applyDefaultAvatar(user);
     userObj.hasPassword = !!userObj.password;
+    userObj.hasAppLockPin = !!userObj.appLockPinHash;
     delete userObj.password;
+    delete userObj.appLockPinHash;
     return userObj;
   },
 
