@@ -349,9 +349,10 @@ module.exports = {
         const adjectives = doc.adjectives().out('array');
 
         adjectives.forEach((word) => {
-          const lowerWord = word.toLowerCase().trim();
-          if (lowerWord.length > 2) {
-            wordFreq[lowerWord] = (wordFreq[lowerWord] || 0) + 1;
+          // Remove punctuation from the start and end of the word
+          const cleanedWord = word.toLowerCase().trim().replace(/^[^\w\s]+|[^\w\s]+$/g, '');
+          if (cleanedWord.length > 2) {
+            wordFreq[cleanedWord] = (wordFreq[cleanedWord] || 0) + 1;
           }
         });
       };
