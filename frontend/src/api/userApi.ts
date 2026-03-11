@@ -10,6 +10,8 @@ interface UserProfile {
   weight?: number;
   avatarUrl?: string;
   hasPassword?: boolean;
+  appLockEnabled?: boolean;
+  hasAppLockPin?: boolean;
   createdAt: string;
   updatedAt: string;
 }
