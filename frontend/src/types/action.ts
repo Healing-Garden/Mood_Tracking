@@ -2,8 +2,11 @@ export interface Action {
   id: string;
   title: string;
   description: string;
-  type: string;
+  type: string; // "quote" | "video" | "article"
   duration_seconds: number;
-  difficulty: string;
+  difficulty: string; // "easy" | "medium" | "hard"
   mood_category: string[];
+  thumbnail?: string | null;
+  video_url?: string | null;
+  content?: string | null;
 }
