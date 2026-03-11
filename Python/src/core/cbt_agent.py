@@ -39,24 +39,26 @@ class CBTChatAgent:
                 "intent": "crisis_response",
             }
         
-        # 2. Sentiment analysis
-        sentiment_result = await asyncio.to_thread(sentiment_analyzer.analyze_journal_entry, user_input)
-        
-        # Xác định giai đoạn hiện tại
+        # 2 & 3. Sentiment analysis AND Retrieval (Run in PARALLEL to optimize speed)
+        # Identify current state and message count first
         current_state = session_state.get("state", "initial")
         user_message_count = 1  
         if conversation_history:
             user_message_count += sum(1 for msg in conversation_history if msg.get('sender') == 'user')
+
+        query = f"{user_input}" # Simplified query for speed
         
-        # 3. Retrieve CBT techniques
-        query = f"{user_input} {sentiment_result['dominant_emotion']}"
-
+        sentiment_task = asyncio.to_thread(sentiment_analyzer.analyze_journal_entry, user_input)
+        
         if current_state in ["initial", "assessment"]:
-            techniques = await cbt_kb.retrieve_techniques(query=query, category="exploratory", k=2)
+            techniques_task = cbt_kb.retrieve_techniques(query=query, category="exploratory", k=2)
         else:
-            techniques = await cbt_kb.retrieve_techniques(query, k=3)
-
-        # 4. Generate response với Gemini
+            techniques_task = cbt_kb.retrieve_techniques(query, k=3)
+            
+        # Execute both tasks concurrently
+        sentiment_result, techniques = await asyncio.gather(sentiment_task, techniques_task)
+        
+        # 4. Generate response with Gemini
         response_text = await self._generate_with_gemini(
             user_input,
             sentiment_result,
