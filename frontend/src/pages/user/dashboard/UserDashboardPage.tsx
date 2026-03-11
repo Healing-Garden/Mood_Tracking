@@ -16,7 +16,7 @@ import { DailySummaryCard } from '../../../components/features/DailySummaryCard'
 import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
 import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
 
-const NEGATIVE_MOODS = ['sad', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
+const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
