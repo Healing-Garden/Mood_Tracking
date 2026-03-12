@@ -1,6 +1,5 @@
 import { useState } from "react"
 import DashboardLayout from '../../../components/layout/DashboardLayout'
-import { useSidebar } from '../../../components/layout/DashboardLayout'
 import {
   Card,
   CardContent,
@@ -72,11 +71,10 @@ const recentUsers = [
 export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedUser, setSelectedUser] = useState<number | null>(null)
-  const { sidebarCollapsed } = useSidebar();
 
   return (
     <DashboardLayout title="Admin Dashboard" userType="admin">
-        <div className={`px-4 py-8 space-y-8 max-w-[1600px] mx-auto transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className="px-4 py-8 space-y-8 max-w-[1600px] mx-auto transition-all duration-300">
           {/* Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Metric title="Total Users" value="365" note="+12 this week" />

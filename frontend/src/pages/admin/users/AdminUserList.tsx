@@ -9,12 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { BanUserModal } from '../../../components/admin/BanUserModal';
 import type { BanConfig } from '../../../components/admin/BanUserModal';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
-import { useSidebar } from '../../../components/layout/DashboardLayout';
 
 const AdminUserList: React.FC = () => {
-    const { sidebarCollapsed } = useSidebar();
     const { toast } = useToast();
-
     const [users, setUsers] = useState<UserDTO[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -113,7 +110,7 @@ const AdminUserList: React.FC = () => {
 
     return (
         <DashboardLayout title="User Management" userType="admin">
-            <div className={`p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+            <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full transition-all duration-300">
                 <Card className="shadow-sm border-border">
                     <CardHeader className="pb-4">
                         <CardTitle className="text-xl">System Users</CardTitle>
