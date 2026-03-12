@@ -9,6 +9,10 @@ initSchedulers();
 require('./services/scheduler');
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+const serverInstance = server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
 });
+
+// Increase timeout for large file uploads (10 minutes)
+serverInstance.timeout = 600000; 
+serverInstance.keepAliveTimeout = 600000;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
+import toast from "react-hot-toast"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/Tabs"
-import { useToast } from "../../../hooks/use-toast"
 import { Button } from "../../../components/ui/Button"
 import type { HealingContent } from "../../../services/healingContentService"
 import {
@@ -17,7 +17,7 @@ import DeleteConfirmModal from "../../../components/admin/healing/DeleteConfirmM
 import DashboardLayout from "../../../components/layout/DashboardLayout"
 
 export default function HealingContentPage() {
-    const [activeTab, setActiveTab] = useState<'quote' | 'video' | 'article'>('quote')
+    const [activeTab, setActiveTab] = useState<'quote' | 'video' | 'podcast'>('quote')
     const [contents, setContents] = useState<HealingContent[]>([])
     const [isLoading, setIsLoading] = useState(false)
 
@@ -28,20 +28,33 @@ export default function HealingContentPage() {
     const [selectedContent, setSelectedContent] = useState<HealingContent | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const { toast } = useToast()
 
-    const fetchContents = async (type: 'quote' | 'video' | 'article') => {
+
+    /** Parse a human-readable message from an axios/network error */
+    const getErrorMessage = (error: unknown): string => {
+        if (error && typeof error === 'object') {
+            // Axios error shape
+            const axiosErr = error as { response?: { data?: { message?: string } }; message?: string };
+            const serverMsg = axiosErr?.response?.data?.message;
+            if (serverMsg) return serverMsg;
+            if (axiosErr.message) {
+                if (axiosErr.message.includes('Network')) return 'Network error — please check your connection.';
+                if (axiosErr.message.includes('413')) return 'File is too large to upload.';
+                if (axiosErr.message.includes('timeout')) return 'Request timed out. The file may be too large.';
+                return axiosErr.message;
+            }
+        }
+        return 'An unexpected error occurred. Please try again.';
+    }
+
+    const fetchContents = async (type: 'quote' | 'video' | 'podcast') => {
         setIsLoading(true)
         try {
             const data = await getHealingContent(type)
             setContents(data)
         } catch (error) {
             console.error("Failed to fetch healing content", error)
-            toast({
-                title: "Error",
-                description: "Failed to load healing content. Please try again.",
-                variant: "destructive",
-            })
+            toast.error('Failed to load healing content. Please try again.')
         } finally {
             setIsLoading(false)
         }
@@ -76,26 +89,17 @@ export default function HealingContentPage() {
         try {
             if (selectedContent) {
                 await updateHealingContent(selectedContent._id, data)
-                toast({
-                    title: "Success",
-                    description: "Healing content updated successfully.",
-                })
+                toast.success(`"${selectedContent.title}" updated successfully!`)
             } else {
                 await createHealingContent(data)
-                toast({
-                    title: "Success",
-                    description: "Healing content created successfully.",
-                })
+                toast.success('New healing content created successfully!')
             }
             setIsFormModalOpen(false)
             fetchContents(activeTab)
         } catch (error) {
             console.error("Form submit error", error)
-            toast({
-                title: "Error",
-                description: "Failed to save healing content.",
-                variant: "destructive",
-            })
+            const isEdit = !!selectedContent
+            toast.error(`${isEdit ? 'Update failed' : 'Create failed'}: ${getErrorMessage(error)}`)
         } finally {
             setIsSubmitting(false)
         }
@@ -107,19 +111,12 @@ export default function HealingContentPage() {
         setIsSubmitting(true)
         try {
             await deleteHealingContent(selectedContent._id)
-            toast({
-                title: "Success",
-                description: "Healing content deleted successfully.",
-            })
+            toast.success(`"${selectedContent.title}" deleted successfully!`)
             setIsDeleteModalOpen(false)
             fetchContents(activeTab)
         } catch (error) {
             console.error("Delete error", error)
-            toast({
-                title: "Error",
-                description: "Failed to delete healing content.",
-                variant: "destructive",
-            })
+            toast.error(`Delete failed: ${getErrorMessage(error)}`)
         } finally {
             setIsSubmitting(false)
         }
@@ -129,16 +126,6 @@ export default function HealingContentPage() {
         <DashboardLayout 
             title="Healing Content Library" 
             userType="admin"
-            headerActions={
-                <Button
-                    onClick={handleOpenAddModal}
-                    className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white border-0 shadow-md"
-                    size="sm"
-                >
-                    <Plus size={18} />
-                    Add Content
-                </Button>
-            }
         >
             <div className="px-4 py-8 max-w-6xl mx-auto space-y-6">
                 <div>
@@ -149,14 +136,24 @@ export default function HealingContentPage() {
                 <Tabs
                     defaultValue="quote"
                     value={activeTab}
-                    onValueChange={(value) => setActiveTab(value as 'quote' | 'video' | 'article')}
+                    onValueChange={(value) => setActiveTab(value as 'quote' | 'video' | 'podcast')}
                     className="w-full"
                 >
-                    <TabsList className="mb-6 grid w-full grid-cols-3 max-w-md bg-secondary/50 rounded-xl p-1">
-                        <TabsTrigger value="quote" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Quotes</TabsTrigger>
-                        <TabsTrigger value="video" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Videos</TabsTrigger>
-                        <TabsTrigger value="article" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Articles</TabsTrigger>
-                    </TabsList>
+                    <div className="flex items-center justify-between mb-6 gap-4">
+                        <TabsList className="grid grid-cols-3 max-w-md w-full bg-secondary/50 rounded-xl p-1">
+                            <TabsTrigger value="quote" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Quotes</TabsTrigger>
+                            <TabsTrigger value="video" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Videos</TabsTrigger>
+                            <TabsTrigger value="podcast" className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Podcasts</TabsTrigger>
+                        </TabsList>
+                        <Button
+                            onClick={handleOpenAddModal}
+                            className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white border-0 shadow-md shrink-0"
+                            size="sm"
+                        >
+                            <Plus size={18} />
+                            Add Content
+                        </Button>
+                    </div>
 
                     <div className="bg-white rounded-2xl shadow-sm border border-border p-6 min-h-[400px]">
                         {isLoading ? (
@@ -184,9 +181,9 @@ export default function HealingContentPage() {
                                         onView={handleOpenDetailModal}
                                     />
                                 </TabsContent>
-                                <TabsContent value="article" className="mt-0 outline-none">
+                                <TabsContent value="podcast" className="mt-0 outline-none">
                                     <HealingContentTable
-                                        type="article"
+                                        type="podcast"
                                         contents={contents}
                                         onEdit={handleOpenEditModal}
                                         onDelete={handleOpenDeleteModal}

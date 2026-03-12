@@ -8,7 +8,7 @@ interface FailedQueueItem {
 
 const http = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
-  timeout: 10000,
+  timeout: 600000, // Increase to 10 minutes for video uploads
   withCredentials: true,
 });
 
