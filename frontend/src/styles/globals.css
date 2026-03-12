@@ -124,6 +124,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -136,15 +137,19 @@
     transform: translateX(0) rotate(0deg);
     opacity: 1;
   }
+
   25% {
     transform: translateX(100px) rotate(90deg);
   }
+
   50% {
     transform: translateX(-50px) rotate(180deg);
   }
+
   75% {
     transform: translateX(80px) rotate(270deg);
   }
+
   100% {
     top: 100vh;
     transform: translateX(0) rotate(360deg);
@@ -153,10 +158,12 @@
 }
 
 @keyframes sway {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   50% {
     transform: translateX(30px);
   }
@@ -169,15 +176,19 @@
     transform: translateX(0) rotate(0deg);
     opacity: 0.8;
   }
+
   25% {
     transform: translateX(15vw) rotate(90deg);
   }
+
   50% {
     transform: translateX(-10vw) rotate(180deg);
   }
+
   75% {
     transform: translateX(20vw) rotate(270deg);
   }
+
   100% {
     top: 100vh;
     transform: translateX(0) rotate(360deg);
@@ -187,8 +198,15 @@
 
 /* Optional: Flutter effect for petals */
 @keyframes flutter {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(15deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(15deg);
+  }
 }
 
 @layer utilities {

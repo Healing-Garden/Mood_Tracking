@@ -107,7 +107,7 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
             <table className="min-w-full divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                     <tr>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/5">
                             Title
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -116,7 +116,10 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             Status
                         </th>
-                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-2/5">
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Author
+                        </th>
+                        <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
                             Preview
                         </th>
                         <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -132,8 +135,6 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
                         <tr key={item._id} className="hover:bg-gray-50 transition-colors">
                             <td className="px-6 py-4">
                                 <div className="text-sm font-medium text-gray-900">{item.title}</div>
-                                {item.author && <div className="text-xs text-blue-600 font-medium italic">By: {item.author}</div>}
-                                {item.type === 'video' && item.metadata?.author && <div className="text-xs text-blue-600 font-medium italic">By: {item.metadata.author}</div>}
                                 {item.description && <div className="text-xs text-gray-400 truncate max-w-[200px] mt-1">{item.description}</div>}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -156,6 +157,11 @@ const HealingContentTable: React.FC<HealingContentTableProps> = ({
                                         Active
                                     </span>
                                 )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                                <span className="text-sm text-blue-600 font-medium italic">
+                                    {item.author || item.metadata?.author || '-'}
+                                </span>
                             </td>
                             <td className="px-6 py-4">
                                 {getPreview(item)}
