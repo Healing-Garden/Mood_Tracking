@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Clock, BookOpen, Quote, Video, FileText, Play, CheckCircle } from 'lucide-react';
+import { X, Loader2, Clock, BookOpen, Quote, Video, Headphones, Play, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { aiApi } from '../../api/aiApi';
 import { useActionSuggestionStore } from '../../store/actionSuggestionStore';
@@ -12,7 +12,7 @@ const getTypeIcon = (type: string) => {
   switch (type) {
     case 'quote': return <Quote className="h-4 w-4" />;
     case 'video': return <Video className="h-4 w-4" />;
-    case 'article': return <FileText className="h-4 w-4" />;
+    case 'podcast': return <Headphones className="h-4 w-4" />;
     default: return <BookOpen className="h-4 w-4" />;
   }
 };
@@ -21,7 +21,7 @@ const getTypeLabel = (type: string) => {
   switch (type) {
     case 'quote': return 'Quote';
     case 'video': return 'Video';
-    case 'article': return 'Article';
+    case 'podcast': return 'Podcast';
     default: return type;
   }
 };
@@ -30,7 +30,7 @@ const getTypeColor = (type: string) => {
   switch (type) {
     case 'quote': return 'bg-purple-100 text-purple-700';
     case 'video': return 'bg-blue-100 text-blue-700';
-    case 'article': return 'bg-green-100 text-green-700';
+    case 'podcast': return 'bg-green-100 text-green-700';
     default: return 'bg-gray-100 text-gray-600';
   }
 };

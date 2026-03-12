@@ -166,7 +166,7 @@ async def fetch_actions_from_new_tables(
     mood_levels = get_mood_levels(mood)
     
     all_docs: List[Dict] = []
-    collections = ["healingquotes", "healingvideos", "healingarticles"]
+    collections = ["healingquotes", "healingvideos", "healingpodcasts"]
     
     # Try multiple strategies to find best content
     strategies = [
