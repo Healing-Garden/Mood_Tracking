@@ -201,6 +201,18 @@ module.exports = {
           console.error("Failed to generate instant AI tip after check-in:", e?.message);
         }
       })();
+      // Delete cached daily summary for today to force regeneration
+      const mongoose = require("mongoose");
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      try {
+        await mongoose.connection.collection("daily_summaries").deleteMany({
+          user_id: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+          date: startOfDay
+        });
+      } catch (err) {
+        console.error("Failed to invalidate daily summary cache:", err);
+      }
 
       return res.status(200).json(entry);
     } catch (err) {
@@ -482,10 +494,9 @@ module.exports = {
       const consistency = calculateConsistency(currentCheckIns, days);
       const prevConsistency = calculateConsistency(prevCheckIns, days);
 
-      // 3. Total Entries (Journal) - Within the specific period
+      // 3. Total Entries (Journal) - Global total matching dashboard logic
       const currentEntries = await JournalEntry.countDocuments({
         user_id: userId,
-        createdAt: { $gte: start, $lte: today },
         deleted_at: null,
       });
       const prevEntries = await JournalEntry.countDocuments({
@@ -787,8 +798,8 @@ module.exports = {
       } else {
         const quotes = await HealingQuote.find({ is_active: true }).sort({ createdAt: -1 });
         const videos = await HealingVideo.find({ is_active: true }).sort({ createdAt: -1 });
-        const articles = await HealingArticle.find({ is_active: true }).sort({ createdAt: -1 });
-        content = [...quotes, ...videos, ...articles].sort((a, b) => b.createdAt - a.createdAt);
+        const podcasts = await HealingPodcast.find({ is_active: true }).sort({ createdAt: -1 });
+        content = [...quotes, ...videos, ...podcasts].sort((a, b) => b.createdAt - a.createdAt);
       }
       return res.status(200).json(content);
     } catch (error) {

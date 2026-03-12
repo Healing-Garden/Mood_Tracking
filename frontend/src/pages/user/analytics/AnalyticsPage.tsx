@@ -3,7 +3,7 @@ import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { dailyCheckInApi, type SummaryResponse } from '../../../api/dailyCheckInApi'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
-import { Download, TrendingUp, AlertTriangle, X } from 'lucide-react'
+import { Download, TrendingUp, TrendingDown, Activity, CalendarDays, LifeBuoy, HeartPulse, Lightbulb, AlertTriangle, X, Brain } from 'lucide-react'
 import DashboardLayout from '../../../components/layout/DashboardLayout'
 import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import MoodFlow from '../../../components/features/MoodFlow'
@@ -328,13 +328,14 @@ const AnalyticsPage = () => {
 
   // Helper để lấy icon cho insight
   const getInsightIcon = (insight: string) => {
-    if (insight.toLowerCase().includes('improving')) return '📈'
-    if (insight.toLowerCase().includes('downward') || insight.toLowerCase().includes('below average')) return '📉'
-    if (insight.toLowerCase().includes('volatile') || insight.toLowerCase().includes('fluctuat')) return '🌊'
-    if (insight.toLowerCase().includes('best on')) return '🌟'
-    if (insight.toLowerCase().includes('support')) return '🤝'
-    if (insight.toLowerCase().includes('mindfulness')) return '🧘'
-    return '💡'
+    const lower = insight.toLowerCase()
+    if (lower.includes('improving') || lower.includes('positive')) return <TrendingUp className="text-green-500 w-8 h-8" />
+    if (lower.includes('downward') || lower.includes('below average')) return <TrendingDown className="text-red-500 w-8 h-8" />
+    if (lower.includes('volatile') || lower.includes('fluctuat')) return <Activity className="text-orange-500 w-8 h-8" />
+    if (lower.includes('best on')) return <CalendarDays className="text-blue-500 w-8 h-8" />
+    if (lower.includes('support')) return <LifeBuoy className="text-indigo-500 w-8 h-8" />
+    if (lower.includes('mindfulness') || lower.includes('self-care')) return <HeartPulse className="text-pink-500 w-8 h-8" />
+    return <Lightbulb className="text-yellow-500 w-8 h-8" />
   }
 
   // Helper để lấy title ngắn cho insight
@@ -423,22 +424,6 @@ const AnalyticsPage = () => {
                 {loading ? '...' : `${summary?.current.consistency || 0}%`}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Daily check-ins</p>
-              {loadingAI ? (
-                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
-              ) : (
-                <div className="text-3xl font-bold text-accent">
-                  {trendData?.stats
-                    ? trendData.volatility < 0.2 ? 'High'
-                      : trendData.volatility < 0.4 ? 'Medium'
-                        : 'Low'
-                    : '—'}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {trendData?.stats
-                  ? `Volatility: ${(trendData.volatility * 100).toFixed(0)}%`
-                  : 'Mood consistency'}
-              </p>
             </CardContent>
           </Card>
 
@@ -454,26 +439,6 @@ const AnalyticsPage = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 In this {timeRange}
               </p>
-
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-muted-foreground">
-                  Days Tracked
-                </p>
-
-                {loadingAI ? (
-                  <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
-                ) : (
-                  <div className="text-3xl font-bold text-primary">
-                    {trendData?.stats?.data_points ?? '—'}
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground mt-1">
-                  {trendData?.stats
-                    ? `In last ${trendData.stats.analysis_period_days} days`
-                    : 'Check-in days'}
-                </p>
-              </div>
             </CardContent>
           </Card>
 
@@ -482,9 +447,6 @@ const AnalyticsPage = () => {
               <CardTitle className="text-sm font-semibold text-muted-foreground">AI Insights</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-accent">
-                {loading ? '...' : (summary?.current.insightCount || 0)}
-              </div>
               {loadingAI ? (
                 <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
               ) : (
@@ -654,7 +616,7 @@ const AnalyticsPage = () => {
         <Card className="mt-12 border-border shadow-md bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5">
           <CardHeader>
             <CardTitle className="text-primary flex items-center gap-2">
-              <span className="text-2xl">✨</span> AI Insights & Recommendations
+              <Brain className="w-6 h-6 text-primary" /> AI Insights & Recommendations
               {loadingAI && (
                 <span className="ml-2 text-sm text-muted-foreground">(updating...)</span>
               )}
@@ -671,7 +633,7 @@ const AnalyticsPage = () => {
             ) : aiError ? (
               <div className="col-span-2 p-6 bg-amber-50 border border-amber-200 rounded-xl text-amber-800">
                 <p className="font-semibold mb-1">
-                  ⚠️ Advanced insights are temporarily unavailable.
+                  Advanced insights are temporarily unavailable.
                 </p>
                 <p className="text-sm">
                   Below is your logged data. Please try again later.
@@ -682,7 +644,7 @@ const AnalyticsPage = () => {
             ) : trendData?.overallTrend === 'insufficient_data' ? (
               <div className="col-span-2 p-6 bg-blue-50 border border-blue-200 rounded-xl text-blue-800">
                 <p className="font-semibold mb-1">
-                  📊 Keep logging to unlock AI insights!
+                  Keep logging to unlock AI insights!
                 </p>
                 <p className="text-sm">
                   {trendData.insights[0] ||
@@ -696,7 +658,9 @@ const AnalyticsPage = () => {
                   key={idx}
                   className="flex gap-4 p-5 bg-white rounded-xl border border-border hover:shadow-md transition-shadow"
                 >
-                  <span className="text-3xl">{getInsightIcon(insight)}</span>
+                  <div className="flex-shrink-0 flex items-center justify-center bg-gray-50 rounded-full w-12 h-12">
+                    {getInsightIcon(insight)}
+                  </div>
 
                   <div>
                     <p className="font-semibold text-primary mb-1">

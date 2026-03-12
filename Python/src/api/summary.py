@@ -92,9 +92,12 @@ async def generate_daily_summary(request: DailySummaryRequest):
                 {"date": 1, "createdAt": 1, "created_at": 1, "mood": 1, "energy": 1, "user": 1}
             ).to_list(length=None)
         
-        # Generate summary
+        # Get Onboarding preferences
+        onboarding = await db.onboarding.find_one({"user": user_object_id if user_object_id else request.user_id})
+
+        # Generate summary (pass onboarding to generator if possible)
         generator = DailySummaryGenerator()
-        result = await generator.generate(request.user_id, request.date, entries, moods)
+        result = await generator.generate(request.user_id, request.date, entries, moods, onboarding)
 
         if result["type"] == "empty_day":
             # Không lưu vào daily_summaries, chỉ trả về

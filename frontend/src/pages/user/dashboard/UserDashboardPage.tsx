@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { useNavigate, Link } from 'react-router-dom'
-
-import { Brain, BookOpen, TrendingUp } from 'lucide-react'
+import { Brain, BookOpen, TrendingUp, MessageSquare } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
 import DashboardLayout from '../../../components/layout/DashboardLayout'
@@ -11,11 +10,12 @@ import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 import { userApi } from '../../../api/userApi'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
-
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
 import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
 import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
 import FlowerMessenger from '../../../components/features/FlowerMessenger';
+import { useAuth } from '../../../hooks/useAuth';
+import { aiApi } from '../../../api/aiApi';
 import { Quote as QuoteIcon } from 'lucide-react';
 import type { HealingContent } from '../../../services/healingContentService';
 
@@ -23,6 +23,7 @@ const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stress
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState('')
@@ -131,10 +132,21 @@ const UserDashboardPage = () => {
   }, [])
 
   useEffect(() => {
-    if (lastMood && NEGATIVE_MOODS.includes(lastMood.toLowerCase())) {
-      openModal(lastMood)
-    }
-  }, [lastMood, openModal])
+    const maybeOpenSuggestions = async () => {
+      if (!lastMood || !NEGATIVE_MOODS.includes(lastMood.toLowerCase())) return;
+      if (!user?.id) return;
+      try {
+        const res = await aiApi.checkActionEligibility(user.id) as any;
+        const eligible = res?.eligible ?? res?.data?.eligible;
+        if (eligible) {
+          openModal(lastMood);
+        }
+      } catch (err) {
+        console.error('Failed to check action suggestion eligibility:', err);
+      }
+    };
+    maybeOpenSuggestions();
+  }, [lastMood, openModal, user]);
 
   const handleMoodDataChange = useCallback((points: any[]) => {
     if (points.length === 0) {
@@ -161,7 +173,7 @@ const UserDashboardPage = () => {
               <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="text-center md:text-left flex-1">
                   <h2 className="text-4xl font-extrabold text-foreground tracking-tight mb-3">
-                    {greeting}, <span className="text-primary">{loading ? '...' : dashboardData?.userName}</span> 👋
+                    {greeting}, <span className="text-primary">{loading ? '...' : dashboardData?.userName}</span>
                   </h2>
                   <p className="text-muted-foreground text-lg max-w-lg mb-6 leading-relaxed">
                     {loading
@@ -186,7 +198,7 @@ const UserDashboardPage = () => {
                     <p className="text-6xl font-black text-primary drop-shadow-sm">
                       {loading ? '...' : dashboardData?.journeyDays || 1}
                     </p>
-                    <div className="absolute -top-1 -right-4 w-3 h-3 bg-accent rounded-full animate-pulse" />
+                    {/* <div className="absolute -top-1 -right-4 w-3 h-3 bg-accent rounded-full animate-pulse" /> */}
                   </div>
                   <p className="text-xs text-muted-foreground font-medium mb-4 italic">"Growing day by day"</p>
                   <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
@@ -267,19 +279,19 @@ const UserDashboardPage = () => {
               <CardContent className="p-8 pt-0 flex flex-col gap-4">
                 <Link to="/user/feedback" className="group">
                   <Button variant="ghost" className="w-full h-14 justify-between px-6 rounded-2xl bg-muted/40 hover:bg-muted text-foreground transition-all group-hover:shadow-sm">
-                    <span className="font-bold text-base">Share Feedback</span>
-                    <TrendingUp className="group-hover:rotate-12 transition-transform" />
+                    <span className="font-semibold text-base">Share Feedback</span>
+                    <MessageSquare size={22} className="group-hover:rotate-12 transition-transform" />
                   </Button>
                 </Link>
                 <Link to="/user/analytics" className="group">
                   <Button variant="ghost" className="w-full h-14 justify-between px-6 rounded-2xl bg-muted/40 hover:bg-muted text-foreground transition-all group-hover:shadow-sm">
                     <span className="font-semibold text-base">In-depth Trends</span>
-                    <TrendingUp size={22} className="text-muted-foreground" />
+                    <TrendingUp size={22} className="group-hover:rotate-12 transition-transform" />
                   </Button>
                 </Link>
                 <Button variant="ghost" className="w-full h-14 justify-between px-6 rounded-2xl bg-muted/40 hover:bg-muted text-foreground transition-all group-hover:shadow-sm">
                   <span className="font-semibold text-base">AI Soul Partner</span>
-                  <Brain size={22} className="text-muted-foreground" />
+                  <Brain size={22} className="group-hover:rotate-12 transition-transform" />
                 </Button>
               </CardContent>
             </Card>

@@ -1,18 +1,20 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Clock, BookOpen, Quote, Video, FileText, Play, CheckCircle } from 'lucide-react';
+import { X, Loader2, Clock, BookOpen, Quote, Video, Headphones, Play, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { aiApi } from '../../api/aiApi';
 import { useActionSuggestionStore } from '../../store/actionSuggestionStore';
 import { Button } from '../ui/Button';
 import { toast } from 'react-hot-toast';
 import type { Action } from '../../types/action';
+import Confetti from 'react-confetti';
+import { useWindowSize } from 'react-use';
 
 const getTypeIcon = (type: string) => {
   switch (type) {
     case 'quote': return <Quote className="h-4 w-4" />;
     case 'video': return <Video className="h-4 w-4" />;
-    case 'article': return <FileText className="h-4 w-4" />;
+    case 'podcast': return <Headphones className="h-4 w-4" />;
     default: return <BookOpen className="h-4 w-4" />;
   }
 };
@@ -21,7 +23,7 @@ const getTypeLabel = (type: string) => {
   switch (type) {
     case 'quote': return 'Quote';
     case 'video': return 'Video';
-    case 'article': return 'Article';
+    case 'podcast': return 'Podcast';
     default: return type;
   }
 };
@@ -30,7 +32,7 @@ const getTypeColor = (type: string) => {
   switch (type) {
     case 'quote': return 'bg-purple-100 text-purple-700';
     case 'video': return 'bg-blue-100 text-blue-700';
-    case 'article': return 'bg-green-100 text-green-700';
+    case 'podcast': return 'bg-green-100 text-green-700';
     default: return 'bg-gray-100 text-gray-600';
   }
 };
@@ -61,6 +63,10 @@ const ActionSuggestionModal: React.FC = () => {
   } = useActionSuggestionStore();
 
   const [startTime, setStartTime] = useState<number | null>(null);
+  const [phase, setPhase] = useState<'list' | 'execute' | 'celebrate'>('list');
+  const [postMoodScore, setPostMoodScore] = useState<number>(3);
+  const [completedDuration, setCompletedDuration] = useState<number>(0);
+  const { width, height } = useWindowSize();
 
   useEffect(() => {
     if (isOpen && mood && user && !selectedAction) {
@@ -88,26 +94,34 @@ const ActionSuggestionModal: React.FC = () => {
   const handleActionSelect = (action: Action) => {
     setSelectedAction(action);
     setStartTime(Date.now());
+    setPhase('execute');
     toast.success(`Starting: ${action.title}`);
   };
 
   const handleCompleteAction = async () => {
-    if (!user || !selectedAction) return;
-
+    if (!selectedAction) return;
     const durationSeconds = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    setCompletedDuration(durationSeconds);
+    setPhase('celebrate');
+  };
 
+  const submitCompletionWithMood = async () => {
+    if (!user || !selectedAction) return;
+    
     try {
       setLoading(true);
       await aiApi.logActionCompletion(
         user.id,
         selectedAction.id,
-        durationSeconds,
+        completedDuration,
         mood || undefined,
-        'suggestion'
+        'suggestion',
+        postMoodScore
       );
-      toast.success('Well done! Mood improved.');
-      closeModal();
+      toast.success(`Tuyệt vời! Bạn đã hoàn thành "${selectedAction.title}".`);
+      handleClose();
     } catch (err) {
+      console.error(err);
       toast.error('Failed to log completion');
     } finally {
       setLoading(false);
@@ -213,9 +227,18 @@ const ActionSuggestionModal: React.FC = () => {
     ? mood.charAt(0).toUpperCase() + mood.slice(1)
     : '';
 
+  const handleClose = () => {
+    setSelectedAction(null);
+    setStartTime(null);
+    setPhase('list');
+    setPostMoodScore(3);
+    setCompletedDuration(0);
+    closeModal();
+  };
+
   return (
     <Transition appear show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={closeModal}>
+      <Dialog as="div" className="relative z-50" onClose={handleClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -253,7 +276,7 @@ const ActionSuggestionModal: React.FC = () => {
                         <span>Mood Boosters</span>
                       </Dialog.Title>
                       <button
-                        onClick={closeModal}
+                        onClick={handleClose}
                         className="rounded-full p-2 hover:bg-gray-100 transition-colors"
                         aria-label="Close"
                       >
@@ -347,7 +370,62 @@ const ActionSuggestionModal: React.FC = () => {
                 )}
 
                 {/* Execution View (Detail View) */}
-                {selectedAction && renderExecutionView(selectedAction)}
+                {selectedAction && phase === 'execute' && renderExecutionView(selectedAction)}
+
+                {selectedAction && phase === 'celebrate' && (
+                  <div className="space-y-6 text-center">
+                    <Confetti width={width} height={height} recycle={false} numberOfPieces={300} />
+                    <div className="relative py-6">
+                      <div className="text-5xl mb-2">🎉</div>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                        Tuyệt vời! Bạn đã hoàn thành "{selectedAction.title}"
+                      </h2>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Hãy dành một chút để xem bạn đang cảm thấy thế nào sau khi hoàn thành hoạt động này.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-gray-800">
+                        Bạn thấy tâm trạng mình lúc này (1–5) là bao nhiêu?
+                      </p>
+                      <div className="flex items-center justify-center gap-4">
+                        <span className="text-xs text-gray-400">1</span>
+                        <input
+                          type="range"
+                          min={1}
+                          max={5}
+                          value={postMoodScore}
+                          onChange={(e) => setPostMoodScore(Number(e.target.value))}
+                          className="w-56 accent-primary"
+                        />
+                        <span className="text-xs text-gray-400">5</span>
+                      </div>
+                      <div className="text-sm font-semibold text-primary">
+                        {postMoodScore}/5
+                      </div>
+                    </div>
+
+                    <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                      <Button
+                        variant="outline"
+                        onClick={handleClose}
+                        className="w-full sm:w-auto"
+                        disabled={loading}
+                      >
+                        Bỏ qua bước này
+                      </Button>
+                      <Button
+                        onClick={submitCompletionWithMood}
+                        className="w-full sm:w-auto bg-primary text-white hover:bg-primary/90 flex items-center justify-center gap-2"
+                        disabled={loading}
+                      >
+                        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                        Lưu lại cảm nhận của tôi
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Empty */}
                 {!loading && !error && actions.length === 0 && !selectedAction && (

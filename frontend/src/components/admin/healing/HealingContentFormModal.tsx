@@ -50,7 +50,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                 setVideoPreviewUrl(null);
                 setRemoveVideo(false);
 
-                if (initialData.type === 'video' && initialData.metadata) {
+                if ((initialData.type === 'video' || initialData.type === 'podcast') && initialData.metadata) {
                     const totalSec = initialData.metadata.duration_seconds || 60;
                     const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
                     const s = (totalSec % 60).toString().padStart(2, '0');
@@ -62,7 +62,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                     setDurationDisplay('01:00');
                     setDifficulty('easy');
                     setMoodTags('');
-                    // For quote and podcast, author is top-level
+                    // For quote, author is top-level
                     setAuthor(initialData.author || '');
                 }
             } else {
@@ -244,18 +244,6 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                             </div>
                         )}
 
-                        {type === 'podcast' && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Author / Channel (Optional)</label>
-                                <input
-                                    type="text"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-                                    value={author}
-                                    onChange={(e) => setAuthor(e.target.value)}
-                                    placeholder="Channel or author name..."
-                                />
-                            </div>
-                        )}
 
                         {type === 'quote' && (
                         <div>
