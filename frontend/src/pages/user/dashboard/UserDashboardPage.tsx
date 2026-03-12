@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { useNavigate, Link } from 'react-router-dom'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { Brain, BookOpen, TrendingUp } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -11,11 +10,12 @@ import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 import { userApi } from '../../../api/userApi'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
-import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
 import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
 import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
 import FlowerMessenger from '../../../components/features/FlowerMessenger';
+import { useAuth } from '../../../hooks/useAuth';
+import { aiApi } from '../../../api/aiApi';
 import { Quote as QuoteIcon, Sparkles } from 'lucide-react';
 import type { HealingContent } from '../../../services/healingContentService';
 
@@ -23,6 +23,7 @@ const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stress
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [greeting, setGreeting] = useState('')
@@ -131,10 +132,21 @@ const UserDashboardPage = () => {
   }, [])
 
   useEffect(() => {
-    if (lastMood && NEGATIVE_MOODS.includes(lastMood.toLowerCase())) {
-      openModal(lastMood)
-    }
-  }, [lastMood, openModal])
+    const maybeOpenSuggestions = async () => {
+      if (!lastMood || !NEGATIVE_MOODS.includes(lastMood.toLowerCase())) return;
+      if (!user?.id) return;
+      try {
+        const res = await aiApi.checkActionEligibility(user.id) as any;
+        const eligible = res?.eligible ?? res?.data?.eligible;
+        if (eligible) {
+          openModal(lastMood);
+        }
+      } catch (err) {
+        console.error('Failed to check action suggestion eligibility:', err);
+      }
+    };
+    maybeOpenSuggestions();
+  }, [lastMood, openModal, user]);
 
   const handleMoodDataChange = useCallback((points: any[]) => {
     if (points.length === 0) {

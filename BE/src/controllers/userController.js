@@ -201,6 +201,18 @@ module.exports = {
           console.error("Failed to generate instant AI tip after check-in:", e?.message);
         }
       })();
+      // Delete cached daily summary for today to force regeneration
+      const mongoose = require("mongoose");
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      try {
+        await mongoose.connection.collection("daily_summaries").deleteMany({
+          user_id: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+          date: startOfDay
+        });
+      } catch (err) {
+        console.error("Failed to invalidate daily summary cache:", err);
+      }
 
       return res.status(200).json(entry);
     } catch (err) {
