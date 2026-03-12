@@ -98,7 +98,12 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
     };
 
     useEffect(() => {
-        fetchSummary();
+        const init = async () => {
+            if (!user) return;
+            // Always try to fetch cached summary first
+            await fetchSummary();
+        };
+        init();
     }, [user]);
 
     if (loading) {
@@ -135,7 +140,7 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
         <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 shadow-md">
             <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex items-center justify-between">
-                    <span>Your Day in Review</span>
+                    <span>Your Day in Key Points</span>
                     <Button
                         variant="ghost"
                         size="sm"
@@ -143,14 +148,44 @@ export const DailySummaryCard: React.FC<DailySummaryCardProps> = ({ onRegenerate
                         disabled={regenerating}
                     >
                         <RefreshCw className={`h-4 w-4 mr-1 ${regenerating ? 'animate-spin' : ''}`} />
-                        Regenerate
+                        Refresh
                     </Button>
                 </CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm leading-relaxed whitespace-pre-line">
-                    {summary}
-                </p>
+                <div className="text-sm leading-relaxed space-y-2">
+                    {(() => {
+                        if (!summary) return null;
+                        
+                        // Handle casing where AI returns JSON string
+                        let displayLines: string[] = [];
+                        try {
+                            if (summary.trim().startsWith('{')) {
+                                const parsed = JSON.parse(summary);
+                                if (parsed.bullets && Array.isArray(parsed.bullets)) {
+                                    displayLines = parsed.bullets;
+                                } else if (parsed.summary) {
+                                    displayLines = [parsed.summary];
+                                }
+                            }
+                        } catch (e) {
+                            // Not JSON, fall back to line splitting
+                        }
+
+                        if (displayLines.length === 0) {
+                            displayLines = summary.split('\n').filter(line => line.trim() !== '');
+                        }
+
+                        return displayLines.map((line, idx) => (
+                            <div key={idx} className="flex gap-2">
+                                <span className="text-primary mt-1">•</span>
+                                <p className="flex-1 whitespace-pre-line text-foreground/90">
+                                    {line.replace(/^[-•]\s*/, '')}
+                                </p>
+                            </div>
+                        ));
+                    })()}
+                </div>
                 {metadata && (
                     <div className="mt-3 text-xs text-muted-foreground border-t pt-2">
                         {metadata.entry_count} journal entries · {metadata.mood_count} mood check-ins

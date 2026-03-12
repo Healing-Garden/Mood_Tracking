@@ -7,7 +7,7 @@ interface HealingContentFormModalProps {
     onClose: () => void;
     onSubmit: (data: FormData | Record<string, any>) => Promise<void>;
     initialData?: HealingContent | null;
-    type: 'quote' | 'video' | 'article';
+    type: 'quote' | 'video' | 'podcast';
     isSubmitting: boolean;
 }
 
@@ -50,7 +50,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                 setVideoPreviewUrl(null);
                 setRemoveVideo(false);
 
-                if (initialData.type === 'video' && initialData.metadata) {
+                if ((initialData.type === 'video' || initialData.type === 'podcast') && initialData.metadata) {
                     const totalSec = initialData.metadata.duration_seconds || 60;
                     const m = Math.floor(totalSec / 60).toString().padStart(2, '0');
                     const s = (totalSec % 60).toString().padStart(2, '0');
@@ -62,7 +62,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                     setDurationDisplay('01:00');
                     setDifficulty('easy');
                     setMoodTags('');
-                    // For quote and article, author is top-level
+                    // For quote, author is top-level
                     setAuthor(initialData.author || '');
                 }
             } else {
@@ -154,17 +154,38 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                 content,
                 thumbnail: thumbnailUrl,
             });
-        } else if (type === 'article') {
-            await onSubmit({
-                title,
-                description,
-                author,
-                moodLevel,
-                is_active: isActive,
-                type,
-                content,
-                thumbnail: thumbnailUrl,
-            });
+        } else if (type === 'podcast') {
+            // Same as video: FormData with file upload
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('type', type);
+            formData.append('moodLevel', moodLevel.toString());
+            formData.append('is_active', isActive.toString());
+
+            let parsedSec = 60;
+            if (durationDisplay.includes(':')) {
+                const [min, sec] = durationDisplay.split(':');
+                parsedSec = (parseInt(min) || 0) * 60 + (parseInt(sec) || 0);
+            } else {
+                parsedSec = parseInt(durationDisplay) || 0;
+            }
+
+            formData.append('metadata', JSON.stringify({
+                duration_seconds: parsedSec,
+                difficulty,
+                mood_tags: moodTags.split(',').map(tag => tag.trim()).filter(tag => tag !== ''),
+                author
+            }));
+
+            if (videoFile) {
+                formData.append('video', videoFile);
+            }
+            if (removeVideo && !videoFile) {
+                formData.append('removeVideo', 'true');
+            }
+
+            await onSubmit(formData);
         }
     };
 
@@ -223,19 +244,8 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                             </div>
                         )}
 
-                        {type === 'article' && (
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Author (Optional)</label>
-                                <input
-                                    type="text"
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all"
-                                    value={author}
-                                    onChange={(e) => setAuthor(e.target.value)}
-                                    placeholder="Author name..."
-                                />
-                            </div>
-                        )}
 
+                        {type === 'quote' && (
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Thumbnail URL (Optional)</label>
                             <input
@@ -246,6 +256,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                                 placeholder="https://example.com/image.jpg"
                             />
                         </div>
+                        )}
 
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Mood Level *</label>
@@ -279,25 +290,25 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                             </label>
                         </div>
 
-                        {(type === 'quote' || type === 'article') && (
+                        {type === 'quote' && (
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    {type === 'quote' ? 'Quote Text *' : 'Article Content *'}
-                                </label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Quote Text *</label>
                                 <textarea
                                     required
                                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition-all resize-none"
-                                    rows={type === 'quote' ? 4 : 8}
+                                    rows={4}
                                     value={content}
                                     onChange={(e) => setContent(e.target.value)}
-                                    placeholder={type === 'article' ? 'Enter article text, or paste a full URL (http://...) to embed an external page' : `Enter ${type} content...`}
+                                    placeholder="Enter quote text..."
                                 />
                             </div>
                         )}
 
-                        {type === 'video' && (
+                        {(type === 'video' || type === 'podcast') && (
                             <div className="space-y-4">
-                                <h3 className="text-md font-medium text-gray-800 border-b border-gray-100 pb-2">Video Metadata & Settings</h3>
+                                <h3 className="text-md font-medium text-gray-800 border-b border-gray-100 pb-2">
+                                    {type === 'podcast' ? 'Podcast Metadata & Settings' : 'Video Metadata & Settings'}
+                                </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Duration (mm:ss)</label>
@@ -366,7 +377,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
 
                                 <div className="pt-2">
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Video File {initialData ? '(Leave empty to keep existing)' : '*'}
+                                        {type === 'podcast' ? 'Podcast Video File' : 'Video File'} {initialData ? '(Leave empty to keep existing)' : '*'}
                                     </label>
                                     <input
                                         type="file"
@@ -457,7 +468,7 @@ const HealingContentFormModal: React.FC<HealingContentFormModalProps> = ({
                                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                Saving...
+                                {videoFile ? 'Uploading video...' : 'Saving...'}
                             </span>
                         ) : (
                             'Save Content'

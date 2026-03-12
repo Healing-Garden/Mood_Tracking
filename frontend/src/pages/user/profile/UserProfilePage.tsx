@@ -271,7 +271,7 @@ const EditProfileModal: React.FC<{
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-secondary/15 backdrop-blur-md animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-primary/10 backdrop-blur-md animate-in fade-in duration-300">
       <Card className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-primary/10 animate-in zoom-in-95 duration-200">
         <div className="px-8 pt-8 pb-4 flex justify-between items-start">
           <div>

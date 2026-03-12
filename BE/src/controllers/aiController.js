@@ -266,7 +266,7 @@ class AIController {
     async logActionCompletion(req, res) {
         try {
             const userId = req.userId || req.body.userId;
-            const { actionId, durationSeconds, moodAtTime, source } = req.body;
+            const { actionId, durationSeconds, moodAtTime, source, postMoodScore } = req.body;
 
             if (!userId || !actionId) {
                 return res.status(400).json({ success: false, error: "userId and actionId are required" });
@@ -277,7 +277,8 @@ class AIController {
                 actionId,
                 Number(durationSeconds),
                 moodAtTime,
-                source
+                source,
+                postMoodScore
             );
             res.json(result);
         } catch (error) {
@@ -311,6 +312,19 @@ class AIController {
             const userId = req.params.userId || req.userId;
             const { days = 7 } = req.query;
             const result = await aiService.getActionHistory(userId, Number(days));
+            res.json(result);
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    async checkActionEligibility(req, res) {
+        try {
+            const userId = req.userId || req.body.userId;
+            if (!userId) {
+                return res.status(400).json({ success: false, error: "userId is required" });
+            }
+            const result = await aiService.checkActionEligibility(userId);
             res.json(result);
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
