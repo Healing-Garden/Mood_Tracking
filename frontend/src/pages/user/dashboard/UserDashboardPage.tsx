@@ -16,11 +16,14 @@ import { DailySummaryCard } from '../../../components/features/DailySummaryCard'
 import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
 import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
 import FlowerMessenger from '../../../components/features/FlowerMessenger';
+import { useAuth } from '../../../hooks/useAuth';
+import { aiApi } from '../../../api/aiApi';
 
 const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [dashboardData, setDashboardData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [weeklyStats, setWeeklyStats] = useState({
@@ -87,10 +90,21 @@ const UserDashboardPage = () => {
   }, [setShowModal, resetStore, navigate])
 
   useEffect(() => {
-    if (lastMood && NEGATIVE_MOODS.includes(lastMood.toLowerCase())) {
-      openModal(lastMood);
-    }
-  }, [lastMood, openModal]);
+    const maybeOpenSuggestions = async () => {
+      if (!lastMood || !NEGATIVE_MOODS.includes(lastMood.toLowerCase())) return;
+      if (!user?.id) return;
+      try {
+        const res = await aiApi.checkActionEligibility(user.id) as any;
+        const eligible = res?.eligible ?? res?.data?.eligible;
+        if (eligible) {
+          openModal(lastMood);
+        }
+      } catch (err) {
+        console.error('Failed to check action suggestion eligibility:', err);
+      }
+    };
+    maybeOpenSuggestions();
+  }, [lastMood, openModal, user]);
 
   const handleMoodDataChange = useCallback((points: any[]) => {
     if (points.length === 0) {

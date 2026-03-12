@@ -21,6 +21,19 @@ module.exports = {
           .catch(console.error);
       }
 
+      // Delete cached daily summary for today to force regeneration
+      const mongoose = require("mongoose");
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      try {
+        await mongoose.connection.collection("daily_summaries").deleteMany({
+          user_id: mongoose.Types.ObjectId.isValid(req.user.id) ? new mongoose.Types.ObjectId(req.user.id) : req.user.id,
+          date: startOfDay
+        });
+      } catch (err) {
+        console.error("Failed to invalidate daily summary cache:", err);
+      }
+
       res.status(201).json(data);
     } catch (err) {
       res.status(400).json({ message: err.message });

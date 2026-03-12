@@ -58,6 +58,23 @@ class ActionItem(BaseModel):
     video_url: Optional[str] = None
     content: Optional[str] = None
 
+
+class ActionCompletionLog(BaseModel):
+    user_id: str
+    action_id: str
+    duration_seconds: int
+    mood_at_time: Optional[str] = None
+    source: Optional[str] = "suggestion"
+    post_mood_score: Optional[float] = None
+
+
+class EligibilityRequest(BaseModel):
+    user_id: str
+
+
+class EligibilityResponse(BaseModel):
+    eligible: bool
+
 # -------------------- Helper Functions --------------------
 async def get_user_enhanced_context(db, user_id: str) -> Dict[str, Any]:
     """Retrieve data from Onboarding and Journals to enhance analysis."""
@@ -150,7 +167,7 @@ async def fetch_actions_from_new_tables(
     exclude_ids: Optional[set] = None,
     limit: int = 50,
 ) -> List[Dict]:
-    """Fetch from healingquotes, healingvideos, healingarticles using multiple data points."""
+    """Fetch from healingvideos, healingarticles using multiple data points (no quotes)."""
     oid_excludes = []
     if exclude_ids:
         for eid in exclude_ids:
@@ -166,7 +183,8 @@ async def fetch_actions_from_new_tables(
     mood_levels = get_mood_levels(mood)
     
     all_docs: List[Dict] = []
-    collections = ["healingquotes", "healingvideos", "healingarticles"]
+    # Chỉ lấy từ video + article, bỏ quotes
+    collections = ["healingvideos", "healingarticles"]
     
     # Try multiple strategies to find best content
     strategies = [
@@ -233,7 +251,8 @@ async def suggest_actions(request: ActionRequest):
         # 3. SCORE & RE-RANK based on Onboarding Goals and Journal Themes
         all_actions = []
         for doc in actions_docs:
-            col_type = doc.get("_source_collection", "healingquotes").replace("healing", "").rstrip("s")
+            # Derive type from collection; default to 'article'
+            col_type = doc.get("_source_collection", "healingarticles").replace("healing", "").rstrip("s")
             action = convert_doc_to_action(doc, col_type)
             
             # Simple Scoring Logic
@@ -290,9 +309,94 @@ async def suggest_actions(request: ActionRequest):
         return {"actions": [a.dict() for a in fallback], "context": {"error": str(e)}, "suggested_at": datetime.now().isoformat()}
 
 @router.post("/log_completion")
-async def log_action_completion(log: Any): # Implementation remains same but points to multi-tables
-    # ... logic from previous turn ...
-    return {"success": True}
+async def log_action_completion(log: ActionCompletionLog):
+    """
+    Ghi nhận completion của một action:
+    - duration_seconds: thời gian thực hiện
+    - mood_at_time: mood lúc bắt đầu (từ quickcheckin)
+    - post_mood_score: mood sau khi hoàn thành (thang 1–10)
+    """
+    try:
+        db = mongodb.get_db()
+        now = datetime.now()
+        await db.ai_interactions.insert_one({
+            "user_id": log.user_id,
+            "type": "action_completed",
+            "content": {
+                "action_id": log.action_id,
+                "duration_seconds": log.duration_seconds,
+                "mood_at_time": log.mood_at_time,
+                "post_mood_score": log.post_mood_score,
+                "source": log.source,
+            },
+            "created_at": now
+        })
+        return {"success": True, "message": "Action completion logged"}
+    except Exception as e:
+        logger.error(f"Failed to log action completion: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/eligibility", response_model=EligibilityResponse)
+async def check_suggest_actions_eligibility(request: EligibilityRequest):
+    """
+    Điều kiện hiển thị suggest actions:
+    - PHẢI có ít nhất 1 journal gần đây với tâm trạng tệ.
+    - Quickcheckin chỉ là điều kiện bổ sung hoặc đã hoàn thành.
+    """
+    try:
+        db = mongodb.get_db()
+        try:
+            user_obj_id = ObjectId(request.user_id)
+        except Exception:
+            user_obj_id = request.user_id
+
+        now = datetime.now()
+        since_journal = now - timedelta(days=7) # Thu hẹp lại 7 ngày cho gần nhất
+
+        # BẮT BUỘC: Có ít nhất 1 nhật ký tâm trạng tệ trong 7 ngày qua
+        negative_moods = {"very sad", "very low", "sad", "low", "anxious", "stressed", "angry", "tired", "overwhelmed"}
+        bad_journals = await db.journal_entries.find(
+            {
+                "user_id": request.user_id,
+                "created_at": {"$gte": since_journal},
+                "deleted_at": None
+            },
+            {
+                "mood": 1,
+                "sentiment": 1
+            }
+        ).to_list(length=50)
+
+        is_mood_bad = False
+        for j in bad_journals:
+            mood = str(j.get("mood", "")).lower()
+            if mood in negative_moods:
+                is_mood_bad = True
+                break
+            sent = j.get("sentiment") or {}
+            if isinstance(sent, dict) and sent.get("sentiment") == "negative":
+                is_mood_bad = True
+                break
+
+        if not is_mood_bad:
+            return EligibilityResponse(eligible=False)
+
+        # Kiểm tra thêm nếu user đã hoàn thành Quick Check-in hôm nay
+        since_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        recent_checkin = await db.dailycheckins.find_one(
+            {
+                "user": user_obj_id,
+                "createdAt": {"$gte": since_today}
+            }
+        )
+        
+        # User đủ điều kiện khi có tâm trạng tệ trong journal VÀ đã check-in hôm nay
+        return EligibilityResponse(eligible=True if recent_checkin else False)
+
+    except Exception as e:
+        logger.error(f"Eligibility check failed: {e}")
+        return EligibilityResponse(eligible=False)
 
 # -------------------- Fallbacks --------------------
 def get_fallback_actions(count: int = 3) -> List[ActionItem]:

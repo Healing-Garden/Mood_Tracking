@@ -8,24 +8,35 @@ from src.core.llm import call_llm
 logger = logging.getLogger(__name__)
 
 async def build_user_context(user_id: str):
+    """
+    Rich user context used across notifications/AI:
+    - Latest quick check-in (mood, energy, triggers)
+    - Recent journal snippet
+    - Onboarding goals/preferences
+    """
     db = mongodb.get_db()
     try:
         user_obj_id = ObjectId(user_id)
-    except:
+    except Exception:
         user_obj_id = user_id
 
     user = await db.users.find_one({"_id": user_obj_id})
     if not user:
         return None
 
-    # Lấy journal gần nhất
+    # Latest journal
     last_journal = await db.journal_entries.find_one(
         {"user_id": user_obj_id}, sort=[("created_at", -1)]
     )
-    # Lấy mood check gần nhất
-    # Note: BE model uses 'user' for field and 'createdAt' for timestamp
+
+    # Latest quick check-in (DailyCheckIn, includes triggers)
     last_mood = await db.dailycheckins.find_one(
         {"user": user_obj_id}, sort=[("createdAt", -1)]
+    )
+
+    # Onboarding preferences (goals, reminderTone, emotionalSensitivity, themePreference)
+    onboarding = await db.onboardings.find_one({"user": user_obj_id}) or await db.onboardings.find_one(
+        {"userId": user_obj_id}
     )
 
     return {
@@ -33,7 +44,14 @@ async def build_user_context(user_id: str):
         "name": user.get("fullName", user.get("name", "bạn")),
         "recent_mood": last_mood.get("mood") if last_mood else None,
         "recent_energy": last_mood.get("energy") if last_mood else None,
-        "last_journal_snippet": last_journal.get("text", "")[:100] if last_journal else None,
+        "recent_triggers": last_mood.get("triggers", []) if last_mood else [],
+        "last_journal_snippet": last_journal.get("text", "")[:160] if last_journal else None,
+        "onboarding": {
+            "goals": onboarding.get("goals", []) if onboarding else [],
+            "emotionalSensitivity": onboarding.get("emotionalSensitivity") if onboarding else None,
+            "reminderTone": onboarding.get("reminderTone") if onboarding else None,
+            "themePreference": onboarding.get("themePreference") if onboarding else None,
+        },
     }
 
 async def generate_notification_content(user_context: dict, category: str, time_of_day: str) -> dict:
