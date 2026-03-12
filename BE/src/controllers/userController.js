@@ -9,7 +9,7 @@ const JournalEntry = require("../models/journalEntries");
 const ChatSession = require("../models/chatSession");
 const HealingQuote = require("../models/HealingQuote");
 const HealingVideo = require("../models/HealingVideo");
-const HealingArticle = require("../models/HealingArticle");
+const HealingPodcast = require("../models/HealingPodcast");
 
 // Helper to derive theme from mood (1–5)
 const getThemeByMood = (mood) => {
@@ -22,7 +22,7 @@ const getModelByType = (type) => {
   switch (type) {
     case 'quote': return HealingQuote;
     case 'video': return HealingVideo;
-    case 'article': return HealingArticle;
+    case 'podcast': return HealingPodcast;
     default: return null;
   }
 };
@@ -787,8 +787,8 @@ module.exports = {
       } else {
         const quotes = await HealingQuote.find({ is_active: true }).sort({ createdAt: -1 });
         const videos = await HealingVideo.find({ is_active: true }).sort({ createdAt: -1 });
-        const articles = await HealingArticle.find({ is_active: true }).sort({ createdAt: -1 });
-        content = [...quotes, ...videos, ...articles].sort((a, b) => b.createdAt - a.createdAt);
+        const podcasts = await HealingPodcast.find({ is_active: true }).sort({ createdAt: -1 });
+        content = [...quotes, ...videos, ...podcasts].sort((a, b) => b.createdAt - a.createdAt);
       }
       return res.status(200).json(content);
     } catch (error) {
