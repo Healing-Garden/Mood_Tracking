@@ -21,15 +21,45 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-    credentials: true,
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.includes("vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        callback("CORS error");
+      }
+    },
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 socketManager.init(io);
 
-const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
-app.use(cors({ origin: clientURL, credentials: true }));
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  process.env.CLIENT_URL
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        origin.includes("vercel.app")
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true
+  })
+);
 
 app.use(express.json());
 app.use(cookieParser());

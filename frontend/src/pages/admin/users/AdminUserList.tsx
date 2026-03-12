@@ -2,17 +2,18 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useToast } from '../../../hooks/use-toast';
 import { adminService } from '../../../api/adminService';
 import type { UserDTO } from '../../../api/adminService';
-import DashboardSidebar from '../../../components/layout/DashboardSideBar';
 import { AdminUserTable } from '../../../components/admin/AdminUserTable';
 import { Input } from '../../../components/ui/Input';
-import { Search, Menu, X } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card';
 import { BanUserModal } from '../../../components/admin/BanUserModal';
 import type { BanConfig } from '../../../components/admin/BanUserModal';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
+import { useSidebar } from '../../../components/layout/DashboardLayout';
 
 const AdminUserList: React.FC = () => {
+    const { sidebarCollapsed } = useSidebar();
     const { toast } = useToast();
-    const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const [users, setUsers] = useState<UserDTO[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -111,70 +112,40 @@ const AdminUserList: React.FC = () => {
     };
 
     return (
-        <div className="flex min-h-screen bg-background">
-            {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-                <DashboardSidebar userType="admin" onClose={() => setSidebarOpen(false)} />
-            </div>
-
-            {/* Mobile Overlay */}
-            {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
-            )}
-
-            {/* Main Content */}
-            <div className="flex-1 flex flex-col">
-                {/* Header */}
-                <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-                    <div className="px-4 py-4 flex justify-between items-center">
-                        <h1 className="text-2xl font-bold text-primary">User Management</h1>
-
-                        <button
-                            onClick={() => setSidebarOpen(!sidebarOpen)}
-                            className="lg:hidden p-2 hover:bg-muted rounded-lg"
-                        >
-                            {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-                        </button>
-                    </div>
-                </header>
-
-                {/* Content */}
-                <main className="flex-1 p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full">
-                    <Card>
-                        <CardHeader className="pb-4">
-                            <CardTitle>All Users</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                                <div className="relative w-full md:w-96">
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                                    <Input
-                                        placeholder="Search by name or email..."
-                                        value={searchQuery}
-                                        onChange={(e) => setSearchQuery(e.target.value)}
-                                        className="pl-10"
-                                    />
-                                </div>
-                            </div>
-
-                            {isLoading ? (
-                                <div className="flex justify-center p-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                                </div>
-                            ) : (
-                                <AdminUserTable
-                                    users={users}
-                                    onBan={handleBanClick}
-                                    onUnban={handleUnban}
-                                    isActionLoading={actionLoadingId}
+        <DashboardLayout title="User Management" userType="admin">
+            <div className={`p-4 md:p-8 space-y-6 max-w-7xl mx-auto w-full transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+                <Card className="shadow-sm border-border">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="text-xl">System Users</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                            <div className="relative w-full md:w-96">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                                <Input
+                                    placeholder="Search by name or email..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="pl-10 h-10 rounded-xl"
                                 />
-                            )}
-                        </CardContent>
-                    </Card>
-                </main>
+                            </div>
+                        </div>
+
+                        {isLoading ? (
+                            <div className="flex flex-col items-center justify-center p-12 space-y-4">
+                                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                                <p className="text-muted-foreground text-sm">Retrieving users...</p>
+                            </div>
+                        ) : (
+                            <AdminUserTable
+                                users={users}
+                                onBan={handleBanClick}
+                                onUnban={handleUnban}
+                                isActionLoading={actionLoadingId}
+                            />
+                        )}
+                    </CardContent>
+                </Card>
             </div>
 
             <BanUserModal
@@ -187,7 +158,7 @@ const AdminUserList: React.FC = () => {
                 userName={userToBan?.name || ""}
                 isActionLoading={!!actionLoadingId}
             />
-        </div>
+        </DashboardLayout>
     );
 };
 

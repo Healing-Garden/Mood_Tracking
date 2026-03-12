@@ -11,7 +11,7 @@ const FlowerMessenger: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [userInput, setUserInput] = useState('');
   const [hasGreeted, setHasGreeted] = useState(false);
-  
+
   // State for smart positioning
   const [chatOffset, setChatOffset] = useState({ x: 0, y: -320 }); // Closer to bot (was -490)
   const [origin, setOrigin] = useState('bottom');
@@ -19,7 +19,7 @@ const FlowerMessenger: React.FC = () => {
   const { user } = useAuth();
   const entityRef = useRef<HTMLDivElement>(null);
   const dragConstraintsRef = useRef(null);
-  
+
   const { lastMood, currentCheckIn } = useDailyCheckInStore();
 
   const shouldShow = useMemo(() => {
@@ -38,12 +38,12 @@ const FlowerMessenger: React.FC = () => {
   // Logic tính toán vị trí linh hoạt để tránh bị mất khung chat
   const calculateSmartPosition = () => {
     if (!entityRef.current) return;
-    
+
     const rect = entityRef.current.getBoundingClientRect();
     const screenWidth = window.innerWidth;
     const chatWidth = 384; // w-96 = 384px
     const chatHeight = 480;
-    
+
     let newX = 0;
     let newY = 0;
     let newOrigin = 'bottom';
@@ -125,7 +125,7 @@ const FlowerMessenger: React.FC = () => {
         ref={entityRef}
       >
         <div className="relative flex flex-col items-center">
-          
+
           {/* Chat Window - DYNAMIC POSITION RELATIVE TO BOT */}
           <AnimatePresence>
             {isChatOpen && (
@@ -133,9 +133,9 @@ const FlowerMessenger: React.FC = () => {
                 initial={{ opacity: 0, scale: 0.5 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.5 }}
-                onPointerDown={(e) => e.stopPropagation()} 
+                onPointerDown={(e) => e.stopPropagation()}
                 className="absolute w-80 md:w-96 bg-white/95 backdrop-blur-xl rounded-[2.5rem] shadow-2xl border border-primary/20 overflow-hidden flex flex-col cursor-auto z-10"
-                style={{ 
+                style={{
                   height: '480px',
                   transformOrigin: origin,
                   left: chatOffset.x,
@@ -151,7 +151,9 @@ const FlowerMessenger: React.FC = () => {
                       <p className="text-[10px] opacity-80 uppercase font-bold tracking-widest">Always with you</p>
                     </div>
                   </div>
-                  <button 
+                  <button
+                    type="button"
+                    title="Toggle sidebar"
                     onClick={(e) => { e.stopPropagation(); setIsChatOpen(false); }}
                     className="hover:bg-white/20 p-2 rounded-full transition-all"
                   >
@@ -169,11 +171,10 @@ const FlowerMessenger: React.FC = () => {
                   ) : (
                     messages.map((msg, idx) => (
                       <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] p-4 rounded-3xl text-sm shadow-sm ${
-                          msg.sender === 'user' 
-                            ? 'bg-primary text-white rounded-tr-none' 
-                            : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none font-medium'
-                        }`}>
+                        <div className={`max-w-[85%] p-4 rounded-3xl text-sm shadow-sm ${msg.sender === 'user'
+                          ? 'bg-primary text-white rounded-tr-none'
+                          : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none font-medium'
+                          }`}>
                           {msg.text}
                         </div>
                       </div>
@@ -192,18 +193,20 @@ const FlowerMessenger: React.FC = () => {
 
                 {/* Input Area */}
                 <div className="p-5 bg-white border-t border-gray-100 shrink-0">
-                  <div className="flex gap-2 bg-gray-100 rounded-full px-5 py-3 items-center" 
-                       onClick={(e) => e.stopPropagation()}>
+                  <div className="flex gap-2 bg-gray-100 rounded-full px-5 py-3 items-center"
+                    onClick={(e) => e.stopPropagation()}>
                     <input
                       type="text"
                       value={userInput}
                       onChange={(e) => { e.stopPropagation(); setUserInput(e.target.value); }}
-                      onKeyDown={(e) => { e.stopPropagation(); if(e.key === 'Enter') handleSendMessage(e); }}
+                      onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') handleSendMessage(e); }}
                       onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Message Daisy..."
                       className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0"
                     />
                     <button
+                      type="button"
+                      title="Toggle sidebar"
                       onClick={handleSendMessage}
                       disabled={!userInput.trim() || !isConnected}
                       className="bg-primary text-white p-2 rounded-full hover:scale-110 active:scale-95 transition-all"
@@ -217,36 +220,36 @@ const FlowerMessenger: React.FC = () => {
           </AnimatePresence>
 
           {/* Daisy Character */}
-          <div 
+          <div
             className={`relative flex flex-col items-center transition-all duration-500 ${!shouldShow ? 'scale-0 translate-y-20' : 'scale-100 translate-y-0'}`}
             onClick={() => setIsChatOpen(!isChatOpen)}
           >
             {/* Proactive Greet Bubble */}
             {!isChatOpen && hasGreeted && (
-               <motion.div 
+              <motion.div
                 initial={{ opacity: 0, scale: 0, y: 0 }}
                 animate={{ opacity: 1, scale: 1, y: -70 }} // Closer to bot (was -110)
                 className="absolute bg-white px-6 py-3 rounded-full shadow-2xl border border-primary/20 text-xs font-bold text-primary whitespace-nowrap flex items-center gap-2 z-20 pointer-events-none"
-               >
-                 <Sparkles size={16} className="text-yellow-400" />
-                 Are you okay? Talk to me!
-                 <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-r border-b border-primary/20" />
-               </motion.div>
+              >
+                <Sparkles size={16} className="text-yellow-400" />
+                Are you okay? Talk to me!
+                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-4 h-4 bg-white rotate-45 border-r border-b border-primary/20" />
+              </motion.div>
             )}
 
             <div className="absolute -bottom-2 w-32 h-6 bg-black/10 rounded-full blur-xl -z-10" />
 
             <motion.div
-               animate={{ 
-                  rotate: isChatOpen ? [-2, 2, -2] : [0, -1, 1, 0],
-                  y: [0, -4, 0]
-               }}
-               transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-               className="cursor-grab active:cursor-grabbing"
+              animate={{
+                rotate: isChatOpen ? [-2, 2, -2] : [0, -1, 1, 0],
+                y: [0, -4, 0]
+              }}
+              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
+              className="cursor-grab active:cursor-grabbing"
             >
-              <img 
-                src="/daisy.png" 
-                alt="Daisy" 
+              <img
+                src="/daisy.png"
+                alt="Daisy"
                 className="w-36 h-36 md:w-44 md:h-44 object-contain drop-shadow-2xl"
                 draggable="false"
               />

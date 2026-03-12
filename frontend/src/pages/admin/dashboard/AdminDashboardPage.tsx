@@ -1,6 +1,6 @@
 import { useState } from "react"
-// import { Link } from "react-router-dom"
-// import { Button } from "../../../components/ui/Button"
+import DashboardLayout from '../../../components/layout/DashboardLayout'
+import { useSidebar } from '../../../components/layout/DashboardLayout'
 import {
   Card,
   CardContent,
@@ -9,7 +9,6 @@ import {
   CardTitle,
 } from "../../../components/ui/Card"
 import { Input } from "../../../components/ui/Input"
-
 import {
   LineChart,
   Line,
@@ -24,18 +23,12 @@ import {
   Pie,
   Cell,
 } from "recharts"
-
 import {
   AlertCircle,
   Search,
-  Menu,
-  X,
 } from "lucide-react"
 
-import DashboardSidebar from "../../../components/layout/DashboardSideBar"
-
 /* -------------------- DATA -------------------- */
-
 const communityMoodData = [
   { date: "Jan 1", avgMood: 3.5 },
   { date: "Jan 5", avgMood: 3.7 },
@@ -79,48 +72,11 @@ const recentUsers = [
 export default function AdminDashboardPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedUser, setSelectedUser] = useState<number | null>(null)
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const { sidebarCollapsed } = useSidebar();
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div
-        className={`fixed inset-y-0 left-0 z-30 ${
-          sidebarOpen ? "block" : "hidden"
-        } lg:static lg:block`}
-      >
-        <DashboardSidebar
-          userType="admin"
-          onClose={() => setSidebarOpen(false)}
-        />
-      </div>
-
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-          <div className="px-4 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X /> : <Menu />}
-            </button>
-          </div>
-        </header>
-
-        {/* Content */}
-        <main className="flex-1 px-4 py-8 space-y-8">
+    <DashboardLayout title="Admin Dashboard" userType="admin">
+        <div className={`px-4 py-8 space-y-8 max-w-[1600px] mx-auto transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
           {/* Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Metric title="Total Users" value="365" note="+12 this week" />
@@ -171,7 +127,7 @@ export default function AdminDashboardPage() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <Card className="lg:col-span-2">
+            <Card className="lg:col-span-2 shadow-sm border-border">
               <CardHeader>
                 <CardTitle>Recent Users</CardTitle>
                 <CardDescription>Latest registered users</CardDescription>
@@ -179,7 +135,7 @@ export default function AdminDashboardPage() {
 
               <CardContent>
                 <div className="relative mb-4">
-                  <Search className="absolute left-3 top-3 text-muted-foreground" />
+                  <Search className="absolute left-3 top-3 text-muted-foreground w-4 h-4" />
                   <Input
                     className="pl-10"
                     placeholder="Search users..."
@@ -188,56 +144,70 @@ export default function AdminDashboardPage() {
                   />
                 </div>
 
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Joined</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentUsers.map((u) => (
-                      <tr
-                        key={u.id}
-                        onClick={() => setSelectedUser(u.id)}
-                        className={`cursor-pointer hover:bg-muted ${
-                          selectedUser === u.id ? "bg-muted" : ""
-                        }`}
-                      >
-                        <td>{u.name}</td>
-                        <td>{u.email}</td>
-                        <td>{u.joinDate}</td>
-                        <td>{u.status}</td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="pb-3 px-2">Name</th>
+                        <th className="pb-3 px-2">Email</th>
+                        <th className="pb-3 px-2">Joined</th>
+                        <th className="pb-3 px-2">Status</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {recentUsers.map((u) => (
+                        <tr
+                          key={u.id}
+                          onClick={() => setSelectedUser(u.id)}
+                          className={`cursor-pointer transition-colors hover:bg-muted/50 ${
+                            selectedUser === u.id ? "bg-muted" : ""
+                          }`}
+                        >
+                          <td className="py-3 px-2 font-medium">{u.name}</td>
+                          <td className="py-3 px-2 text-muted-foreground">{u.email}</td>
+                          <td className="py-3 px-2 text-muted-foreground">{u.joinDate}</td>
+                          <td className="py-3 px-2">
+                             <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                               u.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-700'
+                             }`}>
+                                {u.status}
+                             </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </div>
 
           {/* Alerts */}
-          <Card className="border-yellow-200 bg-yellow-50">
-            <CardHeader>
-              <CardTitle className="flex gap-2">
-                <AlertCircle /> System Alerts
+          <Card className="border-yellow-200 bg-yellow-50/50 shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-yellow-800 text-lg">
+                <AlertCircle className="w-5 h-5" /> System Alerts
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p>⚠️ Unusual Activity Detected</p>
-              <p>ℹ️ Daily backup completed</p>
+              <ul className="space-y-2 text-yellow-700 text-sm">
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+                  ⚠️ Unusual Activity Detected in APAC region
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
+                  ℹ️ Daily backup completed (Success Rate: 100%)
+                </li>
+              </ul>
             </CardContent>
           </Card>
-        </main>
-      </div>
-    </div>
+        </div>
+    </DashboardLayout>
   )
 }
 
 /* -------------------- HELPERS -------------------- */
-
 function Metric({
   title,
   value,
@@ -250,15 +220,15 @@ function Metric({
   accent?: boolean
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
+    <Card className="shadow-sm border-border">
+      <CardHeader className="pb-1">
+        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{title}</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className={`text-3xl font-bold ${accent ? "text-accent" : "text-primary"}`}>
+        <div className={`text-3xl font-bold tracking-tight ${accent ? "text-accent" : "text-primary"}`}>
           {value}
         </div>
-        <p className="text-xs text-muted-foreground">{note}</p>
+        <p className="text-xs text-muted-foreground mt-1 font-medium">{note}</p>
       </CardContent>
     </Card>
   )
@@ -272,9 +242,9 @@ function ChartCard({
   children: React.ReactNode
 }) {
   return (
-    <Card>
+    <Card className="shadow-sm border-border">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent>{children}</CardContent>
     </Card>

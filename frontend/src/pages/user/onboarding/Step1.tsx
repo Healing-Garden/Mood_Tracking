@@ -69,12 +69,12 @@ export default function Step1PersonalGoals() {
   const isFormValid = selectedImproveGoals.length > 0 && selectedFeeling !== '' && selectedGoalDesc !== ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6f8f6] to-[#e8f0e8] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-3xl space-y-10">
         {/* Header */}
         <div className="space-y-3 text-center">
-          <h1 className="text-4xl font-bold text-[#122012]">Personal Goals</h1>
-          <p className="text-lg text-[#122012]/70">Help us understand what you want to achieve</p>
+          <h1 className="text-4xl font-bold text-foreground">Personal Goals</h1>
+          <p className="text-lg text-muted-foreground">Help us understand what you want to achieve</p>
         </div>
 
         {/* Progress */}
@@ -92,8 +92,8 @@ export default function Step1PersonalGoals() {
           {/* Question 1 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">1</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">1</span>
                 What do you want to improve most in your life?
               </CardTitle>
               <CardDescription className="pl-11">Select up to 2 goals</CardDescription>
@@ -105,8 +105,8 @@ export default function Step1PersonalGoals() {
                     key={opt.id}
                     onClick={() => toggleImproveGoal(opt.id)}
                     className={`flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedImproveGoals.includes(opt.id)
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt.label}</span>
@@ -120,8 +120,8 @@ export default function Step1PersonalGoals() {
           {/* Question 2 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">2</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">2</span>
                 How do you want to feel more often?
               </CardTitle>
             </CardHeader>
@@ -132,8 +132,8 @@ export default function Step1PersonalGoals() {
                     key={opt}
                     onClick={() => setSelectedFeeling(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedFeeling === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>
@@ -147,8 +147,8 @@ export default function Step1PersonalGoals() {
           {/* Question 3 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">3</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">3</span>
                 Which best describes your current personal goals?
               </CardTitle>
             </CardHeader>
@@ -159,8 +159,8 @@ export default function Step1PersonalGoals() {
                     key={opt}
                     onClick={() => setSelectedGoalDesc(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedGoalDesc === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>

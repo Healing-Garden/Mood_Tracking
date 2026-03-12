@@ -129,7 +129,7 @@ const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplateProps>((pr
                 </div>
 
                 {/* Mood Flow Trend */}
-                <div className="flex flex-col gap-3 mt-2">
+                <div className="flex flex-col gap-3 mt-8">
                     <h3 className="text-sm font-bold text-slate-800 border-l-4 border-primary pl-3 uppercase tracking-tight">Mood Flow Trend</h3>
                     <div id="pdf-mood-flow" className="bg-slate-50 rounded-xl border border-slate-200 min-h-[380px] flex items-stretch justify-center p-4">
                         {isPreview && exportConfig ? (

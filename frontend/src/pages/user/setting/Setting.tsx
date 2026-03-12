@@ -9,10 +9,18 @@ import { RotateCcw, Lock, Bell, Palette, LogOut, Menu, X, ArrowLeft } from 'luci
 import DashboardSidebar from '../../../components/layout/DashboardSideBar'
 import NotificationSettings from '../../../components/features/NotificationSettings'
 
+type SettingsCategory = {
+  title: string
+  description: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  action?: string
+  view?: string
+}
+
 export default function SettingsPage() {
   const navigate = useNavigate()
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [view, setView] = useState<'main' | 'notifications'>('main')
+  const [view, setView] = useState<'main' | 'notifications'>('main') // state điều khiển view
 
   const {
     goalsSelected,
@@ -32,6 +40,27 @@ export default function SettingsPage() {
     resetOnboarding()
     navigate('/onboarding/Step1')
   }
+
+  const settingsCategories: SettingsCategory[] = [
+    {
+      title: 'Personalization',
+      description: 'Manage your preferences and goals',
+      icon: Palette,
+    },
+    {
+      title: 'Security & Privacy',
+      description: 'Manage your account security',
+      icon: Lock,
+      action: 'Manage',
+    },
+    {
+      title: 'Notifications',
+      description: 'Control how we communicate with you',
+      icon: Bell,
+      action: 'Configure',
+      view: 'notifications', // xác định view cần chuyển
+    },
+  ]
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -57,6 +86,8 @@ export default function SettingsPage() {
               {/* Nút back khi ở view notifications */}
               {view === 'notifications' && (
                 <button
+                  type="button"
+                  title="Go back"
                   onClick={() => setView('main')}
                   className="p-2 hover:bg-muted rounded-lg"
                 >
@@ -69,6 +100,8 @@ export default function SettingsPage() {
             </div>
 
             <button
+              type="button"
+              title="Toggle sidebar"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="lg:hidden p-2 hover:bg-muted rounded-lg"
             >
@@ -160,50 +193,37 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
+                {/* Other Settings Cards */}
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* Security Short Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Lock size={20} className="text-primary" />
-                        Account Security
-                      </CardTitle>
-                      <CardDescription>
-                        Manage your password and app lock PIN
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => navigate('/user/profile')}
-                      >
-                        Manage in Profile
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* Notifications Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bell size={20} className="text-primary" />
-                        Notifications
-                      </CardTitle>
-                      <CardDescription>
-                        Control how we communicate with you
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setView('notifications')}
-                      >
-                        Configure
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  {settingsCategories.slice(1).map((category) => {
+                    const Icon = category.icon
+                    return (
+                      <Card key={category.title}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Icon className="w-6 h-6 text-primary" />
+                            {category.title}
+                          </CardTitle>
+                          <CardDescription>
+                            {category.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              if (category.view) {
+                                setView(category.view as 'notifications')
+                              }
+                            }}
+                          >
+                            {category.action}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
 
                 {/* Account Card */}

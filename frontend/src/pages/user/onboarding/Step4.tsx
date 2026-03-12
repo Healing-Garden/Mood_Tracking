@@ -89,12 +89,12 @@ export default function Step4DailyCheckIn() {
     const isFormValid = selectedMood !== null && selectedTriggers.length > 0
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#f6f8f6] to-[#e8f0e8] flex items-center justify-center px-4 py-12">
+        <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4 py-12">
             <div className="w-full max-w-3xl space-y-10">
                 {/* Header */}
                 <div className="space-y-3 text-center">
-                    <h1 className="text-4xl font-bold text-[#122012]">Daily Check-in</h1>
-                    <p className="text-lg text-[#122012]/70">How are you feeling right now?</p>
+                    <h1 className="text-4xl font-bold text-foreground">Daily Check-in</h1>
+                    <p className="text-lg text-muted-foreground">How are you feeling right now?</p>
                 </div>
 
                 {/* Progress */}
@@ -112,8 +112,8 @@ export default function Step4DailyCheckIn() {
                     {/* Mood selection */}
                     <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                                <Sparkles size={20} className="text-[#188618]" />
+                            <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                                <Sparkles size={20} className="text-primary" />
                                 Pick your current mood
                             </CardTitle>
                         </CardHeader>
@@ -126,8 +126,8 @@ export default function Step4DailyCheckIn() {
                                             key={level}
                                             onClick={() => setSelectedMood(level)}
                                             className={`flex-1 flex flex-col items-center gap-3 p-4 rounded-2xl transition-all duration-300 ${isSelected
-                                                    ? 'bg-[#188618]/10 ring-2 ring-[#188618] scale-105 shadow-md'
-                                                    : 'bg-[#f0f4f0]/50 hover:bg-[#e4eee4] hover:scale-102'
+                                                    ? 'bg-primary/10 ring-2 ring-primary scale-105 shadow-md'
+                                                    : 'bg-muted/50 hover:bg-muted hover:scale-102'
                                                 }`}
                                         >
                                             <span className="text-4xl filter drop-shadow-sm">{emoji}</span>
@@ -144,8 +144,8 @@ export default function Step4DailyCheckIn() {
                     {/* Energy Level */}
                     <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">~</span>
+                            <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">~</span>
                                 Energy Level ({energyLevel}/10)
                             </CardTitle>
                         </CardHeader>
@@ -157,7 +157,7 @@ export default function Step4DailyCheckIn() {
                                     max={10}
                                     value={energyLevel}
                                     onChange={(e) => setEnergyLevel(Number(e.target.value))}
-                                    className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-[#f0f4f0] accent-[#188618]"
+                                    className="h-3 w-full cursor-pointer appearance-none rounded-lg bg-muted accent-primary"
                                 />
                                 <div className="flex justify-between text-sm font-medium text-[#122012]/40">
                                     <span>Tired</span>
@@ -170,8 +170,8 @@ export default function Step4DailyCheckIn() {
                     {/* Triggers */}
                     <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">!</span>
+                            <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">!</span>
                                 What triggered this mood?
                             </CardTitle>
                         </CardHeader>
@@ -184,8 +184,8 @@ export default function Step4DailyCheckIn() {
                                             key={tag}
                                             onClick={() => toggleTrigger(tag)}
                                             className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${isSelected
-                                                    ? 'bg-[#188618] text-white shadow-lg shadow-green-900/20'
-                                                    : 'bg-[#f0f4f0] text-[#122012]/60 hover:bg-[#e4eee4]'
+                                                    ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                                                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
                                                 }`}
                                         >
                                             {tag}
@@ -199,8 +199,8 @@ export default function Step4DailyCheckIn() {
                     {/* Quick Note */}
                     <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
                         <CardHeader className="pb-4">
-                            <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">+</span>
+                            <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-white text-sm">+</span>
                                 Add a quick note (optional)
                             </CardTitle>
                         </CardHeader>
@@ -210,9 +210,9 @@ export default function Step4DailyCheckIn() {
                                 onChange={(e) => setNote(e.target.value)}
                                 placeholder="Write something briefly..."
                                 maxLength={100}
-                                className="w-full min-h-[100px] p-4 rounded-2xl bg-[#f0f4f0]/50 border-2 border-transparent focus:border-[#188618]/30 focus:bg-white transition-all text-[#122012] placeholder-[#122012]/30 resize-none outline-none"
+                                className="w-full min-h-[100px] p-4 rounded-2xl bg-muted/30 border-2 border-transparent focus:border-primary/30 focus:bg-white transition-all text-foreground placeholder-muted-foreground/50 resize-none outline-none"
                             />
-                            <p className="text-right text-xs text-[#122012]/30 mt-2">{note.length}/100</p>
+                            <p className="text-right text-xs text-muted-foreground/50 mt-2">{note.length}/100</p>
                         </CardContent>
                     </Card>
                 </div>
