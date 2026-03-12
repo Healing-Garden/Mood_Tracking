@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { X, Loader2, Clock, BookOpen, Quote, Video, FileText, ArrowLeft, Play, CheckCircle } from 'lucide-react';
+import { X, Loader2, Clock, BookOpen, Quote, Video, FileText, Play, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { aiApi } from '../../api/aiApi';
 import { useActionSuggestionStore } from '../../store/actionSuggestionStore';
@@ -72,7 +72,7 @@ const ActionSuggestionModal: React.FC = () => {
     if (isOpen && mood && user && !selectedAction) {
       fetchActions();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, mood, user, excludeIds]);
 
   const fetchActions = async () => {
@@ -147,16 +147,16 @@ const ActionSuggestionModal: React.FC = () => {
 
   const renderExecutionView = (action: Action) => {
     const isVideo = action.type === 'video' && action.video_url;
-    
+
     return (
       <div className="space-y-4">
         {/* Title and Category */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-             <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${getTypeColor(action.type)}`}>
-               {getTypeIcon(action.type)}
-               {getTypeLabel(action.type)}
-             </span>
+            <span className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium ${getTypeColor(action.type)}`}>
+              {getTypeIcon(action.type)}
+              {getTypeLabel(action.type)}
+            </span>
           </div>
           {formatDuration(action.duration_seconds) && (
             <span className="flex items-center gap-1 text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded">
@@ -189,29 +189,29 @@ const ActionSuggestionModal: React.FC = () => {
 
         {/* Content/Description */}
         <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 max-h-[40vh] overflow-y-auto custom-scrollbar">
-           {action.type === 'quote' ? (
-             <blockquote className="italic text-gray-800 text-lg leading-relaxed text-center py-4">
-               {action.description}
-             </blockquote>
-           ) : (
-             <div className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
-               {action.content || action.description}
-             </div>
-           )}
+          {action.type === 'quote' ? (
+            <blockquote className="italic text-gray-800 text-lg leading-relaxed text-center py-4">
+              {action.description}
+            </blockquote>
+          ) : (
+            <div className="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm md:text-base">
+              {action.content || action.description}
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}
         <div className="pt-4 flex items-center justify-between gap-4">
-          <Button 
-            variant="outline" 
-            onClick={() => setSelectedAction(null)} 
+          <Button
+            variant="outline"
+            onClick={() => setSelectedAction(null)}
             className="flex-1 border-gray-200"
             disabled={loading}
           >
             Back to List
           </Button>
-          <Button 
-            onClick={handleCompleteAction} 
+          <Button
+            onClick={handleCompleteAction}
             className="flex-[2] bg-primary text-white hover:bg-primary/90 shadow-md flex items-center justify-center gap-2"
             disabled={loading}
           >
@@ -263,17 +263,17 @@ const ActionSuggestionModal: React.FC = () => {
               leaveTo="opacity-0 scale-95"
             >
               <Dialog.Panel className={`w-full ${selectedAction ? 'max-w-2xl' : 'max-w-md'} transform overflow-hidden rounded-[2rem] bg-white p-8 text-left align-middle shadow-2xl transition-all duration-300`}>
-                
+
                 {/* Header (Hidden in Execution View for Focus) */}
                 {!selectedAction && (
                   <>
                     <div className="flex items-center justify-between mb-2">
-                       <Dialog.Title
+                      <Dialog.Title
                         as="h3"
                         className="text-2xl font-bold leading-6 text-gray-900 flex items-center gap-2"
                       >
-                       <span>🌱</span>
-                       <span>Mood Boosters</span>
+                        <span>🌱</span>
+                        <span>Mood Boosters</span>
                       </Dialog.Title>
                       <button
                         onClick={handleClose}
@@ -317,33 +317,33 @@ const ActionSuggestionModal: React.FC = () => {
                         onClick={() => handleActionSelect(action)}
                       >
                         <div className="flex items-start gap-4">
-                           {/* Icon/Thumbnail Circle */}
-                           <div className={`p-3 rounded-xl shrink-0 ${getTypeColor(action.type)}`}>
-                              {getTypeIcon(action.type)}
-                           </div>
-                           
-                           <div className="flex-1">
-                              <div className="flex justify-between items-start mb-1">
-                                <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors text-base">
-                                  {action.title}
-                                </h4>
-                                {formatDuration(action.duration_seconds) && (
-                                  <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400">
-                                    {formatDuration(action.duration_seconds)}
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-500 line-clamp-2 leading-snug">
-                                {action.description}
-                              </p>
-                           </div>
-                           
-                           {/* Play/Arrow Icon indicator */}
-                           <div className="self-center">
-                              <div className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-gray-100 shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
-                                {action.type === 'video' ? <Play className="h-3 w-3 fill-current ml-0.5" /> : <Play className="h-3 w-3 fill-current ml-0.5" />}
-                              </div>
-                           </div>
+                          {/* Icon/Thumbnail Circle */}
+                          <div className={`p-3 rounded-xl shrink-0 ${getTypeColor(action.type)}`}>
+                            {getTypeIcon(action.type)}
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="flex justify-between items-start mb-1">
+                              <h4 className="font-bold text-gray-900 group-hover:text-primary transition-colors text-base">
+                                {action.title}
+                              </h4>
+                              {formatDuration(action.duration_seconds) && (
+                                <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400">
+                                  {formatDuration(action.duration_seconds)}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500 line-clamp-2 leading-snug">
+                              {action.description}
+                            </p>
+                          </div>
+
+                          {/* Play/Arrow Icon indicator */}
+                          <div className="self-center">
+                            <div className="h-8 w-8 rounded-full flex items-center justify-center bg-white border border-gray-100 shadow-sm group-hover:bg-primary group-hover:text-white transition-all">
+                              {action.type === 'video' ? <Play className="h-3 w-3 fill-current ml-0.5" /> : <Play className="h-3 w-3 fill-current ml-0.5" />}
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -431,7 +431,7 @@ const ActionSuggestionModal: React.FC = () => {
                 {!loading && !error && actions.length === 0 && !selectedAction && (
                   <div className="text-center py-12">
                     <div className="h-16 w-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                       <BookOpen className="h-8 w-8 text-gray-300" />
+                      <BookOpen className="h-8 w-8 text-gray-300" />
                     </div>
                     <p className="text-gray-500 font-medium font-serif italic text-lg">"Rest is resistance."</p>
                     <p className="text-gray-400 text-xs mt-3">Nothing fresh to suggest. Try taking a deep breath.</p>

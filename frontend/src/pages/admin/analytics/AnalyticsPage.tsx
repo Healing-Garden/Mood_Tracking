@@ -11,10 +11,8 @@ import { useAuth } from '../../../hooks/useAuth';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { Button } from '../../../components/ui/Button';
 import { RefreshCcw } from 'lucide-react';
-import { useSidebar } from '../../../components/layout/DashboardLayout';
 
 const AnalyticsPage: React.FC = () => {
-  const { sidebarCollapsed } = useSidebar();
   useAuth();
   const [dateRange, setDateRange] = useState<AggregatedInsightsParams['dateRange']>('last_30_days');
   const [startDate, setStartDate] = useState<string>();
@@ -43,7 +41,7 @@ const AnalyticsPage: React.FC = () => {
   if (loading && !data) {
     return (
       <DashboardLayout title="Analytics Dashboard" userType="admin">
-        <div className={`flex-1 flex flex-col items-center justify-center min-h-[400px] space-y-4 transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] space-y-4 transition-all duration-300">
           <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
           <p className="text-muted-foreground font-medium text-sm">Aggregating community insights...</p>
         </div>
@@ -68,7 +66,7 @@ const AnalyticsPage: React.FC = () => {
         </Button>
       }
     >
-        <div className={`px-4 py-8 max-w-[1600px] mx-auto w-full transition-all duration-300 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className="px-4 py-8 max-w-[1600px] mx-auto w-full transition-all duration-300">
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 border border-red-100 p-4 text-red-700 flex flex-col items-start gap-3">
               <p className="text-sm font-medium">Error: {error}</p>
