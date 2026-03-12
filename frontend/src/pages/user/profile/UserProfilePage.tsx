@@ -5,15 +5,14 @@ import { Input } from '../../../components/ui/Input'
 import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
-import { Eye, EyeOff, Lock, Menu, X } from 'lucide-react'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import { Eye, EyeOff, Lock, X } from 'lucide-react'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 import { Card } from '../../../components/ui/Card'
 import { useToast } from '../../../hooks/use-toast'
 import { userApi } from '../../../api/userApi'
 
 const UserProfilePage: React.FC = () => {
   const { toast } = useToast()
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [activeTab, setActiveTab] = useState<'personal' | 'password' | 'security'>('personal')
   const [isLoadingProfile, setIsLoadingProfile] = useState<boolean>(true)
   const [isLoading, setIsLoading] = useState<boolean>(false)
@@ -307,53 +306,20 @@ const UserProfilePage: React.FC = () => {
 
   if (isLoadingProfile) {
     return (
-      <div className="flex min-h-screen bg-background">
-        <div className={`fixed inset-y-0 left-0 z-30 lg:static lg:block`}>
-          <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-        </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your profile...</p>
-          </div>
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
+    <DashboardLayout title="My Profile">
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">My Profile</h1>
-
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-0">
           {successMessage && (
             <div className="mb-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-700">
               {successMessage}
@@ -388,19 +354,19 @@ const UserProfilePage: React.FC = () => {
                   <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg">
                     <TabsTrigger
                       value="personal"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+                      className="data-[state=active]:bg-white data-[state=active]:text-primary hover:bg-white/50 data-[state=active]:shadow-sm"
                     >
                       Personal Info
                     </TabsTrigger>
                     <TabsTrigger
                       value="password"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+                      className="data-[state=active]:bg-white data-[state=active]:text-primary hover:bg-white/50 data-[state=active]:shadow-sm"
                     >
                       Password
                     </TabsTrigger>
                     <TabsTrigger
                       value="security"
-                      className="data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-sm"
+                      className="data-[state=active]:bg-white data-[state=active]:text-primary hover:bg-white/50 data-[state=active]:shadow-sm"
                     >
                       Security
                     </TabsTrigger>
@@ -788,8 +754,7 @@ const UserProfilePage: React.FC = () => {
           </Card>
         </div>
       )}
-    </div>
-    
+    </DashboardLayout>
   )
 }
 

@@ -39,6 +39,9 @@ router.put("/app-lock/pin", userController.setAppLockPin);
 router.post("/app-lock/verify", userController.verifyAppLockPin);
 router.put("/app-lock/toggle", userController.toggleAppLock);
 
+// Healing Content
+router.get("/healing-content", userController.getHealingContent);
+
 module.exports = router;
 
 

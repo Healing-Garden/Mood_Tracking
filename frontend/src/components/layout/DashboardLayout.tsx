@@ -26,7 +26,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   headerActions
 }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarHovered, setSidebarHovered] = useState(false);
+  const [sidebarHovered, setSidebarHovered] = useState(() => {
+    // Khởi tạo từ sessionStorage nếu có
+    return sessionStorage.getItem('sidebarHovered') === 'true';
+  });
+
+  // Lưu trạng thái hover vào sessionStorage khi thay đổi
+  React.useEffect(() => {
+    sessionStorage.setItem('sidebarHovered', sidebarHovered.toString());
+  }, [sidebarHovered]);
 
   const sidebarCollapsed = !sidebarHovered;
 
@@ -64,11 +72,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           )}
 
           {/* Main Content */}
-          <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
+          <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}`}>
             <main className="flex-1 overflow-y-auto">
               {title && (
                 <div className="px-6 lg:px-10 pt-8 pb-2">
-                  <h1 className="text-3xl font-bold tracking-tight text-foreground">
+                  <h1 className="font-extrabold font-['Poppins'] tracking-tight text-foreground">
                     {title}
                   </h1>
                 </div>

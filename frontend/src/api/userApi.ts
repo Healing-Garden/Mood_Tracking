@@ -1,4 +1,5 @@
 import http from "./http";
+import type { HealingContent } from "../services/healingContentService";
 
 interface UserProfile {
   _id: string;
@@ -72,6 +73,15 @@ export const userApi = {
   },
 
   toggleAppLock(enabled: boolean): Promise<{ message: string }> {
-    return http.put("/user/app-lock/toggle", { enabled });
+    return http.put("/app-lock/toggle", { enabled });
+  },
+
+  getHealingContent(type?: string): Promise<HealingContent[]> {
+    const params = type ? { type } : {};
+    return http.get("/user/healing-content", { params });
+  },
+
+  getDashboardData(): Promise<any> {
+    return http.get("/user/dashboard/data");
   },
 };
