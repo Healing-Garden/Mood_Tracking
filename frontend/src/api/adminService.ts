@@ -13,6 +13,23 @@ export interface UserDTO {
     banReason?: string;
 }
 
+export interface FeedbackDTO {
+    _id: string;
+    user_id: {
+        _id: string;
+        fullName: string;
+        email: string;
+    };
+    type: string;
+    subject: string;
+    message: string;
+    rating?: number;
+    status: string;
+    admin_response?: string;
+    created_at: string;
+    updated_at: string;
+}
+
 export const adminService = {
     getUsers: (search?: string): Promise<UserDTO[]> => {
         const query = search ? `?search=${encodeURIComponent(search)}` : "";
@@ -25,5 +42,9 @@ export const adminService = {
 
     unbanUser: (userId: string): Promise<{ message: string, user: UserDTO }> => {
         return http.patch(`/admin/users/${userId}/unban`) as Promise<{ message: string, user: UserDTO }>;
+    },
+
+    getAllFeedback: (): Promise<FeedbackDTO[]> => {
+        return http.get('/admin/feedback') as Promise<FeedbackDTO[]>;
     }
 };

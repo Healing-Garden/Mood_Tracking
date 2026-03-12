@@ -1,4 +1,5 @@
 const Users = require("../models/users");
+const Feedback = require("../models/Feedback");
 
 module.exports = {
     getUsers: async (req, res) => {
@@ -21,6 +22,19 @@ module.exports = {
             res.json(users);
         } catch (err) {
             res.status(500).json({ message: err.message });
+        }
+    },
+
+    getAllFeedback: async (req, res) => {
+        try {
+            const feedbacks = await Feedback.find()
+                .populate("user_id", "fullName email")
+                .sort({ created_at: -1 });
+
+            res.json(feedbacks);
+        } catch (err) {
+            console.error("Get all feedback error:", err);
+            res.status(500).json({ message: "Internal server error" });
         }
     },
 

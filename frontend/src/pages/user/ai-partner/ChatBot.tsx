@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Button } from '../../../components/ui/Button';
 import { Input } from '../../../components/ui/Input';
-import { Settings, HelpCircle, Send, Brain, Loader2 } from 'lucide-react';
+import { Send, Brain, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../hooks/useAuth';
 import { useChat } from '../../../hooks/useChat';
 import ChatSidebar from '../../../components/features/ChatSidebar';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 
 // Hàm lấy mood context (có thể gọi API hoặc từ store)
-const getMoodContext = () => { 
+const getMoodContext = () => {
   return {
     recentMood: 'anxious',
     energyLevel: 3,
@@ -23,11 +23,11 @@ export default function ChatBot() {
 
   // Chỉ kết nối chat khi có user
   const moodContext = useMemo(() => getMoodContext(), []);
-  const { 
-    messages, 
-    sendMessage, 
-    isConnected, 
-    isTyping, 
+  const {
+    messages,
+    sendMessage,
+    isConnected,
+    isTyping,
     sessionId,
     loadSession,
     newSession,
@@ -87,7 +87,7 @@ export default function ChatBot() {
   }
 
   return (
-    <DashboardLayout 
+    <DashboardLayout
       title="AI Thought Partner"
     >
       <div className="h-full flex overflow-hidden">
@@ -126,11 +126,10 @@ export default function ChatBot() {
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${
-                    msg.sender === 'bot'
-                      ? 'bg-primary text-white'
-                      : 'bg-muted/30 text-foreground border border-border/50'
-                  }`}
+                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${msg.sender === 'bot'
+                    ? 'bg-primary text-white'
+                    : 'bg-muted/30 text-foreground border border-border/50'
+                    }`}
                 >
                   {msg.sender === 'bot' && (
                     <p className="text-[10px] font-bold uppercase mb-1.5 opacity-70 tracking-widest flex items-center gap-1.5">

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import axios from 'axios'
 import { useNavigate, Link } from 'react-router-dom'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+
 import { Brain, BookOpen, TrendingUp } from 'lucide-react'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/Card'
@@ -11,12 +11,12 @@ import MoodFlow from '../../../components/features/MoodFlow'
 import { useDailyCheckInStore } from '../../../store/dailyCheckInStore'
 import { userApi } from '../../../api/userApi'
 import { dailyCheckInApi } from '../../../api/dailyCheckInApi'
-import TriggerHeatmap from '../../../components/features/TriggerHeatmap'
+
 import { DailySummaryCard } from '../../../components/features/DailySummaryCard';
 import { useActionSuggestionStore } from '../../../store/actionSuggestionStore';
 import ActionSuggestionModal from '../../../components/modals/ActionSuggestionModal';
 import FlowerMessenger from '../../../components/features/FlowerMessenger';
-import { Quote as QuoteIcon, Sparkles } from 'lucide-react';
+import { Quote as QuoteIcon } from 'lucide-react';
 import type { HealingContent } from '../../../services/healingContentService';
 
 const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
@@ -88,13 +88,13 @@ const UserDashboardPage = () => {
           userApi.getProfile(),
           userApi.getDashboardData()
         ])
-        
+
         setDashboardData({
           journeyDays: stats.journeyDays || 1,
           moodDistribution: stats.moodDistribution || [],
           userName: profile.fullName || 'User',
         })
-        
+
         if (stats.weeklyStats) {
           setWeeklyStats(stats.weeklyStats)
         }

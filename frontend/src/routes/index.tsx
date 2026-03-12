@@ -22,6 +22,7 @@ import AdminVerifyPinPage from "../pages/admin/verify-pin/AdminVerifyPinPage";
 import AnalyticPage from "../pages/admin/analytics/AnalyticsPage";
 import HealingContentPage from "../pages/admin/healing/HealingContentPage";
 import AdminUserList from "../pages/admin/users/AdminUserList";
+import AdminFeedbackPage from "../pages/admin/feedback/AdminFeedbackPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 const routes = [
@@ -166,6 +167,14 @@ const routes = [
     element: (
       <ProtectedRoute role="admin">
         <AdminUserList />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/feedback",
+    element: (
+      <ProtectedRoute role="admin">
+        <AdminFeedbackPage />
       </ProtectedRoute>
     ),
   },
