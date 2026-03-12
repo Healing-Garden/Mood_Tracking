@@ -14,7 +14,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   children
 }) => {
   return (
-    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-border/40 h-20 flex items-center">
+    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur border-b border-border/40 h-20 flex items-center">
       <div className="pl-3 pr-4 lg:pl-4 lg:pr-8 w-full flex justify-between items-center">
         <div className="flex items-center gap-4">
           {/* Logo and System Name */}
