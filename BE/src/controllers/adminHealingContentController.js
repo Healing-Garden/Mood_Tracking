@@ -1,13 +1,13 @@
 const HealingQuote = require("../models/HealingQuote");
 const HealingVideo = require("../models/HealingVideo");
-const HealingArticle = require("../models/HealingArticle");
+const HealingPodcast = require("../models/HealingPodcast");
 const cloudinaryService = require("../services/cloudinaryService");
 
 const getModelByType = (type) => {
     switch (type) {
         case 'quote': return HealingQuote;
         case 'video': return HealingVideo;
-        case 'article': return HealingArticle;
+        case 'podcast': return HealingPodcast;
         default: return null;
     }
 };
@@ -23,8 +23,8 @@ exports.getAllHealingContent = async (req, res) => {
         } else {
             const quotes = await HealingQuote.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
             const videos = await HealingVideo.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
-            const articles = await HealingArticle.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
-            content = [...quotes, ...videos, ...articles].sort((a, b) => b.createdAt - a.createdAt);
+            const podcasts = await HealingPodcast.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
+            content = [...quotes, ...videos, ...podcasts].sort((a, b) => b.createdAt - a.createdAt);
         }
 
         res.status(200).json(content);
@@ -46,8 +46,14 @@ exports.createHealingContent = async (req, res) => {
             if (!req.file) {
                 return res.status(400).json({ message: "Video file is required for video type content" });
             }
-            // Upload video to Cloudinary
             videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
+        }
+
+        if (type === "podcast") {
+            if (!req.file) {
+                return res.status(400).json({ message: "Video file is required for podcast type content" });
+            }
+            videoUrl = await cloudinaryService.uploadPodcastToCloudinary(req.file);
         }
 
         let parsedMetadata = {};
@@ -100,8 +106,8 @@ exports.updateHealingContent = async (req, res) => {
                 existingContent = await HealingVideo.findById(id);
                 if (existingContent) Model = HealingVideo;
                 else {
-                    existingContent = await HealingArticle.findById(id);
-                    if (existingContent) Model = HealingArticle;
+                    existingContent = await HealingPodcast.findById(id);
+                    if (existingContent) Model = HealingPodcast;
                 }
             }
         }
@@ -113,18 +119,20 @@ exports.updateHealingContent = async (req, res) => {
         let videoUrl = existingContent.videoUrl;
         const removeVideo = req.body.removeVideo === 'true';
 
-        // Delete old video if replacing it OR explicitly removing it
-        if (existingContent.type === "video" && videoUrl) {
+        // Delete old video/podcast file if replacing or removing
+        if ((existingContent.type === "video" || existingContent.type === "podcast") && videoUrl) {
             if (req.file || removeVideo) {
                 await cloudinaryService.deleteResourceByUrl(videoUrl, "video");
                 videoUrl = null;
             }
         }
 
-        // Output new Cloudinary URL if a new file is uploaded
-        if (req.body.type === "video" || existingContent.type === "video") {
-            if (req.file) {
+        // Upload new file if provided
+        if (req.file) {
+            if (existingContent.type === "video" || req.body.type === "video") {
                 videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
+            } else if (existingContent.type === "podcast" || req.body.type === "podcast") {
+                videoUrl = await cloudinaryService.uploadPodcastToCloudinary(req.file);
             }
         }
 
@@ -171,14 +179,14 @@ exports.deleteHealingContent = async (req, res) => {
         } else {
             deletedContent = await HealingQuote.findByIdAndDelete(id)
                 || await HealingVideo.findByIdAndDelete(id)
-                || await HealingArticle.findByIdAndDelete(id);
+                || await HealingPodcast.findByIdAndDelete(id);
         }
 
         if (!deletedContent) {
             return res.status(404).json({ message: "Healing content not found" });
         }
 
-        if (deletedContent.type === "video" && deletedContent.videoUrl) {
+        if ((deletedContent.type === "video" || deletedContent.type === "podcast") && deletedContent.videoUrl) {
             await cloudinaryService.deleteResourceByUrl(deletedContent.videoUrl, "video");
         }
 

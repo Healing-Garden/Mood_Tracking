@@ -21,7 +21,39 @@ const uploadVideoToCloudinary = (file) => {
 
         const uploadStream = cloudinary.uploader.upload_stream(
             {
-                folder: "healing_videos",
+                folder: "healing_exercises",
+                resource_type: "video",
+                use_filename: true,
+                unique_filename: true,
+            },
+            (error, result) => {
+                if (error) {
+                    console.error("Cloudinary upload error:", error);
+                    return reject(error);
+                }
+                resolve(result.secure_url);
+            }
+        );
+
+        streamifier.createReadStream(file.buffer).pipe(uploadStream);
+    });
+};
+
+/**
+ * Uploads a podcast video file buffer to Cloudinary in the healing_podcasts folder.
+ *
+ * @param {Object} file - The file object from multer containing the buffer
+ * @returns {Promise<string>} - The secure URL of the uploaded video
+ */
+const uploadPodcastToCloudinary = (file) => {
+    return new Promise((resolve, reject) => {
+        if (!file || !file.buffer) {
+            return reject(new Error("No file buffer provided"));
+        }
+
+        const uploadStream = cloudinary.uploader.upload_stream(
+            {
+                folder: "healing_podcasts",
                 resource_type: "video",
                 use_filename: true,
                 unique_filename: true,
@@ -110,6 +142,7 @@ const uploadImageToCloudinary = (file) => {
 
 module.exports = {
     uploadVideoToCloudinary,
+    uploadPodcastToCloudinary,
     uploadImageToCloudinary,
     deleteResourceByUrl,
 };

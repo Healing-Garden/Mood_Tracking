@@ -100,25 +100,19 @@ const HealingContentDetailModal: React.FC<HealingContentDetailModalProps> = ({ i
                                     </blockquote>
                                 )}
 
-                                {content.type === 'article' && (
-                                    <div className="text-gray-800 whitespace-pre-wrap leading-relaxed">
-                                        {content.content?.trim().startsWith('http') ? (
-                                            <div className="flex flex-col gap-3">
-                                                <a href={content.content.trim()} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all inline-flex items-center gap-1">
-                                                    {content.content.trim()}
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                                </a>
-                                                <iframe
-                                                    src={content.content.trim()}
-                                                    className="w-full h-[600px] border border-gray-200 rounded-lg bg-white shadow-inner"
-                                                    title={content.title}
-                                                    sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-                                                />
-                                            </div>
-                                        ) : (
-                                            content.content
-                                        )}
+                                {content.type === 'podcast' && content.videoUrl && (
+                                    <div className="rounded-lg overflow-hidden bg-black flex justify-center">
+                                        <video
+                                            src={content.videoUrl}
+                                            controls
+                                            className="w-full max-h-[500px]"
+                                            poster={content.thumbnail}
+                                        />
                                     </div>
+                                )}
+
+                                {content.type === 'podcast' && !content.videoUrl && (
+                                    <p className="text-gray-500 italic">No podcast video file available.</p>
                                 )}
 
                                 {content.type === 'video' && content.videoUrl && (
