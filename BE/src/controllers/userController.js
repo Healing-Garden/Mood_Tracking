@@ -482,10 +482,9 @@ module.exports = {
       const consistency = calculateConsistency(currentCheckIns, days);
       const prevConsistency = calculateConsistency(prevCheckIns, days);
 
-      // 3. Total Entries (Journal) - Within the specific period
+      // 3. Total Entries (Journal) - Global total matching dashboard logic
       const currentEntries = await JournalEntry.countDocuments({
         user_id: userId,
-        createdAt: { $gte: start, $lte: today },
         deleted_at: null,
       });
       const prevEntries = await JournalEntry.countDocuments({
