@@ -461,7 +461,7 @@ export default function JournalPage() {
 
       // 3️⃣ Gửi URL về backend
       await journalApi.create({
-        title: title || content.substring(0, 50),
+        title: title || "Untitled Entry",
         text: content,
         mood: selectedMood,
         trigger_tags: selectedEmotions,
@@ -536,339 +536,323 @@ export default function JournalPage() {
 
   if (!hydrated) return null;
 
-  if (isCheckingLock) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (isSettingPin) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm p-8 flex flex-col items-center text-center shadow-2xl border-primary/20 bg-white rounded-3xl">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-            <Lock className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-primary mb-2">
-            {isConfirming ? "Confirm Your PIN" : "Protect Your Journal"}
-          </h2>
-          <p className="text-muted-foreground mb-8">
-            {isConfirming
-              ? "Please re-enter your 6-digit PIN to confirm"
-              : "Set a 6-digit PIN to keep your personal thoughts safe"}
-          </p>
-
-          {!isConfirming ? (
-            <div className="grid grid-cols-6 gap-3 mb-8">
-              {pinInput.map((digit, i) => (
-                <Input
-                  key={i}
-                  id={`pin-${i}`}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handlePinInputChange(i, e.target.value)}
-                  className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
-                  autoFocus={i === 0}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-6 gap-3 mb-8">
-              {confirmPinInput.map((digit, i) => (
-                <Input
-                  key={i}
-                  id={`confirm-pin-${i}`}
-                  type="password"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handlePinInputChange(i, e.target.value, true)}
-                  className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
-                  autoFocus={i === 0}
-                />
-              ))}
-            </div>
-          )}
-
-          <div className="space-y-3 w-full">
-            <Button
-              onClick={handleSetPin}
-              disabled={
-                (!isConfirming && pinInput.some((d) => !d)) ||
-                (isConfirming && confirmPinInput.some((d) => !d)) ||
-                verifyingPin
-              }
-              className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-semibold shadow-lg"
-            >
-              {verifyingPin ? "Saving..." : isConfirming ? "Confirm & Lock" : "Next"}
-            </Button>
-
-            {isConfirming && (
-              <Button
-                variant="outline"
-                onClick={handleBackToSetPin}
-                className="w-full h-12 border-2 rounded-xl text-lg font-semibold"
-              >
-                Back
-              </Button>
-            )}
-          </div>
-
-          <button
-            onClick={() => (window.location.href = "/user/dashboard")}
-            className="mt-6 text-sm text-muted-foreground hover:text-primary transition"
-          >
-            Back to Dashboard
-          </button>
-        </Card>
-      </div>
-    );
-  }
-
-  if (isLocked) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-sm p-8 flex flex-col items-center text-center shadow-2xl border-primary/20 bg-white rounded-3xl">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-            <Lock className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold text-primary mb-2">Journal Protected</h2>
-          <p className="text-muted-foreground mb-8">Please enter your 6-digit PIN to access your journals</p>
-
-          <div className="grid grid-cols-6 gap-3 mb-8">
-            {pinInput.map((digit, i) => (
-              <Input
-                key={i}
-                id={`pin-${i}`}
-                type="password"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={(e) => handlePinInputChange(i, e.target.value)}
-                className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
-                autoFocus={i === 0}
-              />
-            ))}
-          </div>
-
-          <Button
-            onClick={handleVerifyPin}
-            disabled={pinInput.some(d => !d) || verifyingPin}
-            className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-semibold shadow-lg"
-          >
-            {verifyingPin ? "Verifying..." : "Unlock Journals"}
-          </Button>
-
-          <button
-            onClick={() => window.location.href = '/user/dashboard'}
-            className="mt-6 text-sm text-muted-foreground hover:text-primary transition"
-          >
-            Back to Dashboard
-          </button>
-        </Card>
-      </div>
-    );
-  }
+  // We removed the top-level early returns for PIN check
+  // and moved the logic down so "write" tab is always accessible.
 
   return (
     <DashboardLayout title="Multimedia Journal">
       <div className="max-w-6xl mx-auto p-6">
-            <Tabs
-              value={activeTab}
-              onValueChange={(v) =>
-                setActiveTab(v as "write" | "entries" | "search" | "trash")
-              }
-              className="space-y-6"
-            >
-              <TabsList className="w-full grid-cols-3 lg:grid-cols-4 p-1 bg-secondary/50 rounded-lg">
-                <TabsTrigger value="write" className="gap-2 flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
-                  <Plus size={16} />
-                  <span className="hidden sm:inline">Write</span>
-                </TabsTrigger>
-                <TabsTrigger value="entries" className="gap-2 flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
-                  <BookOpen size={16} />
-                  <span className="hidden sm:inline">My Entries</span>
-                </TabsTrigger>
-                <TabsTrigger value="trash" className="gap-2 hidden lg:flex flex-1 items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
-                  <Trash size={16} />
-                  Trash
-                </TabsTrigger>
-              </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) =>
+            setActiveTab(v as "write" | "entries" | "search" | "trash")
+          }
+          className="space-y-6"
+        >
+          <TabsList className="w-full grid-cols-3 lg:grid-cols-4 p-1 bg-secondary/50 rounded-lg">
+            <TabsTrigger value="write" className="gap-2 flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
+              <Plus size={16} />
+              <span className="hidden sm:inline">Write</span>
+            </TabsTrigger>
+            <TabsTrigger value="entries" className="gap-2 flex-1 flex items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
+              <BookOpen size={16} />
+              <span className="hidden sm:inline">My Entries</span>
+            </TabsTrigger>
+            <TabsTrigger value="trash" className="gap-2 hidden lg:flex flex-1 items-center justify-center py-2 px-3 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm text-muted-foreground hover:bg-white/50">
+              <Trash size={16} />
+              Trash
+            </TabsTrigger>
+          </TabsList>
 
-              {/* Write Tab */}
-              <TabsContent value="write" className="space-y-6">
-                <Card>
-                  <CardContent className="pt-6 space-y-4">
-                    {suggestedQuestions.length > 0 && (
-                      <div className="mt-4 p-4 bg-muted/30 rounded-lg">
-                        <p className="text-sm font-medium mb-2">
-                          ✨ Writing Suggestions:
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {suggestedQuestions.map((q, idx) => (
-                            <Button
-                              key={idx}
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                setContent(
-                                  (prev) => prev + (prev ? "\n" : "") + q
-                                )
-                              }
-                            >
-                              {q}
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {/* Textarea */}
-                    <Textarea
-                      placeholder="Start your journey here, share your soul..."
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
-                      className="min-h-56 resize-none text-base"
-                    />
-                    <p className="text-xs text-right text-muted-foreground">
-                      {content.length} characters
+          {/* Write Tab */}
+          <TabsContent value="write" className="space-y-6">
+            <Card>
+              <CardContent className="pt-6 space-y-4">
+                {suggestedQuestions.length > 0 && (
+                  <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                    <p className="text-sm font-medium mb-2">
+                      ✨ Writing Suggestions:
                     </p>
-
-                    {/* Mood Selection */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-semibold">Feeling:</span>
-                      <div className="flex gap-1">
-                        {MOODS.map((mood) => (
-                          <button
-                            key={mood}
-                            onClick={() => setSelectedMood(mood)}
-                            className={`text-2xl p-1.5 rounded transition-all ${selectedMood === mood
-                              ? "bg-primary/20 scale-110"
-                              : "hover:bg-secondary/50"
-                              }`}
-                          >
-                            {mood}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Emotions */}
-                    <div className="space-y-2">
-                      <span className="text-sm font-semibold">Emotions:</span>
-                      <div className="flex flex-wrap gap-2">
-                        {EMOTIONS.map((emotion) => (
-                          <button
-                            key={emotion}
-                            onClick={() => toggleEmotion(emotion)}
-                            className={`px-3 py-1 rounded-full text-xs transition ${selectedEmotions.includes(emotion)
-                              ? "bg-primary text-white"
-                              : "bg-secondary text-foreground hover:bg-secondary/80"
-                              }`}
-                          >
-                            {emotion}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Attachments Row */}
-                    <div className="flex items-center gap-3 pt-2 border-t">
-                      {/* Image Upload */}
-                      <label className="cursor-pointer hover:text-primary transition flex items-center gap-1.5">
-                        <ImageIcon size={18} />
-                        <span className="text-xs">
-                          {imagePreviews.length > 0
-                            ? `${imagePreviews.length} images`
-                            : "Images"}
-                        </span>
-
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          multiple
-                          accept="image/*"
-                          className="hidden"
-                          onChange={handleImageUpload}
-                        />
-                      </label>
-
-                      {/* Audio Recording */}
-                      <button
-                        onClick={isRecording ? stopRecording : startRecording}
-                        className={`flex items-center gap-1.5 text-xs transition ${isRecording
-                          ? "text-red-600 animate-pulse"
-                          : "hover:text-primary"
-                          }`}
-                      >
-                        {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
-                        <span>
-                          {audioUrl
-                            ? "Audio attached"
-                            : isRecording
-                              ? "Recording..."
-                              : "Voice"}
-                        </span>
-                      </button>
-
-                      {/* Spacer */}
-                      <div className="flex-1" />
-
-                      {/* Action Buttons */}
-                      <Button
-                        onClick={() => {
-                          setContent("");
-                          setSelectedMood("😊");
-                          setSelectedEmotions([]);
-                          setImageFiles([]);
-                          setImagePreviews([]);
-                          setAudioBlob(null);
-                          setAudioUrl(null);
-                        }}
-                        variant="outline"
-                        size="sm"
-                        className="bg-transparent"
-                      >
-                        Cancel
-                      </Button>
-                      <Button
-                        onClick={handleSaveEntry}
-                        disabled={!content.trim() || isSaving}
-                        size="sm"
-                        className="bg-primary hover:bg-primary/90 text-white gap-1"
-                      >
-                        <Save size={16} />
-                        {isSaving ? "Saving..." : "Save"}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Image Preview Grid */}
-                {imagePreviews.length > 0 && (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                    {imagePreviews.map((img, idx) => (
-                      <div key={idx} className="relative group">
-                        <img
-                          src={img}
-                          alt={`Entry ${idx}`}
-                          className="w-full h-20 object-cover rounded-lg"
-                        />
-                        <button
-                          onClick={() => removeImage(idx)}
-                          className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-lg"
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedQuestions.map((q, idx) => (
+                        <Button
+                          key={idx}
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setContent(
+                              (prev) => prev + (prev ? "\n" : "") + q
+                            )
+                          }
                         >
-                          <X size={20} className="text-white" />
-                        </button>
-                      </div>
-                    ))}
+                          {q}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
                 )}
-              </TabsContent>
+                {/* Title Input */}
+                <Input
+                  placeholder="Journal Title..."
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="text-lg font-semibold"
+                />
 
+                {/* Textarea */}
+                <Textarea
+                  placeholder="Start your journey here, share your soul..."
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  className="min-h-56 resize-none text-base"
+                />
+                <p className="text-xs text-right text-muted-foreground">
+                  {content.length} characters
+                </p>
+
+                {/* Mood Selection */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">Feeling:</span>
+                  <div className="flex gap-1">
+                    {MOODS.map((mood) => (
+                      <button
+                        key={mood}
+                        onClick={() => setSelectedMood(mood)}
+                        className={`text-2xl p-1.5 rounded transition-all ${selectedMood === mood
+                          ? "bg-primary/20 scale-110"
+                          : "hover:bg-secondary/50"
+                          }`}
+                      >
+                        {mood}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Emotions */}
+                <div className="space-y-2">
+                  <span className="text-sm font-semibold">Emotions:</span>
+                  <div className="flex flex-wrap gap-2">
+                    {EMOTIONS.map((emotion) => (
+                      <button
+                        key={emotion}
+                        onClick={() => toggleEmotion(emotion)}
+                        className={`px-3 py-1 rounded-full text-xs transition ${selectedEmotions.includes(emotion)
+                          ? "bg-primary text-white"
+                          : "bg-secondary text-foreground hover:bg-secondary/80"
+                          }`}
+                      >
+                        {emotion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Attachments Row */}
+                <div className="flex items-center gap-3 pt-2 border-t">
+                  {/* Image Upload */}
+                  <label className="cursor-pointer hover:text-primary transition flex items-center gap-1.5">
+                    <ImageIcon size={18} />
+                    <span className="text-xs">
+                      {imagePreviews.length > 0
+                        ? `${imagePreviews.length} images`
+                        : "Images"}
+                    </span>
+
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </label>
+
+                  {/* Audio Recording */}
+                  <button
+                    onClick={isRecording ? stopRecording : startRecording}
+                    className={`flex items-center gap-1.5 text-xs transition ${isRecording
+                      ? "text-red-600 animate-pulse"
+                      : "hover:text-primary"
+                      }`}
+                  >
+                    {isRecording ? <MicOff size={18} /> : <Mic size={18} />}
+                    <span>
+                      {audioUrl
+                        ? "Audio attached"
+                        : isRecording
+                          ? "Recording..."
+                          : "Voice"}
+                    </span>
+                  </button>
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Action Buttons */}
+                  <Button
+                    onClick={() => {
+                      setContent("");
+                      setSelectedMood("😊");
+                      setSelectedEmotions([]);
+                      setImageFiles([]);
+                      setImagePreviews([]);
+                      setAudioBlob(null);
+                      setAudioUrl(null);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="bg-transparent"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSaveEntry}
+                    disabled={!content.trim() || isSaving}
+                    size="sm"
+                    className="bg-primary hover:bg-primary/90 text-white gap-1"
+                  >
+                    <Save size={16} />
+                    {isSaving ? "Saving..." : "Save"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Image Preview Grid */}
+            {imagePreviews.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {imagePreviews.map((img, idx) => (
+                  <div key={idx} className="relative group">
+                    <img
+                      src={img}
+                      alt={`Entry ${idx}`}
+                      className="w-full h-20 object-cover rounded-lg"
+                    />
+                    <button
+                      onClick={() => removeImage(idx)}
+                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center rounded-lg"
+                    >
+                      <X size={20} className="text-white" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* PROTECTED ROUTES WRAPPER */}
+          {(activeTab === "entries" || activeTab === "trash") && isCheckingLock ? (
+            <div className="flex justify-center p-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (activeTab === "entries" || activeTab === "trash") && isSettingPin ? (
+            <Card className="w-full max-w-sm mx-auto mt-8 p-8 flex flex-col items-center text-center shadow-xl border-primary/20 bg-white rounded-3xl">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                <Lock className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-primary mb-2">
+                {isConfirming ? "Confirm Your PIN" : "Protect Your Journal"}
+              </h2>
+              <p className="text-muted-foreground mb-8">
+                {isConfirming
+                  ? "Please re-enter your 6-digit PIN to confirm"
+                  : "Set a 6-digit PIN to view past entries"}
+              </p>
+
+              {!isConfirming ? (
+                <div className="grid grid-cols-6 gap-3 mb-8">
+                  {pinInput.map((digit, i) => (
+                    <Input
+                      key={i}
+                      id={`pin-${i}`}
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handlePinInputChange(i, e.target.value)}
+                      className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
+                      autoFocus={i === 0}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid grid-cols-6 gap-3 mb-8">
+                  {confirmPinInput.map((digit, i) => (
+                    <Input
+                      key={i}
+                      id={`confirm-pin-${i}`}
+                      type="password"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handlePinInputChange(i, e.target.value, true)}
+                      className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
+                      autoFocus={i === 0}
+                    />
+                  ))}
+                </div>
+              )}
+
+              <div className="space-y-3 w-full">
+                <Button
+                  onClick={handleSetPin}
+                  disabled={
+                    (!isConfirming && pinInput.some((d) => !d)) ||
+                    (isConfirming && confirmPinInput.some((d) => !d)) ||
+                    verifyingPin
+                  }
+                  className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-semibold shadow-lg"
+                >
+                  {verifyingPin ? "Saving..." : isConfirming ? "Confirm & Lock" : "Next"}
+                </Button>
+
+                {isConfirming && (
+                  <Button
+                    variant="outline"
+                    onClick={handleBackToSetPin}
+                    className="w-full h-12 border-2 rounded-xl text-lg font-semibold"
+                  >
+                    Back
+                  </Button>
+                )}
+              </div>
+            </Card>
+          ) : (activeTab === "entries" || activeTab === "trash") && isLocked ? (
+            <Card className="w-full max-w-sm mx-auto mt-8 p-8 flex flex-col items-center text-center shadow-xl border-primary/20 bg-white rounded-3xl">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                <Lock className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-bold text-primary mb-2">Journal Protected</h2>
+              <p className="text-muted-foreground mb-8">Please enter your 6-digit PIN to access past entries</p>
+
+              <div className="grid grid-cols-6 gap-3 mb-8">
+                {pinInput.map((digit, i) => (
+                  <Input
+                    key={i}
+                    id={`pin-${i}`}
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(e) => handlePinInputChange(i, e.target.value)}
+                    className="w-11 h-11 text-center text-xl font-bold border-2 focus:border-primary rounded-xl"
+                    autoFocus={i === 0}
+                  />
+                ))}
+              </div>
+
+              <Button
+                onClick={handleVerifyPin}
+                disabled={pinInput.some(d => !d) || verifyingPin}
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-white rounded-xl text-lg font-semibold shadow-lg"
+              >
+                {verifyingPin ? "Verifying..." : "Unlock Journals"}
+              </Button>
+            </Card>
+          ) : (
+            <>
               {/* Entries Tab */}
               <TabsContent value="entries" className="space-y-4">
                 {/* Search Bar */}
@@ -1096,8 +1080,10 @@ export default function JournalPage() {
                   </div>
                 )}
               </TabsContent>
-              </Tabs>
-            </div>
+            </>
+          )}
+        </Tabs>
+      </div>
       {selectedEntry && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6 relative">

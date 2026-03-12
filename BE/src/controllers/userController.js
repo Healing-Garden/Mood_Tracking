@@ -9,7 +9,7 @@ const JournalEntry = require("../models/journalEntries");
 const ChatSession = require("../models/chatSession");
 const HealingQuote = require("../models/HealingQuote");
 const HealingVideo = require("../models/HealingVideo");
-const HealingArticle = require("../models/HealingArticle");
+const HealingPodcast = require("../models/HealingPodcast");
 
 // Helper to derive theme from mood (1–5)
 const getThemeByMood = (mood) => {
@@ -22,7 +22,7 @@ const getModelByType = (type) => {
   switch (type) {
     case 'quote': return HealingQuote;
     case 'video': return HealingVideo;
-    case 'article': return HealingArticle;
+    case 'podcast': return HealingPodcast;
     default: return null;
   }
 };
