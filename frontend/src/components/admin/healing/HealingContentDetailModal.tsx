@@ -38,7 +38,7 @@ const HealingContentDetailModal: React.FC<HealingContentDetailModalProps> = ({ i
                     </div>
 
                     {/* Author Section */}
-                    {(content.author || (content.type === 'video' && content.metadata?.author)) && (
+                    {(content.author || ((content.type === 'video' || content.type === 'podcast') && content.metadata?.author)) && (
                         <div>
                             <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider mb-1">Author</h3>
                             <p className="text-gray-700 font-medium italic">
