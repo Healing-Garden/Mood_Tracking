@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { Plus } from "lucide-react"
+import toast from "react-hot-toast"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "../../../components/ui/Tabs"
-import { useToast } from "../../../hooks/use-toast"
 import { Button } from "../../../components/ui/Button"
 import type { HealingContent } from "../../../services/healingContentService"
 import {
@@ -28,7 +28,24 @@ export default function HealingContentPage() {
     const [selectedContent, setSelectedContent] = useState<HealingContent | null>(null)
     const [isSubmitting, setIsSubmitting] = useState(false)
 
-    const { toast } = useToast()
+
+
+    /** Parse a human-readable message from an axios/network error */
+    const getErrorMessage = (error: unknown): string => {
+        if (error && typeof error === 'object') {
+            // Axios error shape
+            const axiosErr = error as { response?: { data?: { message?: string } }; message?: string };
+            const serverMsg = axiosErr?.response?.data?.message;
+            if (serverMsg) return serverMsg;
+            if (axiosErr.message) {
+                if (axiosErr.message.includes('Network')) return 'Network error — please check your connection.';
+                if (axiosErr.message.includes('413')) return 'File is too large to upload.';
+                if (axiosErr.message.includes('timeout')) return 'Request timed out. The file may be too large.';
+                return axiosErr.message;
+            }
+        }
+        return 'An unexpected error occurred. Please try again.';
+    }
 
     const fetchContents = async (type: 'quote' | 'video' | 'podcast') => {
         setIsLoading(true)
@@ -37,11 +54,7 @@ export default function HealingContentPage() {
             setContents(data)
         } catch (error) {
             console.error("Failed to fetch healing content", error)
-            toast({
-                title: "Error",
-                description: "Failed to load healing content. Please try again.",
-                variant: "destructive",
-            })
+            toast.error('Failed to load healing content. Please try again.')
         } finally {
             setIsLoading(false)
         }
@@ -76,26 +89,17 @@ export default function HealingContentPage() {
         try {
             if (selectedContent) {
                 await updateHealingContent(selectedContent._id, data)
-                toast({
-                    title: "Success",
-                    description: "Healing content updated successfully.",
-                })
+                toast.success(`"${selectedContent.title}" updated successfully!`)
             } else {
                 await createHealingContent(data)
-                toast({
-                    title: "Success",
-                    description: "Healing content created successfully.",
-                })
+                toast.success('New healing content created successfully!')
             }
             setIsFormModalOpen(false)
             fetchContents(activeTab)
         } catch (error) {
             console.error("Form submit error", error)
-            toast({
-                title: "Error",
-                description: "Failed to save healing content.",
-                variant: "destructive",
-            })
+            const isEdit = !!selectedContent
+            toast.error(`${isEdit ? 'Update failed' : 'Create failed'}: ${getErrorMessage(error)}`)
         } finally {
             setIsSubmitting(false)
         }
@@ -107,19 +111,12 @@ export default function HealingContentPage() {
         setIsSubmitting(true)
         try {
             await deleteHealingContent(selectedContent._id)
-            toast({
-                title: "Success",
-                description: "Healing content deleted successfully.",
-            })
+            toast.success(`"${selectedContent.title}" deleted successfully!`)
             setIsDeleteModalOpen(false)
             fetchContents(activeTab)
         } catch (error) {
             console.error("Delete error", error)
-            toast({
-                title: "Error",
-                description: "Failed to delete healing content.",
-                variant: "destructive",
-            })
+            toast.error(`Delete failed: ${getErrorMessage(error)}`)
         } finally {
             setIsSubmitting(false)
         }

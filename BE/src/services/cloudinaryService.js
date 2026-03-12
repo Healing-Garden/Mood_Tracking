@@ -1,5 +1,5 @@
 const cloudinary = require("cloudinary").v2;
-const streamifier = require("streamifier");
+const fs = require('fs');
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -8,18 +8,19 @@ cloudinary.config({
 });
 
 /**
- * Uploads a video file buffer to Cloudinary using upload_stream.
+ * Uploads a video file from disk to Cloudinary.
  *
- * @param {Object} file - The file object from multer containing the buffer
+ * @param {Object} file - The file object from multer containing the path
  * @returns {Promise<string>} - The secure URL of the uploaded video
  */
 const uploadVideoToCloudinary = (file) => {
     return new Promise((resolve, reject) => {
-        if (!file || !file.buffer) {
-            return reject(new Error("No file buffer provided"));
+        if (!file || !file.path) {
+            return reject(new Error("No file path provided"));
         }
 
-        const uploadStream = cloudinary.uploader.upload_stream(
+        cloudinary.uploader.upload(
+            file.path,
             {
                 folder: "healing_exercises",
                 resource_type: "video",
@@ -27,6 +28,11 @@ const uploadVideoToCloudinary = (file) => {
                 unique_filename: true,
             },
             (error, result) => {
+                // Always clean up the local file after upload attempt
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+
                 if (error) {
                     console.error("Cloudinary upload error:", error);
                     return reject(error);
@@ -34,24 +40,23 @@ const uploadVideoToCloudinary = (file) => {
                 resolve(result.secure_url);
             }
         );
-
-        streamifier.createReadStream(file.buffer).pipe(uploadStream);
     });
 };
 
 /**
- * Uploads a podcast video file buffer to Cloudinary in the healing_podcasts folder.
+ * Uploads a podcast video file from disk to Cloudinary.
  *
- * @param {Object} file - The file object from multer containing the buffer
+ * @param {Object} file - The file object from multer containing the path
  * @returns {Promise<string>} - The secure URL of the uploaded video
  */
 const uploadPodcastToCloudinary = (file) => {
     return new Promise((resolve, reject) => {
-        if (!file || !file.buffer) {
-            return reject(new Error("No file buffer provided"));
+        if (!file || !file.path) {
+            return reject(new Error("No file path provided"));
         }
 
-        const uploadStream = cloudinary.uploader.upload_stream(
+        cloudinary.uploader.upload(
+            file.path,
             {
                 folder: "healing_podcasts",
                 resource_type: "video",
@@ -59,6 +64,11 @@ const uploadPodcastToCloudinary = (file) => {
                 unique_filename: true,
             },
             (error, result) => {
+                // Always clean up the local file after upload attempt
+                if (fs.existsSync(file.path)) {
+                    fs.unlinkSync(file.path);
+                }
+
                 if (error) {
                     console.error("Cloudinary upload error:", error);
                     return reject(error);
@@ -66,8 +76,6 @@ const uploadPodcastToCloudinary = (file) => {
                 resolve(result.secure_url);
             }
         );
-
-        streamifier.createReadStream(file.buffer).pipe(uploadStream);
     });
 };
 
