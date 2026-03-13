@@ -10,7 +10,7 @@ import { DemographicTrendsChart } from '../../../components/features/aggregated-
 import { useAuth } from '../../../hooks/useAuth';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 import { Button } from '../../../components/ui/Button';
-import { RefreshCcw } from 'lucide-react';
+import { RefreshCcw, Info, PieChart, Users, TrendingUp } from 'lucide-react';
 
 const AnalyticsPage: React.FC = () => {
   useAuth();
@@ -93,8 +93,8 @@ const AnalyticsPage: React.FC = () => {
           </div>
 
           {data?.executive_summary.message ? (
-            <div className="mb-6 rounded-xl bg-orange-50 border border-orange-100 p-6 text-orange-800 flex items-center gap-3">
-              <span className="text-xl">ℹ️</span>
+            <div className="mb-6 rounded-xl bg-orange-50 border border-orange-100 p-6 text-orange-800 flex items-center gap-4">
+              <Info className="text-orange-500 flex-shrink-0" size={24} />
               <p className="font-medium">{data.executive_summary.message}</p>
             </div>
           ) : data ? (
@@ -106,7 +106,10 @@ const AnalyticsPage: React.FC = () => {
                   {/* Mood Distribution */}
                   {Object.keys(data.usage_patterns.mood_distribution).length > 0 && (
                     <div className="rounded-2xl bg-white p-6 shadow-sm border border-border">
-                      <h2 className="mb-6 text-lg font-bold text-foreground">Community Mood Distribution</h2>
+                      <h2 className="mb-6 text-lg font-bold text-foreground flex items-center gap-2">
+                        <PieChart size={20} className="text-primary" />
+                        Community Mood Distribution
+                      </h2>
                       <MoodDistributionChart data={data.usage_patterns.mood_distribution} />
                     </div>
                   )}
@@ -115,7 +118,10 @@ const AnalyticsPage: React.FC = () => {
                   {data.demographic_trends.avg_mood_by_age &&
                     Object.keys(data.demographic_trends.avg_mood_by_age).length > 0 && (
                       <div className="rounded-2xl bg-white p-6 shadow-sm border border-border">
-                        <h2 className="mb-6 text-lg font-bold text-foreground">Average Mood by Age Group</h2>
+                        <h2 className="mb-6 text-lg font-bold text-foreground flex items-center gap-2">
+                          <Users size={20} className="text-primary" />
+                          Average Mood by Age Group
+                        </h2>
                         <DemographicTrendsChart data={data.demographic_trends.avg_mood_by_age} />
                       </div>
                     )}
@@ -124,7 +130,10 @@ const AnalyticsPage: React.FC = () => {
               {/* Correlation Insights */}
               {data.correlation_insights.length > 0 && (
                 <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-foreground">Deep Insights & Correlations</h2>
+                  <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
+                    <TrendingUp size={24} className="text-primary" />
+                    Deep Insights & Correlations
+                  </h2>
                   <CorrelationInsights insights={data.correlation_insights} />
                 </div>
               )}
