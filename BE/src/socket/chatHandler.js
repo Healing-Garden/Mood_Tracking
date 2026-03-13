@@ -87,11 +87,11 @@ module.exports = (io, socket) => {
     }
   });
 
-  socket.on('disconnect', async () => {
-    if (currentSessionId) {
-      await chatService.endSession(currentSessionId, 'Session ended due to disconnect');
-      currentSessionId = null;
-      currentUserId = null;
-    }
+  socket.on('disconnect', () => {
+    // Just log it, don't end the session.
+    // User can come back or session will be inactive.
+    console.log(`Socket ${socket.id} disconnected from chat`);
+    currentSessionId = null;
+    currentUserId = null;
   });
 };

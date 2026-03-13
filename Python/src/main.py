@@ -92,8 +92,7 @@ async def api_key_middleware(request: Request, call_next):
     public_paths = [
         "/",
         "/info",
-        f"{settings.api_prefix}/health",  
-        f"{settings.api_prefix}/process_message",
+        f"{settings.api_prefix}/chat/process_message",
         "/docs",
         "/redoc",
         "/openapi.json"
