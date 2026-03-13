@@ -324,7 +324,21 @@ const AnalyticsPage = () => {
     </div>
   );
 
+  /* Helper to convert internal score (-1 to +1) to 1-5 display scale
+  const scoreToDisplayMood = (score: number | undefined): string => {
+    if (score === undefined) return '—'
+    // internal: -1→1, -0.5→2, 0→3, 0.5→4, 1→5
+    const display = (score + 1) / 2 * 4 + 1
+    return Math.min(5, Math.max(1, display)).toFixed(1)
+  }
 
+  // Helper to get trend arrow
+  const getTrendArrow = (slope: number | undefined) => {
+    if (slope === undefined) return null
+    if (slope > 0.02) return <span className="text-green-500">↑</span>
+    if (slope < -0.02) return <span className="text-red-500">↓</span>
+    return <span className="text-muted-foreground">→</span>
+  } */
 
   // Helper để lấy icon cho insight
   const getInsightIcon = (insight: string) => {

@@ -6,8 +6,6 @@ import type { ToastActionElement, ToastProps } from '../components/ui/Toast'
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1_000_000
 
-/* ===================== ENUM ===================== */
-
 export const ActionTypes = {
   ADD_TOAST: 'ADD_TOAST',
   UPDATE_TOAST: 'UPDATE_TOAST',

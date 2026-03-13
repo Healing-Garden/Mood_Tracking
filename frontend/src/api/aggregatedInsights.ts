@@ -22,5 +22,5 @@ export const getAggregatedInsights = async (
     },
   });
   // http interceptor đã trả về res.data, nên response là dữ liệu cần
-  return response;
+  return response as unknown as AggregatedInsights;
 };
