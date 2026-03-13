@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Leaf, Eye, EyeOff } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Eye, EyeOff } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
@@ -150,36 +150,32 @@ const ForgotPasswordPage: React.FC = () => {
     }
   };
 
+  const location = useLocation();
+  const fromLanding = location.state?.fromLanding;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30 flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Decorative leaves */}
-      <div className="absolute top-10 right-10 opacity-20 animate-pulse">
-        <Leaf size={60} className="text-primary" />
-      </div>
-      <div
-        className="absolute bottom-10 left-10 opacity-20 animate-pulse"
-        style={{ animationDelay: "1s" }}
-      >
-        <Leaf size={80} className="text-primary" />
-      </div>
+    <>
+      <div className={`auth-bg ${!fromLanding ? 'no-animation' : ''}`} />
+      <div className="auth-card-container">
+        {/* Overlay for readability and animation */}
+        <div className={`auth-overlay ${!fromLanding ? 'no-animation' : ''}`} />
 
-      <div className="w-full max-w-md z-10">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="/healing-garden-logo.png"
-            alt="Healing Garden"
-            width={80}
-            height={80}
-            className="rounded-lg shadow-lg"
-          />
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
+        <div className={`w-full max-w-md z-10 ${fromLanding ? 'animate-fade-in-form' : 'animate-fade-in-form-fast'}`}>
+          <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
+            {/* Logo */}
+            <div className="flex justify-center mb-4">
+              <img
+                src="/healing-garden-logo.png"
+                alt="Healing Garden"
+                width={70}
+                height={70}
+                className="rounded-lg"
+              />
+            </div>
           {/* STEP EMAIL */}
           {step === "email" && (
             <>
-              <h1 className="text-3xl font-bold text-primary mb-2 text-center">
+              <h1 className="text-xl font-bold text-primary mb-1 text-center">
                 Reset Password
               </h1>
               <p className="text-center text-muted-foreground mb-8">
@@ -206,7 +202,7 @@ const ForgotPasswordPage: React.FC = () => {
               </form>
               <div className="mt-6 text-center text-sm">
                 Remember your password?{" "}
-                <Link to="/login" className="text-primary font-semibold">
+                <Link to="/login" state={{ fromLanding }} className="text-primary font-semibold">
                   Sign In
                 </Link>
               </div>
@@ -216,7 +212,7 @@ const ForgotPasswordPage: React.FC = () => {
           {/* STEP VERIFY */}
           {step === "verify" && (
             <>
-              <h1 className="text-3xl font-bold text-primary text-center mb-2">
+              <h1 className="text-xl font-bold text-primary text-center mb-1">
                 Enter OTP
               </h1>
               <form onSubmit={handleVerifyOtp} className="space-y-4">
@@ -322,7 +318,7 @@ const ForgotPasswordPage: React.FC = () => {
           {/* STEP RESET */}
           {step === "reset" && (
             <>
-              <h1 className="text-3xl font-bold text-primary text-center mb-2">
+              <h1 className="text-xl font-bold text-primary text-center mb-1">
                 Set New Password
               </h1>
               <form onSubmit={handleResetPassword} className="space-y-4">
@@ -421,9 +417,10 @@ const ForgotPasswordPage: React.FC = () => {
               </form>
             </>
           )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
