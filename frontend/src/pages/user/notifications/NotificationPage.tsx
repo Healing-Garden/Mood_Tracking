@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent } from '../../../components/ui/Card'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
-import { Bell, Check, Trash2, Menu, X } from 'lucide-react'
+import { Bell, Check, Trash2 } from 'lucide-react'
 import http from '../../../api/http'
+import DashboardLayout from '../../../components/layout/DashboardLayout';
 
 type NotificationType = 'insight' | 'reminder' | 'milestone' | 'message'
 
@@ -34,7 +34,6 @@ interface ApiNotification {
 }
 
 export default function NotificationsPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -120,7 +119,6 @@ export default function NotificationsPage() {
 
   const markAsRead = (id: string) => {
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n))
-    // fire and forget
     http.patch(`/notifications/${id}/read`).catch((err) => {
       console.error('Failed to mark as read', err)
     })
@@ -128,7 +126,6 @@ export default function NotificationsPage() {
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id))
-    // fire and forget
     http.delete(`/notifications/${id}`).catch((err) => {
       console.error('Failed to delete notification', err)
     })
@@ -137,62 +134,46 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter(n => !n.read).length
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-      </div>
+    <DashboardLayout 
+      title="Notifications"
+      headerActions={
+        unreadCount > 0 && (
+          <span className="bg-primary text-white text-xs font-semibold px-2.5 py-1 rounded-full animate-in zoom-in duration-300">
+            {unreadCount} new
+          </span>
+        )
+      }
+    >
+      <div className="px-4 py-8 max-w-4xl mx-auto w-full space-y-6">
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" size="sm" className="text-xs h-8">All</Button>
+          <Button variant="outline" size="sm" className="text-xs h-8">Unread</Button>
+          <Button variant="outline" size="sm" className="text-xs h-8">Insights</Button>
+        </div>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-20 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-          <div className="px-4 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold">Notifications</h1>
-              {unreadCount > 0 && (
-                <span className="bg-primary text-white text-xs font-semibold px-2 py-1 rounded-full">
-                  {unreadCount} new
-                </span>
-              )}
-            </div>
-            <button className="lg:hidden p-2 rounded hover:bg-muted" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
-        <main className="flex-1 px-4 py-8 max-w-4xl mx-auto w-full space-y-6">
-          {/* Filter placeholder */}
-          <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" className="text-xs">All</Button>
-            <Button variant="outline" size="sm" className="text-xs">Unread</Button>
-            <Button variant="outline" size="sm" className="text-xs">Insights</Button>
-          </div>
-
-          {loading ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <p className="text-muted-foreground">Loading notifications...</p>
-              </CardContent>
-            </Card>
-          ) : notifications.length === 0 ? (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <Bell className="mx-auto mb-4 opacity-50" size={48} />
-                <h3 className="font-semibold text-lg">All Caught Up!</h3>
-                <p className="text-muted-foreground">You don't have any notifications right now.</p>
-              </CardContent>
-            </Card>
-          ) : (
-            notifications.map((notification) => (
+        {loading ? (
+          <Card className="border-border">
+            <CardContent className="py-12 text-center">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading notifications...</p>
+            </CardContent>
+          </Card>
+        ) : notifications.length === 0 ? (
+          <Card className="border-border">
+            <CardContent className="py-12 text-center text-muted-foreground">
+              <Bell className="mx-auto mb-4 opacity-50" size={48} />
+              <h3 className="font-semibold text-lg text-foreground">All Caught Up!</h3>
+              <p>You don't have any notifications right now.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((notification) => (
               <Card
                 key={notification.id}
-                className={`overflow-hidden transition-all hover:shadow-md ${!notification.read ? 'border-primary/30 bg-primary/5' : ''
-                  }`}
+                className={`overflow-hidden transition-all hover:shadow-md border-border ${
+                  !notification.read ? 'ring-1 ring-primary/20 bg-primary/5' : ''
+                }`}
               >
                 <CardContent className="p-0">
                   <div className={`${getNotificationColor(notification.type)} p-4 flex gap-4 items-start`}>
@@ -236,16 +217,16 @@ export default function NotificationsPage() {
                   </div>
                 </CardContent>
               </Card>
-            ))
-          )}
+            ))}
+          </div>
+        )}
 
-          {error && (
-            <p className="text-sm text-red-600 mt-2">
-              {error}
-            </p>
-          )}
-        </main>
+        {error && (
+          <p className="text-sm text-red-600 mt-2 text-center">
+            {error}
+          </p>
+        )}
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

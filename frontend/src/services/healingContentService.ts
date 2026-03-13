@@ -4,7 +4,7 @@ export interface HealingContent {
     _id: string;
     title: string;
     description: string;
-    type: 'quote' | 'video' | 'article';
+    type: 'quote' | 'video' | 'podcast';
     moodLevel: number;
     is_active?: boolean;
     content?: string;

@@ -215,7 +215,7 @@ const LandingPage: React.FC = () => {
                 className="text-white drop-shadow-2xl block mb-2 text-7xl md:text-7xl"
                 style={{ fontFamily: "'DM Serif Text', Georgia, sans-serif" }}
               >
-                Nurture Your Emotions,
+                Nurture Your Emotions
               </span>
               <span
                 className="text-green-200 drop-shadow-2xl block text-5xl md:text-6xl"

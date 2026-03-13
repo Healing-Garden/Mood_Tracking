@@ -36,12 +36,30 @@ export const aiApi = {
     return http.post('/ai/actions/suggest', { userId, currentMood, count, excludeIds }, { timeout: 30000 });
   },
 
-  logActionCompletion: (userId: string, actionId: string, durationSeconds: number, moodAtTime?: string, source: string = 'suggestion') => {
-    return http.post('/ai/actions/log-completion', { userId, actionId, durationSeconds, moodAtTime, source });
+  logActionCompletion: (
+    userId: string,
+    actionId: string,
+    durationSeconds: number,
+    moodAtTime?: string,
+    source: string = 'suggestion',
+    postMoodScore?: number
+  ) => {
+    return http.post('/ai/actions/log-completion', {
+      userId,
+      actionId,
+      durationSeconds,
+      moodAtTime,
+      source,
+      postMoodScore,
+    });
   },
 
   logSkip: (userId: string, mood: string | null, shownActions: string[], reason?: string) => {
     return http.post('/ai/actions/skip', { userId, mood, shownActions, reason });
+  },
+
+  checkActionEligibility: (userId: string) => {
+    return http.post('/ai/actions/eligibility', { userId });
   },
 
   // Analyze sentiment

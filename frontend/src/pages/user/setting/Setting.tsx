@@ -5,14 +5,21 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { useOnboarding } from '../../../hooks/useOnboarding'
-import { RotateCcw, Lock, Bell, Palette, LogOut, Menu, X, ArrowLeft } from 'lucide-react'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import { RotateCcw, Lock, Bell, Palette, LogOut, ArrowLeft } from 'lucide-react'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 import NotificationSettings from '../../../components/features/NotificationSettings'
+
+type SettingsCategory = {
+  title: string
+  description: string
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>
+  action?: string
+  view?: string
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
-  const [view, setView] = useState<'main' | 'notifications'>('main')
+  const [view, setView] = useState<'main' | 'notifications'>('main') // state điều khiển view
 
   const {
     goalsSelected,
@@ -33,53 +40,43 @@ export default function SettingsPage() {
     navigate('/onboarding/Step1')
   }
 
+  const settingsCategories: SettingsCategory[] = [
+    {
+      title: 'Personalization',
+      description: 'Manage your preferences and goals',
+      icon: Palette,
+    },
+    {
+      title: 'Security & Privacy',
+      description: 'Manage your account security',
+      icon: Lock,
+      action: 'Manage',
+    },
+    {
+      title: 'Notifications',
+      description: 'Control how we communicate with you',
+      icon: Bell,
+      action: 'Configure',
+      view: 'notifications', // xác định view cần chuyển
+    },
+  ]
+
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
+    <DashboardLayout title={view === 'main' ? 'Settings' : 'Notification Settings'}>
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              {/* Nút back khi ở view notifications */}
-              {view === 'notifications' && (
-                <button
-                  onClick={() => setView('main')}
-                  className="p-2 hover:bg-muted rounded-lg"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              )}
-              <h1 className="text-2xl font-bold text-primary">
-                {view === 'main' ? 'Settings' : 'Notification Settings'}
-              </h1>
-            </div>
-
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="max-w-4xl mx-auto">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-0">
+          <div className="max-w-4xl mx-auto py-8">
+            {view === 'notifications' && (
+              <Button
+                variant="ghost"
+                onClick={() => setView('main')}
+                className="mb-4 gap-2 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft size={20} />
+                Back to Settings
+              </Button>
+            )}
             {view === 'main' ? (
               /* Nội dung settings chính */
               <div className="space-y-6">
@@ -160,50 +157,37 @@ export default function SettingsPage() {
                   </CardContent>
                 </Card>
 
+                {/* Other Settings Cards */}
                 <div className="grid md:grid-cols-2 gap-6">
-                  {/* Security Short Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Lock size={20} className="text-primary" />
-                        Account Security
-                      </CardTitle>
-                      <CardDescription>
-                        Manage your password and app lock PIN
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => navigate('/user/profile')}
-                      >
-                        Manage in Profile
-                      </Button>
-                    </CardContent>
-                  </Card>
-
-                  {/* Notifications Card */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center gap-2">
-                        <Bell size={20} className="text-primary" />
-                        Notifications
-                      </CardTitle>
-                      <CardDescription>
-                        Control how we communicate with you
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <Button
-                        variant="outline"
-                        className="w-full"
-                        onClick={() => setView('notifications')}
-                      >
-                        Configure
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  {settingsCategories.slice(1).map((category) => {
+                    const Icon = category.icon
+                    return (
+                      <Card key={category.title}>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <Icon className="w-6 h-6 text-primary" />
+                            {category.title}
+                          </CardTitle>
+                          <CardDescription>
+                            {category.description}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => {
+                              if (category.view) {
+                                setView(category.view as 'notifications')
+                              }
+                            }}
+                          >
+                            {category.action}
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    )
+                  })}
                 </div>
 
                 {/* Account Card */}
@@ -229,6 +213,6 @@ export default function SettingsPage() {
           </div>
         </main>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

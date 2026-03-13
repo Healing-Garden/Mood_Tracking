@@ -17,11 +17,12 @@ class DailySummaryGenerator:
         user_id: str,
         date: str,
         entries: List[Dict],
-        moods: List[Dict]
+        moods: List[Dict],
+        onboarding: Optional[Dict] = None
     ) -> Dict[str, Any]:
         """
-        Tạo daily summary bằng Gemini.
-        Trả về dict gồm summary và metadata chi tiết.
+        Tạo daily summary dạng bullet points ngắn gọn.
+        Trả về dict gồm summary (chuỗi nhiều dòng, mỗi dòng 1 bullet) và metadata chi tiết.
         """
         # 1. Kiểm tra dữ liệu đầu vào (exception 1-EF)
         if not entries and not moods:
@@ -43,6 +44,17 @@ class DailySummaryGenerator:
         journal_texts = [e.get('text', '') for e in entries if e.get('text')]
         mood_list = [m.get('mood', 'unknown') for m in moods]
         energy_list = [m.get('energy') for m in moods if m.get('energy') is not None]
+        
+        triggers = set()
+        for m in moods:
+            if m.get('triggers'):
+                for t in m.get('triggers', []):
+                    triggers.add(t)
+        trigger_list = list(triggers)
+
+        onboarding_goals = []
+        if onboarding:
+            onboarding_goals = onboarding.get('improveGoals', []) or onboarding.get('goals', [])
 
         # Tóm tắt journal nếu quá dài (giới hạn 500 từ)
         journal_summary = self._prepare_journal_summary(journal_texts)
@@ -52,9 +64,9 @@ class DailySummaryGenerator:
         dominant_mood = self._dominant_mood(mood_list)
         sentiment = self._analyze_sentiment_from_texts(journal_texts) if journal_texts else "neutral"
 
-        # 3. Xây dựng prompt cho Gemini
+        # 3. Xây dựng prompt cho Gemini (bullet points, không đoạn văn dài)
         day_theme = self._get_day_theme(date)
-        prompt = self._build_prompt(journal_summary, mood_list, energy_list, avg_mood, dominant_mood, day_theme)
+        prompt = self._build_prompt(journal_summary, mood_list, energy_list, avg_mood, dominant_mood, day_theme, trigger_list, onboarding_goals)
 
         system_instruction = (
             "You are a compassionate mental health assistant. "
@@ -97,33 +109,37 @@ class DailySummaryGenerator:
         energy_list: List[int],
         avg_mood: float,
         dominant_mood: str,
-        day_theme: str = ""
+        day_theme: str = "",
+        trigger_list: List[str] = None,
+        onboarding_goals: List[str] = None
     ) -> str:
-        """Xây dựng prompt với ngôn ngữ tích cực, khích lệ."""
+        """Xây dựng prompt: trả về JSON gồm list bullet points ngắn gọn."""
         mood_tokens = [str(m) for m in mood_list] if mood_list else []
         mood_text = f"Recorded moods: {', '.join(mood_tokens) if mood_tokens else 'none'}. "
         energy_text = f"Average energy level: {sum(energy_list)/len(energy_list):.1f}/10. " if energy_list else ""
+        
+        trigger_text = f"Reported triggers: {', '.join(trigger_list)}. " if trigger_list else ""
+        goals_text = f"User's onboarding goals: {', '.join(onboarding_goals)}. " if onboarding_goals else ""
 
         prompt = f"""
-You are a compassionate mental health assistant. Write a warm, encouraging daily reflection in natural, human-sounding English.
+You are a compassionate mental health assistant. Summarize the user's day into a few key bullet points (not long paragraphs).
 
-{day_theme} Use this context to flavor the reflection and avoid repetitive daily templates.
+{day_theme} Use this context to flavor the insights and avoid repetitive templates.
 
-User data (may include Vietnamese text; please interpret it and respond in English while preserving the emotional meaning):
-- Mood check-ins: {mood_text}{energy_text}Average mood score (1-5): {avg_mood:.1f}. Most frequent mood: {dominant_mood}.
+User data (may include Vietnamese text; interpret it and preserve emotional meaning):
+- Mood check-ins: {mood_text}{energy_text}{trigger_text}Average mood score (1-5): {avg_mood:.1f}. Most frequent mood: {dominant_mood}.
 - Journal text: {journal_summary if journal_summary else 'No journal text was recorded today.'}
+{goals_text}
 
-Writing requirements:
-1. Sound like a supportive therapist: gentle, validating, and practical.
-2. Do NOT list stats or counts in a report-like way (avoid phrases like "You recorded X..." or bullet-point style output).
-3. Structure: 2 short paragraphs (Total 4-7 sentences). Keep it around ~100-140 words.
-4. Reflect one or two emotional themes you infer from the journal and mood trend.
-5. Closing: Instead of a generic tip, end with a specific "reflection question" tailored to the user's day (e.g., "What’s one small thing you can do for yourself right now?" or "In what way did you show yourself grace today?"). This question should be the final sentence.
-6. If the mood seems low (avg < 3), explicitly validate difficulty and highlight resilience.
-7. Language: English.
-8. Safety: Ensure all sentences are complete. Do not stop mid-sentence.
+Output requirements:
+1. Return ONLY valid JSON with shape: {{"bullets": ["...", "...", "..."], "tone": "brief label", "tips": ["...", "..."]}}.
+2. Each bullet should be a short, readable sentence (max ~25 words) capturing ONE idea (pattern, feeling, or takeaway).
+3. bullets[0..2] should be the 3–5 most important insights of the day (no more than 5 bullets total).
+4. Language: keep it friendly and encouraging, not clinical; no statistics in the text (no 'you recorded X...' phrasing).
+5. If mood is low (avg < 3), at least one bullet must validate their difficulty and highlight resilience.
+6. tips is optional; if you include it, 1–2 very short practical suggestions.
 
-Daily reflection:
+JSON:
 """
         return prompt
 
@@ -183,12 +199,25 @@ Daily reflection:
         return " ".join(parts)
 
     def _post_process(self, summary: str) -> str:
-        """Đảm bảo summary không quá dài và loại bỏ khoảng trắng."""
+        """
+        Chuyển JSON từ model thành chuỗi nhiều dòng (mỗi dòng 1 bullet, + optional tips).
+        Không cắt bớt để tránh mất ý.
+        """
         summary = summary.strip()
-        # Tăng lên 250 từ để tránh cắt giữa chừng
-        if len(summary.split()) > 250:
-            summary = " ".join(summary.split()[:250]) + "..."
-        return summary
+        try:
+            import json
+            data = json.loads(summary)
+            bullets = [str(b).strip() for b in data.get("bullets", []) if str(b).strip()]
+            tips = [str(t).strip() for t in data.get("tips", []) if str(t).strip()]
+            lines = []
+            for b in bullets:
+                lines.append(f"• {b}")
+            for t in tips:
+                lines.append(f"• Tip: {t}")
+            return "\n".join(lines) if lines else summary
+        except Exception:
+            # Nếu parsing JSON lỗi, trả thẳng text (không cắt)
+            return summary
 
     def _calculate_avg_mood(self, mood_list: List[str], energy_list: List[int]) -> float:
         """Chuyển mood thành điểm số (1-5) và tính trung bình."""

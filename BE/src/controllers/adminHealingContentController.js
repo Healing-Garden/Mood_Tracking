@@ -1,13 +1,13 @@
 const HealingQuote = require("../models/HealingQuote");
 const HealingVideo = require("../models/HealingVideo");
-const HealingArticle = require("../models/HealingArticle");
+const HealingPodcast = require("../models/HealingPodcast");
 const cloudinaryService = require("../services/cloudinaryService");
 
 const getModelByType = (type) => {
     switch (type) {
         case 'quote': return HealingQuote;
         case 'video': return HealingVideo;
-        case 'article': return HealingArticle;
+        case 'podcast': return HealingPodcast;
         default: return null;
     }
 };
@@ -23,8 +23,8 @@ exports.getAllHealingContent = async (req, res) => {
         } else {
             const quotes = await HealingQuote.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
             const videos = await HealingVideo.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
-            const articles = await HealingArticle.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
-            content = [...quotes, ...videos, ...articles].sort((a, b) => b.createdAt - a.createdAt);
+            const podcasts = await HealingPodcast.find().sort({ createdAt: -1 }).populate("createdBy", "fullName email");
+            content = [...quotes, ...videos, ...podcasts].sort((a, b) => b.createdAt - a.createdAt);
         }
 
         res.status(200).json(content);
@@ -40,14 +40,34 @@ exports.createHealingContent = async (req, res) => {
         let videoUrl = null;
 
         const Model = getModelByType(type);
-        if (!Model) return res.status(400).json({ message: "Invalid type" });
+        if (!Model) return res.status(400).json({ message: "Invalid content type. Must be 'quote', 'video', or 'podcast'." });
+
+        if (!title || !title.trim()) {
+            return res.status(400).json({ message: "Title is required." });
+        }
 
         if (type === "video") {
             if (!req.file) {
-                return res.status(400).json({ message: "Video file is required for video type content" });
+                return res.status(400).json({ message: "A video file is required for exercise (video) content." });
             }
-            // Upload video to Cloudinary
-            videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
+            try {
+                videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
+            } catch (uploadErr) {
+                console.error("Cloudinary upload failed (video):", uploadErr);
+                return res.status(500).json({ message: "Failed to upload video to cloud storage. Please try again." });
+            }
+        }
+
+        if (type === "podcast") {
+            if (!req.file) {
+                return res.status(400).json({ message: "A video file is required for podcast content." });
+            }
+            try {
+                videoUrl = await cloudinaryService.uploadPodcastToCloudinary(req.file);
+            } catch (uploadErr) {
+                console.error("Cloudinary upload failed (podcast):", uploadErr);
+                return res.status(500).json({ message: "Failed to upload podcast video to cloud storage. Please try again." });
+            }
         }
 
         let parsedMetadata = {};
@@ -55,7 +75,6 @@ exports.createHealingContent = async (req, res) => {
             try {
                 parsedMetadata = JSON.parse(req.body.metadata);
             } catch (err) {
-                // If it's already an object or fails to parse
                 parsedMetadata = typeof req.body.metadata === 'object' ? req.body.metadata : {};
             }
         }
@@ -78,7 +97,7 @@ exports.createHealingContent = async (req, res) => {
         res.status(201).json(newContent);
     } catch (error) {
         console.error("Error creating healing content:", error);
-        res.status(500).json({ message: "Server error creating healing content" });
+        res.status(500).json({ message: error.message || "Server error while creating healing content." });
     }
 };
 
@@ -100,8 +119,8 @@ exports.updateHealingContent = async (req, res) => {
                 existingContent = await HealingVideo.findById(id);
                 if (existingContent) Model = HealingVideo;
                 else {
-                    existingContent = await HealingArticle.findById(id);
-                    if (existingContent) Model = HealingArticle;
+                    existingContent = await HealingPodcast.findById(id);
+                    if (existingContent) Model = HealingPodcast;
                 }
             }
         }
@@ -113,18 +132,25 @@ exports.updateHealingContent = async (req, res) => {
         let videoUrl = existingContent.videoUrl;
         const removeVideo = req.body.removeVideo === 'true';
 
-        // Delete old video if replacing it OR explicitly removing it
-        if (existingContent.type === "video" && videoUrl) {
+        // Delete old video/podcast file if replacing or removing
+        if ((existingContent.type === "video" || existingContent.type === "podcast") && videoUrl) {
             if (req.file || removeVideo) {
                 await cloudinaryService.deleteResourceByUrl(videoUrl, "video");
                 videoUrl = null;
             }
         }
 
-        // Output new Cloudinary URL if a new file is uploaded
-        if (req.body.type === "video" || existingContent.type === "video") {
-            if (req.file) {
-                videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
+        // Upload new file if provided
+        if (req.file) {
+            try {
+                if (existingContent.type === "video" || req.body.type === "video") {
+                    videoUrl = await cloudinaryService.uploadVideoToCloudinary(req.file);
+                } else if (existingContent.type === "podcast" || req.body.type === "podcast") {
+                    videoUrl = await cloudinaryService.uploadPodcastToCloudinary(req.file);
+                }
+            } catch (uploadErr) {
+                console.error("Cloudinary upload failed (update):", uploadErr);
+                return res.status(500).json({ message: "Failed to upload video to cloud storage. Please try again." });
             }
         }
 
@@ -155,7 +181,7 @@ exports.updateHealingContent = async (req, res) => {
         res.status(200).json(existingContent);
     } catch (error) {
         console.error("Error updating healing content:", error);
-        res.status(500).json({ message: "Server error updating healing content" });
+        res.status(500).json({ message: error.message || "Server error while updating healing content." });
     }
 };
 
@@ -171,14 +197,14 @@ exports.deleteHealingContent = async (req, res) => {
         } else {
             deletedContent = await HealingQuote.findByIdAndDelete(id)
                 || await HealingVideo.findByIdAndDelete(id)
-                || await HealingArticle.findByIdAndDelete(id);
+                || await HealingPodcast.findByIdAndDelete(id);
         }
 
         if (!deletedContent) {
             return res.status(404).json({ message: "Healing content not found" });
         }
 
-        if (deletedContent.type === "video" && deletedContent.videoUrl) {
+        if ((deletedContent.type === "video" || deletedContent.type === "podcast") && deletedContent.videoUrl) {
             await cloudinaryService.deleteResourceByUrl(deletedContent.videoUrl, "video");
         }
 

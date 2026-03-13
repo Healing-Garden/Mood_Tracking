@@ -64,12 +64,12 @@ export default function Step3SelfReflection() {
   const isFormValid = selectedFreq !== '' && selectedHandling !== '' && selectedLearning !== ''
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#f6f8f6] to-[#e8f0e8] flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30 flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-3xl space-y-10">
         {/* Header */}
         <div className="space-y-3 text-center">
-          <h1 className="text-4xl font-bold text-[#122012]">Self-Reflection Habits</h1>
-          <p className="text-lg text-[#122012]/70">One last step to complete your journey</p>
+          <h1 className="text-4xl font-bold text-foreground">Self-Reflection Habits</h1>
+          <p className="text-lg text-muted-foreground">One last step to complete your journey</p>
         </div>
 
         {/* Progress */}
@@ -87,8 +87,8 @@ export default function Step3SelfReflection() {
           {/* Question 7 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">7</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">7</span>
                 How often do you take time to reflect on your day?
               </CardTitle>
             </CardHeader>
@@ -99,8 +99,8 @@ export default function Step3SelfReflection() {
                     key={opt}
                     onClick={() => setSelectedFreq(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedFreq === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>
@@ -114,8 +114,8 @@ export default function Step3SelfReflection() {
           {/* Question 8 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">8</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">8</span>
                 What is your typical response to negative emotions?
               </CardTitle>
             </CardHeader>
@@ -126,8 +126,8 @@ export default function Step3SelfReflection() {
                     key={opt}
                     onClick={() => setSelectedHandling(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedHandling === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>
@@ -141,8 +141,8 @@ export default function Step3SelfReflection() {
           {/* Question 9 */}
           <Card className="border-none shadow-xl bg-white/80 backdrop-blur-sm overflow-hidden group transition-all hover:shadow-2xl">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl text-[#122012] flex items-center gap-3">
-                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-[#188618] text-white text-sm">9</span>
+              <CardTitle className="text-xl text-foreground flex items-center gap-3">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary text-primary-foreground text-sm">9</span>
                 How often do you learn from your personal experiences?
               </CardTitle>
             </CardHeader>
@@ -153,8 +153,8 @@ export default function Step3SelfReflection() {
                     key={opt}
                     onClick={() => setSelectedLearning(opt)}
                     className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${selectedLearning === opt
-                        ? 'border-[#188618] bg-[#188618]/5 text-[#188618] font-medium'
-                        : 'border-transparent bg-[#f0f4f0] hover:bg-[#e4eee4] text-[#122012]/70'
+                        ? 'border-primary bg-primary/5 text-primary font-medium'
+                        : 'border-transparent bg-muted/60 hover:bg-muted text-muted-foreground'
                       }`}
                   >
                     <span>{opt}</span>

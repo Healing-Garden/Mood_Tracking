@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card'
 import { dailyCheckInApi, type TriggerHeatmapRow } from '../../api/dailyCheckInApi'
+import { Flame, Info } from 'lucide-react'
 
 type HeatmapPeriod = 'week' | 'month' | 'year'
 
@@ -89,8 +90,14 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
       <CardHeader>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <CardTitle className="text-primary">Trigger Heatmap</CardTitle>
-            <CardDescription>Emotional frequency by trigger and mood quality.</CardDescription>
+            <CardTitle className="text-primary flex items-center gap-2">
+              <Flame size={20} />
+              Trigger Heatmap
+            </CardTitle>
+            <CardDescription className="flex items-center gap-1">
+              <Info size={14} />
+              Emotional frequency by trigger and mood quality.
+            </CardDescription>
           </div>
           <div className="flex flex-col items-end gap-2">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">

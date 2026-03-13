@@ -7,12 +7,24 @@ const SmartNotification = require("../models/SmartNotification");
 const webNotification = require("../services/webNotification");
 const JournalEntry = require("../models/journalEntries");
 const ChatSession = require("../models/chatSession");
+const HealingQuote = require("../models/HealingQuote");
+const HealingVideo = require("../models/HealingVideo");
+const HealingPodcast = require("../models/HealingPodcast");
 
 // Helper to derive theme from mood (1–5)
 const getThemeByMood = (mood) => {
   if (mood <= 2) return "low";
   if (mood === 3) return "neutral";
   return "positive";
+};
+
+const getModelByType = (type) => {
+  switch (type) {
+    case 'quote': return HealingQuote;
+    case 'video': return HealingVideo;
+    case 'podcast': return HealingPodcast;
+    default: return null;
+  }
 };
 
 module.exports = {
@@ -189,6 +201,18 @@ module.exports = {
           console.error("Failed to generate instant AI tip after check-in:", e?.message);
         }
       })();
+      // Delete cached daily summary for today to force regeneration
+      const mongoose = require("mongoose");
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      try {
+        await mongoose.connection.collection("daily_summaries").deleteMany({
+          user_id: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+          date: startOfDay
+        });
+      } catch (err) {
+        console.error("Failed to invalidate daily summary cache:", err);
+      }
 
       return res.status(200).json(entry);
     } catch (err) {
@@ -549,7 +573,6 @@ module.exports = {
       const avgMood = calculateAvg(currentCheckIns);
       const totalEntriesLabel = await JournalEntry.countDocuments({
         user_id: userId,
-        createdAt: { $gte: weekStart, $lte: today },
         deleted_at: null,
       });
       const insightCount = await ChatSession.countDocuments({
@@ -761,6 +784,28 @@ module.exports = {
     } catch (err) {
       console.error("toggleAppLock error:", err);
       return res.status(400).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  // GET /api/user/healing-content
+  getHealingContent: async (req, res) => {
+    try {
+      const { type } = req.query;
+      let content = [];
+      if (type) {
+        const Model = getModelByType(type);
+        if (!Model) return res.status(400).json({ message: "Invalid type" });
+        content = await Model.find({ is_active: true }).sort({ createdAt: -1 });
+      } else {
+        const quotes = await HealingQuote.find({ is_active: true }).sort({ createdAt: -1 });
+        const videos = await HealingVideo.find({ is_active: true }).sort({ createdAt: -1 });
+        const podcasts = await HealingPodcast.find({ is_active: true }).sort({ createdAt: -1 });
+        content = [...quotes, ...videos, ...podcasts].sort((a, b) => b.createdAt - a.createdAt);
+      }
+      return res.status(200).json(content);
+    } catch (error) {
+      console.error("getHealingContent error:", error);
+      res.status(500).json({ message: "Server error fetching healing content" });
     }
   },
 };

@@ -309,14 +309,15 @@ class AIServiceClient {
     /**
      * UC-23: Log action completion
      */
-    async logActionCompletion(userId, actionId, durationSeconds, moodAtTime = null, source = 'suggestion') {
+    async logActionCompletion(userId, actionId, durationSeconds, moodAtTime = null, source = 'suggestion', postMoodScore = null) {
         try {
             const response = await this.client.post('/api/v1/actions/log_completion', {
                 user_id: userId,
                 action_id: actionId,
                 duration_seconds: durationSeconds,
                 mood_at_time: moodAtTime,
-                source: source
+                source: source,
+                post_mood_score: postMoodScore
             });
             return {
                 success: true,
@@ -375,6 +376,21 @@ class AIServiceClient {
                 error: error.message,
                 completions: []
             };
+        }
+    }
+
+    /**
+     * Check eligibility for suggesting actions
+     */
+    async checkActionEligibility(userId) {
+        try {
+            const response = await this.client.post('/api/v1/actions/eligibility', {
+                user_id: userId,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to check action eligibility:', error.message);
+            return { eligible: false, error: error.message };
         }
     }
 

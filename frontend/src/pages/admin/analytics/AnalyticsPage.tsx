@@ -8,12 +8,12 @@ import { CorrelationInsights } from '../../../components/features/aggregated-ins
 import { MoodDistributionChart } from '../../../components/features/aggregated-insights/MoodDistributionChart';
 import { DemographicTrendsChart } from '../../../components/features/aggregated-insights/DemographicTrendsChart';
 import { useAuth } from '../../../hooks/useAuth';
-
-import DashboardSidebar from '../../../components/layout/DashboardSideBar';
+import DashboardLayout from '../../../components/layout/DashboardLayout';
+import { Button } from '../../../components/ui/Button';
+import { RefreshCcw } from 'lucide-react';
 
 const AnalyticsPage: React.FC = () => {
   useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [dateRange, setDateRange] = useState<AggregatedInsightsParams['dateRange']>('last_30_days');
   const [startDate, setStartDate] = useState<string>();
   const [endDate, setEndDate] = useState<string>();
@@ -40,109 +40,108 @@ const AnalyticsPage: React.FC = () => {
 
   if (loading && !data) {
     return (
-      <div className="flex min-h-screen bg-background text-gray-500">
-        <div className={`fixed inset-y-0 left-0 z-30 lg:static lg:block`}>
-          <DashboardSidebar userType="admin" onClose={() => setSidebarOpen(false)} />
+      <DashboardLayout title="Analytics Dashboard" userType="admin">
+        <div className="flex-1 flex flex-col items-center justify-center min-h-[400px] space-y-4 transition-all duration-300">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground font-medium text-sm">Aggregating community insights...</p>
         </div>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-lg">Loading insights...</div>
-        </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="admin" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Main content Area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-primary">Analytics Dashboard</h1>
-            <div className="lg:hidden">
-              <button
-                onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 hover:bg-muted rounded-lg"
-              >
-                {sidebarOpen ? '✕' : '☰'}
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DashboardLayout 
+      title="Analytics Dashboard" 
+      userType="admin"
+      headerActions={
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => refetch()} 
+          className="gap-2"
+          disabled={loading}
+        >
+          <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} />
+          Refresh
+        </Button>
+      }
+    >
+        <div className="px-4 py-8 max-w-[1600px] mx-auto w-full transition-all duration-300">
           {error && (
-            <div className="mb-6 rounded-md bg-red-50 p-4 text-red-700">
-              <p>Error: {error}</p>
-              <button
+            <div className="mb-6 rounded-xl bg-red-50 border border-red-100 p-4 text-red-700 flex flex-col items-start gap-3">
+              <p className="text-sm font-medium">Error: {error}</p>
+              <Button
                 onClick={() => refetch()}
-                className="mt-2 rounded-md bg-red-600 px-4 py-2 text-white hover:bg-red-700"
+                variant="destructive"
+                size="sm"
               >
-                Retry
-              </button>
+                Retry Request
+              </Button>
             </div>
           )}
 
-          {/* Bộ lọc */}
-          <div className="mb-8 flex flex-wrap items-center gap-4 rounded-lg bg-white p-4 shadow">
+          {/* Filters Bar */}
+          <div className="mb-8 flex flex-wrap items-center gap-4 rounded-2xl bg-white p-5 shadow-sm border border-border">
             <DateRangeSelector
               value={dateRange || 'last_30_days'}
               onChange={handleDateRangeChange}
               startDate={startDate}
               endDate={endDate}
             />
+            <div className="h-8 w-px bg-border hidden sm:block" />
             <SegmentFilter ageGroup={ageGroup} onChange={setAgeGroup} />
           </div>
 
           {data?.executive_summary.message ? (
-            <div className="mb-6 rounded-lg bg-yellow-50 p-4 text-yellow-700">
-              {data.executive_summary.message}
+            <div className="mb-6 rounded-xl bg-orange-50 border border-orange-100 p-6 text-orange-800 flex items-center gap-3">
+              <span className="text-xl">ℹ️</span>
+              <p className="font-medium">{data.executive_summary.message}</p>
             </div>
           ) : data ? (
-            <>
+            <div className="space-y-8 animate-in fade-in duration-500">
               {/* Executive Summary */}
-              <div className="mb-8">
-                <ExecutiveSummaryCards data={data.executive_summary} />
+              <ExecutiveSummaryCards data={data.executive_summary} />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Mood Distribution */}
+                  {Object.keys(data.usage_patterns.mood_distribution).length > 0 && (
+                    <div className="rounded-2xl bg-white p-6 shadow-sm border border-border">
+                      <h2 className="mb-6 text-lg font-bold text-foreground">Community Mood Distribution</h2>
+                      <MoodDistributionChart data={data.usage_patterns.mood_distribution} />
+                    </div>
+                  )}
+
+                  {/* Demographic Trends */}
+                  {data.demographic_trends.avg_mood_by_age &&
+                    Object.keys(data.demographic_trends.avg_mood_by_age).length > 0 && (
+                      <div className="rounded-2xl bg-white p-6 shadow-sm border border-border">
+                        <h2 className="mb-6 text-lg font-bold text-foreground">Average Mood by Age Group</h2>
+                        <DemographicTrendsChart data={data.demographic_trends.avg_mood_by_age} />
+                      </div>
+                    )}
               </div>
 
               {/* Correlation Insights */}
               {data.correlation_insights.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="mb-4 text-xl font-semibold">Correlation Insights</h2>
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold text-foreground">Deep Insights & Correlations</h2>
                   <CorrelationInsights insights={data.correlation_insights} />
                 </div>
               )}
 
-              {/* Mood Distribution */}
-              {Object.keys(data.usage_patterns.mood_distribution).length > 0 && (
-                <div className="mb-8 rounded-lg bg-white p-6 shadow">
-                  <h2 className="mb-4 text-xl font-semibold">Mood Distribution</h2>
-                  <MoodDistributionChart data={data.usage_patterns.mood_distribution} />
-                </div>
-              )}
-
-              {/* Demographic Trends */}
-              {data.demographic_trends.avg_mood_by_age &&
-                Object.keys(data.demographic_trends.avg_mood_by_age).length > 0 && (
-                  <div className="mb-8 rounded-lg bg-white p-6 shadow">
-                    <h2 className="mb-4 text-xl font-semibold">Average Mood by Age Group</h2>
-                    <DemographicTrendsChart data={data.demographic_trends.avg_mood_by_age} />
-                  </div>
-                )}
-
-              <div className="text-right text-sm text-gray-500">
-                Generated at: {data && data.generated_at ? new Date(data.generated_at).toLocaleString() : 'Just now'}
+              <div className="text-center pt-8 border-t border-border">
+                <p className="text-xs text-muted-foreground">
+                  Report generated at: {data && data.generated_at ? new Date(data.generated_at).toLocaleString() : 'Just now'}
+                </p>
               </div>
-            </>
-          ) : null}
-        </main>
-      </div>
-    </div>
+            </div>
+          ) : (
+            <div className="py-20 text-center">
+                <p className="text-muted-foreground">No data available for the selected criteria.</p>
+            </div>
+          )}
+        </div>
+    </DashboardLayout>
   );
 };
 

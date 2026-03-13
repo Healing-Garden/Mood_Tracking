@@ -5,8 +5,8 @@
 :root {
   /* FLOWER GARDEN PALETTE - Vibrant Green Base with Multiple Bright Flowers */
   /* Background: Sky blue and grass green gradient */
-  --background: oklch(0.97 0.02 180);
-  --foreground: oklch(0.2 0.02 120);
+  --background: oklch(98.511% 0.00011 271.152);
+  --foreground: oklch(0.2 0.02 0);
   --card: oklch(0.99 0.005 100);
   --card-foreground: oklch(0.2 0.02 120);
   --popover: oklch(0.99 0.005 100);
@@ -17,18 +17,18 @@
   --primary-foreground: oklch(0.99 0 0);
 
   /* Secondary: Vibrant Sky Blue */
-  --secondary: oklch(0.65 0.22 240);
+  --secondary: oklch(90.423% 0.04963 158.077);
   --secondary-foreground: oklch(0.99 0 0);
 
   /* Accent: Bright Daisy Yellow */
   --accent: oklch(0.82 0.22 85);
   --accent-foreground: oklch(0.2 0.02 120);
 
-  --muted: oklch(0.93 0.01 140);
-  --muted-foreground: oklch(0.55 0.01 140);
+  --muted: oklch(0.96 0.005 0);
+  --muted-foreground: oklch(0.55 0.01 0);
   --destructive: oklch(0.62 0.18 20);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.9 0.01 140);
+  --border: oklch(0.92 0.005 0);
   --input: oklch(0.97 0.005 100);
   --ring: oklch(0.48 0.28 140);
 
@@ -51,8 +51,8 @@
 }
 
 .dark {
-  --background: oklch(0.15 0.02 140);
-  --foreground: oklch(0.95 0.01 140);
+  --background: oklch(0.15 0.01 0);
+  --foreground: oklch(0.95 0.005 0);
   --card: oklch(0.22 0.02 140);
   --card-foreground: oklch(0.95 0.01 140);
   --popover: oklch(0.22 0.02 140);
@@ -61,13 +61,13 @@
   --primary-foreground: oklch(0.15 0.02 140);
   --secondary: oklch(0.7 0.22 240);
   --secondary-foreground: oklch(0.15 0.02 140);
-  --muted: oklch(0.4 0.01 140);
-  --muted-foreground: oklch(0.75 0.01 140);
+  --muted: oklch(0.3 0.01 0);
+  --muted-foreground: oklch(0.7 0.01 0);
   --accent: oklch(0.85 0.22 85);
   --accent-foreground: oklch(0.15 0.02 140);
   --destructive: oklch(0.65 0.18 20);
   --destructive-foreground: oklch(0.99 0 0);
-  --border: oklch(0.3 0.02 140);
+  --border: oklch(0.25 0.01 0);
   --input: oklch(0.3 0.02 140);
   --ring: oklch(0.58 0.28 140);
   --sidebar: oklch(0.18 0.02 140);
@@ -124,6 +124,7 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
@@ -136,15 +137,19 @@
     transform: translateX(0) rotate(0deg);
     opacity: 1;
   }
+
   25% {
     transform: translateX(100px) rotate(90deg);
   }
+
   50% {
     transform: translateX(-50px) rotate(180deg);
   }
+
   75% {
     transform: translateX(80px) rotate(270deg);
   }
+
   100% {
     top: 100vh;
     transform: translateX(0) rotate(360deg);
@@ -153,10 +158,12 @@
 }
 
 @keyframes sway {
+
   0%,
   100% {
     transform: translateX(0);
   }
+
   50% {
     transform: translateX(30px);
   }
@@ -169,15 +176,19 @@
     transform: translateX(0) rotate(0deg);
     opacity: 0.8;
   }
+
   25% {
     transform: translateX(15vw) rotate(90deg);
   }
+
   50% {
     transform: translateX(-10vw) rotate(180deg);
   }
+
   75% {
     transform: translateX(20vw) rotate(270deg);
   }
+
   100% {
     top: 100vh;
     transform: translateX(0) rotate(360deg);
@@ -187,8 +198,15 @@
 
 /* Optional: Flutter effect for petals */
 @keyframes flutter {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(15deg); }
+
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+
+  50% {
+    transform: rotate(15deg);
+  }
 }
 
 @layer utilities {
