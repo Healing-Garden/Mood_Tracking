@@ -7,8 +7,7 @@ import { useChat } from '../../../hooks/useChat';
 import ChatSidebar from '../../../components/features/ChatSidebar';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 
-// Function to get mood context (can call API or from store)
-const getMoodContext = () => { 
+const getMoodContext = () => {
   return {
     recentMood: 'anxious',
     energyLevel: 3,
@@ -21,20 +20,18 @@ export default function ChatBot() {
   const [userInput, setUserInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Only connect to chat when user is logged in
   const moodContext = useMemo(() => getMoodContext(), []);
-  const { 
-    messages, 
-    sendMessage, 
-    isConnected, 
-    isTyping, 
+  const {
+    messages,
+    sendMessage,
+    isConnected,
+    isTyping,
     sessionId,
     loadSession,
     newSession,
     resetSession
   } = useChat(user?.id || '', moodContext);
 
-  // Scroll to bottom when new message arrives
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -87,7 +84,7 @@ export default function ChatBot() {
   }
 
   return (
-    <DashboardLayout 
+    <DashboardLayout
       title="AI Thought Partner"
     >
       <div className="h-full flex overflow-hidden">
@@ -126,11 +123,10 @@ export default function ChatBot() {
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${
-                    msg.sender === 'bot'
+                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${msg.sender === 'bot'
                       ? 'bg-primary text-white'
                       : 'bg-muted/30 text-foreground border border-border/50'
-                  }`}
+                    }`}
                 >
                   {msg.sender === 'bot' && (
                     <p className="text-[10px] font-bold uppercase mb-1.5 opacity-70 tracking-widest flex items-center gap-1.5">
@@ -184,7 +180,7 @@ export default function ChatBot() {
                       handleSendMessage();
                     }
                   }}
-                  className="w-full pr-12 rounded-2xl border-border focus-visible:ring-primary shadow-sm"
+                  className="w-full pr-12 rounded-2xl border-border focus-visible:ring-0 focus-visible:ring-offset-0 shadow-sm"
                   disabled={isTyping || !isConnected}
                 />
                 {!userInput.trim() && isConnected && (
