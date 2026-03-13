@@ -14,7 +14,7 @@ import { userApi } from '../../../api/userApi'
 const SecurityPinModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  mode: 'setup' | 'verify_to_disable' | 'verify_to_change';
+  mode: 'setup' | 'verify_to_disable' | 'verify_to_enable' | 'verify_to_change';
   onSuccess: (newPin?: string) => void;
 }> = ({ isOpen, onClose, mode, onSuccess }) => {
   const [step, setStep] = useState(mode === 'setup' ? 'new' : 'verify');
@@ -62,7 +62,7 @@ const SecurityPinModal: React.FC<{
           onClose();
         }
       } catch (error) {
-        toast({ title: 'Lỗi', description: 'Mã PIN không chính xác', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Incorrect PIN', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +70,7 @@ const SecurityPinModal: React.FC<{
       setStep('confirm');
     } else {
       if (pin !== confirmPin) {
-        toast({ title: 'Lỗi', description: 'Mã PIN xác nhận không khớp', variant: 'destructive' });
+        toast({ title: 'Error', description: 'PIN confirmation does not match', variant: 'destructive' });
         return;
       }
       setIsLoading(true);
@@ -79,7 +79,7 @@ const SecurityPinModal: React.FC<{
         onSuccess(pin);
         onClose();
       } catch (error) {
-        toast({ title: 'Lỗi', description: 'Không thể thiết lập mã PIN', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Unable to set PIN', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
@@ -91,6 +91,7 @@ const SecurityPinModal: React.FC<{
   const titles = {
     setup: 'Set App Lock PIN',
     verify_to_disable: 'Disable App Lock',
+    verify_to_enable: 'Enable App Lock',
     verify_to_change: 'Change App Lock PIN'
   };
 
@@ -164,30 +165,29 @@ const PasswordChangeModal: React.FC<{
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
     setPasswordError('')
 
     if (!newPassword || newPassword.length < 8) {
-      setPasswordError('Mật khẩu phải có ít nhất 8 ký tự')
+      setPasswordError('Password must be at least 8 characters')
       return
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu xác nhận không khớp')
+      setPasswordError('Confirmation password does not match')
       return
     }
 
     setIsLoading(true)
     try {
       await userApi.changePassword({ currentPassword, newPassword })
-      toast({ title: 'Thành công', description: 'Mật khẩu đã được cập nhật.' })
       onSuccess()
       onClose()
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-    } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'Lỗi cập nhật mật khẩu')
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Error updating password'
+      setPasswordError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -385,7 +385,7 @@ const UserProfilePage: React.FC = () => {
 
   // PIN
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [pinModalMode, setPinModalMode] = useState<'setup' | 'verify_to_disable' | 'verify_to_change'>('setup');
+  const [pinModalMode, setPinModalMode] = useState<'setup' | 'verify_to_disable' | 'verify_to_enable' | 'verify_to_change'>('setup');
   const [isAppLockEnabled, setIsAppLockEnabled] = useState<boolean>(false)
   const [hasPinSet, setHasPinSet] = useState<boolean>(false)
 
@@ -475,13 +475,13 @@ const UserProfilePage: React.FC = () => {
         weight: weight ? parseFloat(weight) : undefined,
       })
       setAvatar(response.user.avatarUrl || avatar)
-      showSuccess('Thông tin cá nhân đã được cập nhật.')
+      showSuccess('Personal information has been updated.')
       setShowEditModal(false)
     } catch (error) {
-      console.error('Toggle App Lock error:', error)
+      console.error('Profile update error:', error)
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Unable to change lock status',
+        description: error instanceof Error ? error.message : 'Unable to update profile info',
         variant: 'destructive',
       })
     } finally {
@@ -490,18 +490,23 @@ const UserProfilePage: React.FC = () => {
   }
 
   const handlePinSuccess = async (_newPin?: string) => {
-    if (pinModalMode === 'verify_to_disable') {
+    if (pinModalMode === 'verify_to_disable' || pinModalMode === 'verify_to_enable') {
+      const shouldEnable = pinModalMode === 'verify_to_enable';
       try {
-        await userApi.toggleAppLock(false);
-        setIsAppLockEnabled(false);
-        toast({ title: 'Thành công', description: 'Đã tắt khóa ứng dụng' });
+        await userApi.toggleAppLock(shouldEnable);
+        setIsAppLockEnabled(shouldEnable);
+        showSuccess(`App Lock has been ${shouldEnable ? 'enabled' : 'disabled'} successfully.`);
       } catch (error) {
-        toast({ title: 'Lỗi', description: 'Không thể tắt khóa ứng dụng', variant: 'destructive' });
+        toast({ 
+          title: 'Error', 
+          description: `Unable to ${shouldEnable ? 'enable' : 'disable'} App Lock`, 
+          variant: 'destructive' 
+        });
       }
     } else {
       setHasPinSet(true);
       setIsAppLockEnabled(true);
-      toast({ title: 'Thành công', description: 'Mã PIN đã được thiết lập' });
+      showSuccess('PIN has been established successfully.');
     }
   }
 
@@ -638,10 +643,20 @@ const UserProfilePage: React.FC = () => {
                         {isAppLockEnabled ? 'Protected' : 'Inactive'}
                       </span>
                       {hasPinSet && (
+<<<<<<< HEAD
                         <Button
                           variant="outline"
                           className="h-10 rounded-lg font-bold border-2"
                           onClick={() => { setPinModalMode('verify_to_disable'); setIsPinModalOpen(true); }}
+=======
+                        <Button 
+                          variant="outline" 
+                          className="h-10 rounded-lg font-bold border-2" 
+                          onClick={() => { 
+                            setPinModalMode(isAppLockEnabled ? 'verify_to_disable' : 'verify_to_enable'); 
+                            setIsPinModalOpen(true); 
+                          }}
+>>>>>>> 7d44ebb8cf90133543137126e5fb7599ba28d3bd
                         >
                           {isAppLockEnabled ? 'Disable' : 'Enable'}
                         </Button>
@@ -698,7 +713,10 @@ const UserProfilePage: React.FC = () => {
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         hasPassword={hasPassword}
-        onSuccess={() => setHasPassword(true)}
+        onSuccess={() => {
+          setHasPassword(true);
+          showSuccess('Password has been updated successfully.');
+        }}
       />
     </DashboardLayout>
   )
