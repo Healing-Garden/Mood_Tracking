@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
-import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
 import { Lock, X, ShieldCheck, Key, User, Check, Cake, Ruler, Scale } from 'lucide-react'
@@ -14,7 +13,7 @@ import { userApi } from '../../../api/userApi'
 const SecurityPinModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  mode: 'setup' | 'verify_to_disable' | 'verify_to_change';
+  mode: 'setup' | 'verify_to_disable' | 'verify_to_enable' | 'verify_to_change';
   onSuccess: (newPin?: string) => void;
 }> = ({ isOpen, onClose, mode, onSuccess }) => {
   const [step, setStep] = useState(mode === 'setup' ? 'new' : 'verify');
@@ -91,6 +90,7 @@ const SecurityPinModal: React.FC<{
   const titles = {
     setup: 'Set App Lock PIN',
     verify_to_disable: 'Disable App Lock',
+    verify_to_enable: 'Enable App Lock',
     verify_to_change: 'Change App Lock PIN'
   };
 
@@ -384,7 +384,7 @@ const UserProfilePage: React.FC = () => {
 
   // PIN
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [pinModalMode, setPinModalMode] = useState<'setup' | 'verify_to_disable' | 'verify_to_change'>('setup');
+  const [pinModalMode, setPinModalMode] = useState<'setup' | 'verify_to_disable' | 'verify_to_enable' | 'verify_to_change'>('setup');
   const [isAppLockEnabled, setIsAppLockEnabled] = useState<boolean>(false)
   const [hasPinSet, setHasPinSet] = useState<boolean>(false)
 
@@ -489,13 +489,18 @@ const UserProfilePage: React.FC = () => {
   }
 
   const handlePinSuccess = async (_newPin?: string) => {
-    if (pinModalMode === 'verify_to_disable') {
+    if (pinModalMode === 'verify_to_disable' || pinModalMode === 'verify_to_enable') {
+      const shouldEnable = pinModalMode === 'verify_to_enable';
       try {
-        await userApi.toggleAppLock(false);
-        setIsAppLockEnabled(false);
-        showSuccess('App Lock has been disabled successfully.');
+        await userApi.toggleAppLock(shouldEnable);
+        setIsAppLockEnabled(shouldEnable);
+        showSuccess(`App Lock has been ${shouldEnable ? 'enabled' : 'disabled'} successfully.`);
       } catch (error) {
-        toast({ title: 'Error', description: 'Unable to disable App Lock', variant: 'destructive' });
+        toast({ 
+          title: 'Error', 
+          description: `Unable to ${shouldEnable ? 'enable' : 'disable'} App Lock`, 
+          variant: 'destructive' 
+        });
       }
     } else {
       setHasPinSet(true);
@@ -640,7 +645,10 @@ const UserProfilePage: React.FC = () => {
                         <Button 
                           variant="outline" 
                           className="h-10 rounded-lg font-bold border-2" 
-                          onClick={() => { setPinModalMode('verify_to_disable'); setIsPinModalOpen(true); }}
+                          onClick={() => { 
+                            setPinModalMode(isAppLockEnabled ? 'verify_to_disable' : 'verify_to_enable'); 
+                            setIsPinModalOpen(true); 
+                          }}
                         >
                           {isAppLockEnabled ? 'Disable' : 'Enable'}
                         </Button>
