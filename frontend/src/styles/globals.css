@@ -362,7 +362,7 @@
     }
   }
 
-  /* Utility to keep background static when switching between auth pages */
+  /* Utility to keep background static when switching between auth page */
   .no-animation {
     animation: none !important;
     transform: translateY(0) !important;
