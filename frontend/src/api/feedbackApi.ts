@@ -10,7 +10,6 @@ export interface FeedbackSubmission {
     rating?: number;
 }
 
-
 export interface FeedbackRecord extends FeedbackSubmission {
     _id: string;
     user_id: string;
