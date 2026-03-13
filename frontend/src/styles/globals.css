@@ -209,6 +209,18 @@
   }
 }
 
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
 @layer utilities {
   .animate-in {
     opacity: 1 !important;
@@ -246,5 +258,125 @@
 
   .reveal[data-reveal='zoom'] {
     transform: translateY(14px) scale(0.955);
+  }
+
+  .auth-bg {
+    background-image: url('/loginBackground.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    height: 100vh;
+    height: 100svh;
+    width: 100%;
+    overflow: hidden;
+    position: fixed;
+    top: 0;
+    left: 0;
+    /* Slide down from top, then blur */
+    transform: translateY(-100%);
+    filter: blur(0);
+    animation: 
+      auth-bg-slide-down 01s cubic-bezier(0.22, 1, 0.36, 1) forwards,
+      auth-bg-blur 0.4s ease-in-out 0.7s forwards;
+  }
+
+  .auth-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(0px);
+    opacity: 0;
+    z-index: 5;
+    animation: auth-overlay-fade 0.8s ease-in-out 1.2s forwards;
+  }
+
+  .auth-card-container {
+    position: relative;
+    z-index: 10;
+    height: 100vh;
+    height: 100svh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    padding: 1rem;
+  }
+
+  .animate-fade-in-form {
+    opacity: 0;
+    /* Slow version for initial entry from Landing Page */
+    animation: auth-form-fade 1s ease-out 1s forwards;
+  }
+
+  .animate-fade-in-form-fast {
+    opacity: 0;
+    /* Fast version for switching between Auth pages */
+    animation: auth-form-fade 0.5s ease-out 0.1s forwards;
+  }
+
+  @keyframes auth-bg-slide-down {
+    from {
+      transform: translateY(-100%);
+    }
+
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes auth-bg-blur {
+    from {
+      filter: blur(0);
+      transform: scale(1);
+    }
+
+    to {
+      filter: blur(8px);
+      transform: scale(1.03);
+    }
+  }
+
+  @keyframes auth-overlay-fade {
+    from {
+      opacity: 0;
+      backdrop-filter: blur(0px);
+    }
+
+    to {
+      opacity: 1;
+      backdrop-filter: blur(2px);
+    }
+  }
+
+  @keyframes auth-form-fade {
+    from {
+      opacity: 0;
+      filter: blur(10px);
+    }
+
+    to {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+
+  /* Utility to keep background static when switching between auth pages */
+  .no-animation {
+    animation: none !important;
+    transform: translateY(0) !important;
+    filter: blur(8px) !important;
+    opacity: 1 !important;
+    clip-path: none !important;
+  }
+
+  .hide-password-toggle::-ms-reveal,
+  .hide-password-toggle::-ms-clear {
+    display: none;
+  }
+  
+  .input-password-mask {
+    -webkit-text-security: disc !important;
   }
 }

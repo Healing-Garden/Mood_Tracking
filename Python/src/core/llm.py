@@ -7,15 +7,16 @@ logger = logging.getLogger(__name__)
 
 async def call_llm(messages: list, temperature: float = 0.7, max_tokens: int = 500) -> dict:
     """
-    Gọi OpenAI ChatCompletion với messages. 
-    Nếu fail hoặc không có API key, thử fallback sang Gemini.
-    Trả về dict chứa 'text' là nội dung response.
+    Điều phối gọi LLM:
+    1. Thử OpenAI trước (Ưu tiên theo yêu cầu người dùng).
+    2. Nếu OpenAI fail (hết tiền/429/timeout), thử Gemini (fallback).
+    3. Nếu cả hai fail, trả về rỗng để dùng rule-based.
     """
     # 1. Thử OpenAI trước
     openai_key = settings.get_openai_api_key()
     if openai_key:
         try:
-            client = AsyncOpenAI(api_key=openai_key, timeout=10.0)
+            client = AsyncOpenAI(api_key=openai_key, timeout=12.0)
             response = await client.chat.completions.create(
                 model=settings.openai_model,
                 messages=messages,
@@ -26,12 +27,10 @@ async def call_llm(messages: list, temperature: float = 0.7, max_tokens: int = 5
             if text:
                 return {"text": text}
         except Exception as e:
-            logger.warning(f"OpenAI call failed, trying Gemini fallback: {e}")
+            logger.warning(f"OpenAI primary call failed: {e}")
 
-    # 2. Fallback sang Gemini
+    # 2. Thử Gemini (Dự phòng)
     try:
-        # Convert messages to a single prompt for Gemini if needed, 
-        # but gemini_client.generate_response takes prompt and system_instruction.
         system_instruction = ""
         user_prompt = ""
         
@@ -40,6 +39,8 @@ async def call_llm(messages: list, temperature: float = 0.7, max_tokens: int = 5
                 system_instruction += msg["content"] + "\n"
             elif msg["role"] == "user":
                 user_prompt += msg["content"] + "\n"
+            elif msg["role"] == "assistant":
+                user_prompt += f"Assistant: {msg['content']}\n"
         
         gemini_text = await gemini_client.generate_response(
             prompt=user_prompt.strip(),
@@ -53,6 +54,6 @@ async def call_llm(messages: list, temperature: float = 0.7, max_tokens: int = 5
     except Exception as ge:
         logger.error(f"Gemini fallback also failed: {ge}")
 
-    # 3. Nếu cả hai đều fail
-    logger.error("All LLM providers failed.")
+    # 3. Nếu tất cả đều fail
+    logger.error("All AI providers (OpenAI & Gemini) are currently unavailable.")
     return {"text": ""}

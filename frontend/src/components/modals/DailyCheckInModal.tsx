@@ -73,7 +73,7 @@ const DailyCheckInModal: React.FC = () => {
     const theme = getThemeByMood(selectedMood)
 
     switch (theme) {
-      case 'low':
+      case 'negative':
         return 'bg-gradient-to-br from-slate-50 via-blue-50 to-purple-50'
       case 'neutral':
         return 'bg-gradient-to-br from-green-50 via-emerald-50 to-teal-50'

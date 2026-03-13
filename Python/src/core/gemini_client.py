@@ -39,7 +39,7 @@ class GeminiClient:
                 contents=prompt,
                 config=generate_config,
             ),
-            timeout=15.0,
+            timeout=10.0,
         )
 
         if response and response.text:
@@ -67,7 +67,8 @@ class GeminiClient:
         """
         # 1. Thử Gemini models
         if self.api_key:
-            models_to_try = [self.primary_model] + settings.gemini_fallback_models
+            # Only try primary and 2 fast fallbacks to reduce total wait time
+            models_to_try = [self.primary_model] + settings.gemini_fallback_models[:2]
 
             for i, model in enumerate(models_to_try):
                 try:
@@ -86,7 +87,8 @@ class GeminiClient:
                     err_str = str(e)
 
                     if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str:
-                        delay = self._parse_retry_delay(err_str)
+                        # Reduce wait time or skip if primary fails
+                        delay = min(self._parse_retry_delay(err_str), 5.0)
                         logger.warning(
                             f"Rate limited on model {model}. "
                             f"Trying next fallback in {delay:.1f}s..."
@@ -102,33 +104,6 @@ class GeminiClient:
                         logger.error(f"Gemini generation failed on {model}: {e}")
                         continue
 
-        # 2. Nếu Gemini fail hết, thử OpenAI nếu có API Key
-        openai_key = settings.get_openai_api_key()
-        if openai_key:
-            try:
-                logger.info("Gemini failed, trying OpenAI fallback...")
-                from openai import AsyncOpenAI
-                client = AsyncOpenAI(api_key=openai_key)
-                
-                messages = []
-                if system_instruction:
-                    messages.append({"role": "system", "content": system_instruction})
-                messages.append({"role": "user", "content": prompt})
-                
-                response = await client.chat.completions.create(
-                    model=settings.openai_model,
-                    messages=messages,
-                    temperature=settings.gemini_temperature,
-                    max_tokens=settings.gemini_max_tokens
-                )
-                
-                if response.choices and response.choices[0].message.content:
-                    logger.info(f"OpenAI responded via model: {settings.openai_model}")
-                    return response.choices[0].message.content.strip()
-            except Exception as e:
-                logger.error(f"OpenAI fallback also failed: {e}")
-
-        logger.warning("All AI models exhausted. Falling back to rule-based.")
         return None
 
 
