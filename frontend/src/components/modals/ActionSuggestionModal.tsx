@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useEffect, useRef, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { X, Loader2, Clock, BookOpen, Quote, Video, Headphones, Play, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -66,6 +66,7 @@ const ActionSuggestionModal: React.FC = () => {
   const [phase, setPhase] = useState<'list' | 'execute' | 'celebrate'>('list');
   const [postMoodScore, setPostMoodScore] = useState<number>(3);
   const [completedDuration, setCompletedDuration] = useState<number>(0);
+  const hasLoggedOutcomeRef = useRef(false);
   const { width, height } = useWindowSize();
 
   useEffect(() => {
@@ -91,6 +92,28 @@ const ActionSuggestionModal: React.FC = () => {
     }
   };
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Handle YouTube API messages for auto-completion
+      if (typeof event.origin === 'string' && event.origin.includes('youtube.com')) {
+        try {
+          const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+          // State 0 = ended in YouTube API
+          if (data.event === 'onStateChange' && data.info === 0) {
+            handleCompleteAction();
+          }
+        } catch (e) {
+          // Ignore non-YouTube/malformed messages
+        }
+      }
+    };
+
+    if (phase === 'execute' && selectedAction) {
+      window.addEventListener('message', handleMessage);
+    }
+    return () => window.removeEventListener('message', handleMessage);
+  }, [phase, selectedAction]);
+
   const handleActionSelect = (action: Action) => {
     setSelectedAction(action);
     setStartTime(Date.now());
@@ -99,10 +122,42 @@ const ActionSuggestionModal: React.FC = () => {
   };
 
   const handleCompleteAction = async () => {
-    if (!selectedAction) return;
+    if (!selectedAction || phase === 'celebrate') return;
     const durationSeconds = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
     setCompletedDuration(durationSeconds);
+    hasLoggedOutcomeRef.current = false;
     setPhase('celebrate');
+  };
+
+  const submitCompletionWithoutMood = async () => {
+    // User skipped mood update step, still consider the flow completed
+    if (!user || !selectedAction) {
+      handleClose();
+      return;
+    }
+    if (hasLoggedOutcomeRef.current) {
+      handleClose();
+      return;
+    }
+    try {
+      setLoading(true);
+      hasLoggedOutcomeRef.current = true;
+      await aiApi.logActionCompletion(
+        user.id,
+        selectedAction.id,
+        completedDuration,
+        mood || undefined,
+        'suggestion',
+        undefined
+      );
+      toast.success(`Saved completion for "${selectedAction.title}".`);
+    } catch (err) {
+      console.error(err);
+      // Do not block user if logging fails
+    } finally {
+      setLoading(false);
+      handleClose();
+    }
   };
 
   const submitCompletionWithMood = async () => {
@@ -110,6 +165,7 @@ const ActionSuggestionModal: React.FC = () => {
     
     try {
       setLoading(true);
+      hasLoggedOutcomeRef.current = true;
       await aiApi.logActionCompletion(
         user.id,
         selectedAction.id,
@@ -118,11 +174,12 @@ const ActionSuggestionModal: React.FC = () => {
         'suggestion',
         postMoodScore
       );
-      toast.success(`Tuyệt vời! Bạn đã hoàn thành "${selectedAction.title}".`);
+      toast.success(`Great job! You've completed "${selectedAction.title}".`);
       handleClose();
     } catch (err) {
       console.error(err);
       toast.error('Failed to log completion');
+      hasLoggedOutcomeRef.current = false;
     } finally {
       setLoading(false);
     }
@@ -146,7 +203,16 @@ const ActionSuggestionModal: React.FC = () => {
   };
 
   const renderExecutionView = (action: Action) => {
-    const isVideo = action.type === 'video' && action.video_url;
+    const isVideoOrPodcast = (action.type === 'video' || action.type === 'podcast') && action.video_url;
+    const isYouTube = action.video_url?.includes('youtube.com') || action.video_url?.includes('youtu.be');
+    
+    let videoSrc = action.video_url || '';
+    if (isYouTube && videoSrc) {
+      const videoId = videoSrc.includes('v=') 
+        ? videoSrc.split('v=')[1]?.split('&')[0] 
+        : videoSrc.split('/').pop();
+      videoSrc = `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
+    }
 
     return (
       <div className="space-y-4">
@@ -170,16 +236,26 @@ const ActionSuggestionModal: React.FC = () => {
           {action.title}
         </h2>
 
-        {/* Video Player */}
-        {isVideo ? (
+        {/* Media Player */}
+        {isVideoOrPodcast ? (
           <div className="aspect-video w-full rounded-xl overflow-hidden bg-black shadow-lg">
-            <iframe
-              src={action.video_url?.replace('watch?v=', 'embed/').replace('cloudinary.com', 'cloudinary.com')}
-              className="w-full h-full"
-              allowFullScreen
-              allow="autoplay; encrypted-media"
-              title={action.title}
-            ></iframe>
+            {isYouTube ? (
+              <iframe
+                src={videoSrc}
+                className="w-full h-full"
+                allowFullScreen
+                allow="autoplay; encrypted-media"
+                title={action.title}
+              ></iframe>
+            ) : (
+              <video
+                src={videoSrc}
+                className="w-full h-full"
+                autoPlay
+                controls
+                onEnded={handleCompleteAction}
+              />
+            )}
           </div>
         ) : action.thumbnail && (
           <div className="rounded-xl overflow-hidden h-48 bg-gray-100 shadow-sm border border-gray-100">
@@ -228,13 +304,48 @@ const ActionSuggestionModal: React.FC = () => {
     : '';
 
   const handleClose = () => {
+    // If user closes while in celebrate phase, treat it as completion with mood skipped
+    if (phase === 'celebrate' && selectedAction && user && !hasLoggedOutcomeRef.current) {
+      // fire-and-forget, do not await UI close
+      aiApi
+        .logActionCompletion(
+          user.id,
+          selectedAction.id,
+          completedDuration,
+          mood || undefined,
+          'suggestion',
+          undefined
+        )
+        .catch(() => {});
+      hasLoggedOutcomeRef.current = true;
+    }
     setSelectedAction(null);
     setStartTime(null);
     setPhase('list');
     setPostMoodScore(3);
     setCompletedDuration(0);
+    hasLoggedOutcomeRef.current = false;
     closeModal();
   };
+
+  // If component unmounts during celebrate, also persist completion (mood skipped)
+  useEffect(() => {
+    return () => {
+      if (phase === 'celebrate' && selectedAction && user && !hasLoggedOutcomeRef.current) {
+        aiApi
+          .logActionCompletion(
+            user.id,
+            selectedAction.id,
+            completedDuration,
+            mood || undefined,
+            'suggestion',
+            undefined
+          )
+          .catch(() => {});
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, selectedAction, user, completedDuration, mood]);
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -328,7 +439,7 @@ const ActionSuggestionModal: React.FC = () => {
                                 {action.title}
                               </h4>
                               {formatDuration(action.duration_seconds) && (
-                                <span className="text-[10px] uppercase tracking-wider font-bold text-gray-400">
+                                <span className="text-[10px] tracking-wider font-bold text-gray-400">
                                   {formatDuration(action.duration_seconds)}
                                 </span>
                               )}
@@ -378,16 +489,16 @@ const ActionSuggestionModal: React.FC = () => {
                     <div className="relative py-6">
                       <div className="text-5xl mb-2">🎉</div>
                       <h2 className="text-2xl font-bold text-gray-900">
-                        Tuyệt vời! Bạn đã hoàn thành "{selectedAction.title}"
+                        Great job! You've completed "{selectedAction.title}"
                       </h2>
                       <p className="text-sm text-gray-500 mt-2">
-                        Hãy dành một chút để xem bạn đang cảm thấy thế nào sau khi hoàn thành hoạt động này.
+                        Take a moment to reflect on how you're feeling after completing this activity.
                       </p>
                     </div>
 
                     <div className="space-y-3">
                       <p className="text-sm font-medium text-gray-800">
-                        Bạn thấy tâm trạng mình lúc này (1–5) là bao nhiêu?
+                        How would you rate your current mood (1–5)?
                       </p>
                       <div className="flex items-center justify-center gap-4">
                         <span className="text-xs text-gray-400">1</span>
@@ -409,11 +520,11 @@ const ActionSuggestionModal: React.FC = () => {
                     <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
                       <Button
                         variant="outline"
-                        onClick={handleClose}
+                        onClick={submitCompletionWithoutMood}
                         className="w-full sm:w-auto"
                         disabled={loading}
                       >
-                        Bỏ qua bước này
+                        Skip this step
                       </Button>
                       <Button
                         onClick={submitCompletionWithMood}
@@ -421,7 +532,7 @@ const ActionSuggestionModal: React.FC = () => {
                         disabled={loading}
                       >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                        Lưu lại cảm nhận của tôi
+                        Save my reflection
                       </Button>
                     </div>
                   </div>

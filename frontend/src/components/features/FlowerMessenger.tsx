@@ -4,6 +4,7 @@ import { X, Send, Sparkles } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
 import { useDailyCheckInStore } from '../../store/dailyCheckInStore';
+import { aiApi } from '../../api/aiApi';
 
 const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
@@ -12,8 +13,7 @@ const FlowerMessenger: React.FC = () => {
   const [userInput, setUserInput] = useState('');
   const [hasGreeted, setHasGreeted] = useState(false);
 
-  // State for smart positioning
-  const [chatOffset, setChatOffset] = useState({ x: 0, y: -320 }); // Closer to bot (was -490)
+  const [chatOffset, setChatOffset] = useState({ x: 0, y: -320 }); 
   const [origin, setOrigin] = useState('bottom');
 
   const { user } = useAuth();
@@ -22,10 +22,28 @@ const FlowerMessenger: React.FC = () => {
 
   const { lastMood, currentCheckIn } = useDailyCheckInStore();
 
+  const [isEligibleByJournal, setIsEligibleByJournal] = useState(false);
+
   const shouldShow = useMemo(() => {
+    if (isEligibleByJournal) return true;
     if (!lastMood) return false;
     return NEGATIVE_MOODS.includes(lastMood.toLowerCase());
-  }, [lastMood]);
+  }, [lastMood, isEligibleByJournal]);
+
+  useEffect(() => {
+    const checkJournalEligibility = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await aiApi.checkActionEligibility(user.id) as any;
+        const eligible = res?.eligible ?? res?.data?.eligible;
+        setIsEligibleByJournal(!!eligible);
+      } catch (err) {
+        console.error('Chatbot eligibility check failed:', err);
+      }
+    };
+    
+    checkJournalEligibility();
+  }, [user, lastMood]);
 
   const moodContext = useMemo(() => ({
     recentMood: lastMood || 'neutral',
@@ -35,13 +53,13 @@ const FlowerMessenger: React.FC = () => {
 
   const { messages, sendMessage, isTyping, isConnected } = useChat(user?.id || '', moodContext);
 
-  // Logic tính toán vị trí linh hoạt để tránh bị mất khung chat
+  // Intelligent position calculation logic to avoid hiding the chat frame
   const calculateSmartPosition = () => {
     if (!entityRef.current) return;
 
     const rect = entityRef.current.getBoundingClientRect();
     const screenWidth = window.innerWidth;
-    const chatWidth = 384; // w-96 = 384px
+    const chatWidth = 384; 
     const chatHeight = 480;
 
     let newX = 0;
@@ -143,12 +161,12 @@ const FlowerMessenger: React.FC = () => {
                 }}
               >
                 {/* Chat Header */}
-                <div className="bg-gradient-to-r from-primary to-green-500 p-5 text-white flex justify-between items-center shrink-0">
+                <div className="bg-gradient-to-r from-primary to-green-500 p-3 text-white flex justify-between items-center shrink-0">
                   <div className="flex items-center gap-3">
                     <Sparkles size={18} className="text-yellow-200" />
                     <div>
-                      <h3 className="font-bold text-sm">Daisy Assistant</h3>
-                      <p className="text-[10px] opacity-80 uppercase font-bold tracking-widest">Always with you</p>
+                      <h3 className="font-bold text-m">Daisy Assistant</h3>
+                      <p className="text-[12px] opacity-80 font-bold tracking-widest">Always with you</p>
                     </div>
                   </div>
                   <button
@@ -192,7 +210,7 @@ const FlowerMessenger: React.FC = () => {
                 </div>
 
                 {/* Input Area */}
-                <div className="p-5 bg-white border-t border-gray-100 shrink-0">
+                <div className="p-3 bg-white border-t border-gray-100 shrink-0">
                   <div className="flex gap-2 bg-gray-100 rounded-full px-5 py-3 items-center"
                     onClick={(e) => e.stopPropagation()}>
                     <input
@@ -202,7 +220,7 @@ const FlowerMessenger: React.FC = () => {
                       onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') handleSendMessage(e); }}
                       onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Message Daisy..."
-                      className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0"
+                      className="flex-1 bg-transparent border-none p-0 text-sm focus:outline-none focus:ring-0 outline-none"
                     />
                     <button
                       type="button"
@@ -228,7 +246,7 @@ const FlowerMessenger: React.FC = () => {
             {!isChatOpen && hasGreeted && (
               <motion.div
                 initial={{ opacity: 0, scale: 0, y: 0 }}
-                animate={{ opacity: 1, scale: 1, y: -70 }} // Closer to bot (was -110)
+                animate={{ opacity: 1, scale: 1, y: -70 }} 
                 className="absolute bg-white px-6 py-3 rounded-full shadow-2xl border border-primary/20 text-xs font-bold text-primary whitespace-nowrap flex items-center gap-2 z-20 pointer-events-none"
               >
                 <Sparkles size={16} className="text-yellow-400" />

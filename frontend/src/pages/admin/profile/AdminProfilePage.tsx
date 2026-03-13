@@ -61,8 +61,8 @@ const AdminProfilePage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load admin profile:', error)
       toast({
-        title: 'Lỗi',
-        description: 'Không thể tải thông tin hồ sơ admin',
+        title: 'Error',
+        description: 'Unable to load admin profile info',
         variant: 'destructive',
       })
     } finally {
@@ -78,8 +78,8 @@ const AdminProfilePage: React.FC = () => {
     } catch (error) {
       console.error('Failed to load recovery codes:', error)
       toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể tải recovery codes',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to load recovery codes',
         variant: 'destructive',
       })
     }
@@ -97,12 +97,12 @@ const AdminProfilePage: React.FC = () => {
       const avatarResponse = await userApi.uploadAvatar(file)
       const nextAvatar = avatarResponse.user?.avatarUrl || avatarResponse.imageUrl || ''
       setAvatar(nextAvatar)
-      showSuccess('Avatar đã được cập nhật thành công.')
+      showSuccess('Avatar updated successfully.')
     } catch (avatarError) {
       console.error('Admin avatar upload error:', avatarError)
       toast({
-        title: 'Lỗi',
-        description: avatarError instanceof Error ? avatarError.message : 'Không thể cập nhật avatar',
+        title: 'Error',
+        description: avatarError instanceof Error ? avatarError.message : 'Unable to update avatar',
         variant: 'destructive',
       })
     } finally {
@@ -116,12 +116,12 @@ const AdminProfilePage: React.FC = () => {
     try {
       const response = await userApi.removeAvatar()
       setAvatar(response.user.avatarUrl || '')
-      showSuccess('Avatar đã được gỡ bỏ.')
+      showSuccess('Avatar removed.')
     } catch (error) {
       console.error('Admin avatar removal error:', error)
       toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể gỡ bỏ avatar',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to remove avatar',
         variant: 'destructive',
       })
     } finally {
@@ -136,13 +136,13 @@ const AdminProfilePage: React.FC = () => {
     try {
       const response = await userApi.updateProfile({ fullName: name })
       setAvatar((prev) => response.user.avatarUrl || prev || '')
-      showSuccess('Thông tin hồ sơ đã được cập nhật thành công.')
+      showSuccess('Profile information updated successfully.')
       setShowEditModal(false)
     } catch (profileError) {
       console.error('Admin profile update error:', profileError)
       toast({
-        title: 'Lỗi',
-        description: profileError instanceof Error ? profileError.message : 'Không thể cập nhật hồ sơ admin',
+        title: 'Error',
+        description: profileError instanceof Error ? profileError.message : 'Unable to update admin profile',
         variant: 'destructive',
       })
     } finally {
@@ -161,24 +161,24 @@ const AdminProfilePage: React.FC = () => {
     setSuccessMessage('')
 
     if (!recoveryCodeInput.trim()) {
-      setPasswordError('Vui lòng nhập một recovery code')
+      setPasswordError('Please enter a recovery code')
       return
     }
 
     if (!newPassword) {
-      setPasswordError('Vui lòng nhập mật khẩu mới')
+      setPasswordError('Please enter a new password')
       return
     }
 
     if (!validatePasswordStrength(newPassword)) {
       setPasswordError(
-        'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa và ký tự đặc biệt'
+        'Password must be at least 8 characters, including uppercase and special characters'
       )
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu mới không khớp')
+      setPasswordError('New password does not match')
       return
     }
 
@@ -194,7 +194,7 @@ const AdminProfilePage: React.FC = () => {
 
       setRecoveryCodesCount((prev) => Math.max(0, prev - 1))
 
-      showSuccess('Mật khẩu đã được thay đổi thành công.')
+      showSuccess('Password changed successfully.')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
@@ -202,10 +202,10 @@ const AdminProfilePage: React.FC = () => {
       setPasswordError('')
     } catch (error) {
       console.error('Admin password change error:', error)
-      const errorMsg = error instanceof Error ? error.message : 'Không thể thay đổi mật khẩu'
+      const errorMsg = error instanceof Error ? error.message : 'Unable to change password'
       setPasswordError(errorMsg)
       toast({
-        title: 'Lỗi',
+        title: 'Error',
         description: errorMsg,
         variant: 'destructive',
       })
@@ -221,16 +221,16 @@ const AdminProfilePage: React.FC = () => {
 
     if (pin !== confirmPin) {
       toast({
-        title: 'Lỗi',
-        description: 'Mã PIN không khớp',
+        title: 'Error',
+        description: 'PIN does not match',
         variant: 'destructive',
       })
       return
     }
     if (pin.length !== 6) {
       toast({
-        title: 'Lỗi',
-        description: 'Mã PIN phải có 6 chữ số',
+        title: 'Error',
+        description: 'PIN must be 6 digits',
         variant: 'destructive',
       })
       return
@@ -245,8 +245,8 @@ const AdminProfilePage: React.FC = () => {
     setConfirmPinDigits(Array(6).fill(''))
 
     toast({
-      title: 'Thành công',
-      description: 'Mã PIN của bạn đã được đặt thành công!',
+      title: 'Success',
+      description: 'Your PIN has been set successfully!',
       variant: 'default',
     })
   }
@@ -276,8 +276,8 @@ const AdminProfilePage: React.FC = () => {
     try {
       if (hasDownloaded) {
         toast({
-          title: 'Thông báo',
-          description: 'Mã khôi phục đã được tải xuống.',
+          title: 'Notification',
+          description: 'Recovery codes downloaded.',
           variant: 'default',
         })
         return
@@ -288,8 +288,8 @@ const AdminProfilePage: React.FC = () => {
 
       if (!codes.length) {
         toast({
-          title: 'Lỗi',
-          description: 'Không có mã khôi phục nào được trả về',
+          title: 'Error',
+          description: 'No recovery codes returned',
           variant: 'destructive',
         })
         return
@@ -306,15 +306,15 @@ const AdminProfilePage: React.FC = () => {
 
       setHasDownloaded(true)
       toast({
-        title: 'Thành công',
-        description: 'Mã khôi phục đã được tải xuống.',
+        title: 'Success',
+        description: 'Recovery codes downloaded successfully.',
         variant: 'default',
       })
     } catch (error) {
       console.error('Failed to mark codes as downloaded:', error)
       toast({
-        title: 'Lỗi',
-        description: 'Không thể đánh dấu mã khôi phục đã tải xuống',
+        title: 'Error',
+        description: 'Unable to mark recovery codes as downloaded',
         variant: 'destructive',
       })
     }

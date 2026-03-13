@@ -240,6 +240,31 @@ Now respond to the user's message following the guidelines above."""
                 "Mình ở đây để lắng nghe. Bạn cần mình hỗ trợ điều gì lúc này?",
                 "Hôm nay của bạn thế nào? Bạn có điều gì muốn chia sẻ không?",
                 "Mình sẵn sàng lắng nghe bất cứ điều gì bạn nghĩ đến."
+            ],
+            ('negative', 'sadness', 'en'): [
+                "I hear that you're feeling really exhausted. That feeling is completely normal. Could you share more about what's worrying you?",
+                "It sounds like you're under a lot of pressure today. Would you like to talk more about it?",
+                "I'm here for you. What's making you the saddest right now?"
+            ],
+            ('negative', 'anger', 'en'): [
+                "It seems you're feeling frustrated. I understand. What made you so upset?",
+                "Anger sometimes hides other emotions. Can you tell me more?",
+                "I'm here to listen. What happened?"
+            ],
+            ('negative', 'other', 'en'): [
+                "Thank you for sharing. It takes courage to express these feelings. How long have you felt this way?",
+                "That sounds difficult. Would you like to talk more about it?",
+                "I'm listening. Please share whatever you're feeling."
+            ],
+            ('positive', None, 'en'): [
+                "I'm so glad to see you're feeling better! What helped bringing this positive change?",
+                "That's wonderful! Can you tell me about that positive moment?",
+                "Positive emotions are precious. What did you do to achieve it?"
+            ],
+            ('neutral', None, 'en'): [
+                "I'm here to listen. How can I support you right now?",
+                "How is your day going? Do you have anything you'd like to share?",
+                "I'm ready to listen to whatever is on your mind."
             ]
         }
         # Tương tự cho tiếng Anh (có thể mở rộng)
@@ -257,7 +282,7 @@ Now respond to the user's message following the guidelines above."""
         else:
             key = ('neutral', None, lang)
 
-        candidates = templates.get(key, templates[('neutral', None, lang)])
+        candidates = templates.get(key, templates.get(('neutral', None, lang), templates[('neutral', None, 'vi')]))
 
         for candidate in candidates:
             if candidate != last_bot_msg:

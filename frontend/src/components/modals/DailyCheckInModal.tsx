@@ -41,7 +41,7 @@ const DailyCheckInModal: React.FC = () => {
     setIsSubmitting(true)
 
     try {
-      // Gửi dữ liệu check-in lên backend để lưu trữ lâu dài
+      // Send check-in data to backend for long-term storage
       await dailyCheckInApi.submit({
         mood: selectedMood,
         energy: energyLevel,
@@ -50,9 +50,9 @@ const DailyCheckInModal: React.FC = () => {
       })
     } catch (error) {
       console.error('Failed to submit daily check-in:', error)
-      // TODO: có thể hiển thị toast thông báo lỗi sau
+      // TODO: can show error toast later
     } finally {
-      // Luôn cập nhật state local (Zustand) và đóng modal
+      // Always update local state (Zustand) and close modal
       submitCheckIn({
         mood: selectedMood,
         energy: energyLevel,
