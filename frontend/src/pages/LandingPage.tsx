@@ -42,6 +42,16 @@ const LandingPage: React.FC = () => {
     };
   }, []);
 
+  useEffect(() => {
+    // Scroll to video section on mount/reload
+    const videoSection = document.getElementById('hero-video-section');
+    if (videoSection) {
+      videoSection.scrollIntoView({ behavior: 'instant' });
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-[#f6f8f6] overflow-x-hidden">
       {/* Navigation */}
@@ -176,7 +186,7 @@ const LandingPage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="relative h-screen overflow-hidden">
+      <section id="hero-video-section" className="relative h-screen overflow-hidden">
         <div className="absolute inset-0">
           <video
             className="w-full h-full object-cover"

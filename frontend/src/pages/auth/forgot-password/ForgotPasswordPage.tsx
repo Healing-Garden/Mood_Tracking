@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
@@ -159,6 +159,15 @@ const ForgotPasswordPage: React.FC = () => {
       <div className="auth-card-container">
         {/* Overlay for readability and animation */}
         <div className={`auth-overlay ${!fromLanding ? 'no-animation' : ''}`} />
+
+        {/* Back to Home Button */}
+        <Link 
+          to="/" 
+          className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white/80 hover:text-white transition-all bg-black/20 hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 group animate-fade-in-form-fast"
+        >
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="font-medium text-sm">Back to Home</span>
+        </Link>
 
         <div className={`w-full max-w-md z-10 ${fromLanding ? 'animate-fade-in-form' : 'animate-fade-in-form-fast'}`}>
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
