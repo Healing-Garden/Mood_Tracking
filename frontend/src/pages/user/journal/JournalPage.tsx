@@ -21,7 +21,6 @@ import {
   Trash2,
   Calendar,
   BookOpen,
-  Menu,
   X,
   Mic,
   MicOff,
