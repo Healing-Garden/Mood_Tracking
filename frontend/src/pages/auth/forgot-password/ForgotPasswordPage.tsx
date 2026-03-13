@@ -77,7 +77,7 @@ const ForgotPasswordPage: React.FC = () => {
       ) {
         setError(
           (err as { response?: { data?: { message?: string } } }).response?.data?.message ||
-            "OTP invalid or expired"
+          "OTP invalid or expired"
         );
       } else {
         setError("OTP invalid or expired");
@@ -161,15 +161,15 @@ const ForgotPasswordPage: React.FC = () => {
         <div className={`auth-overlay ${!fromLanding ? 'no-animation' : ''}`} />
 
         {/* Back to Home Button */}
-        <Link 
-          to="/" 
-          className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white/80 hover:text-white transition-all bg-black/20 hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 group animate-fade-in-form-fast"
+        <Link
+          to="/"
+          className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white/80 hover:text-white transition-all bg-black/20 hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           <span className="font-medium text-sm">Back to Home</span>
         </Link>
 
-        <div className={`w-full max-w-md z-10 ${fromLanding ? 'animate-fade-in-form' : 'animate-fade-in-form-fast'}`}>
+        <div className={`w-full max-w-[428px] z-10 ${fromLanding ? 'animate-fade-in-form' : 'animate-fade-in-form-fast'}`}>
           <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
             {/* Logo */}
             <div className="flex justify-center mb-4">
@@ -181,106 +181,106 @@ const ForgotPasswordPage: React.FC = () => {
                 className="rounded-lg"
               />
             </div>
-          {/* STEP EMAIL */}
-          {step === "email" && (
-            <>
-              <h1 className="text-xl font-bold text-primary mb-1 text-center">
-                Reset Password
-              </h1>
-              <p className="text-center text-muted-foreground mb-8">
-                Enter your email address to reset your password
-              </p>
-              <form onSubmit={handleEmailSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Email Address</Label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{error}</p>
-                  </div>
-                )}
-                <Button disabled={isLoading} className="w-full h-11">
-                  {isLoading ? "Sending..." : "Send Recovery Code"}
-                </Button>
-              </form>
-              <div className="mt-6 text-center text-sm">
-                Remember your password?{" "}
-                <Link to="/login" state={{ fromLanding }} className="text-primary font-semibold">
-                  Sign In
-                </Link>
-              </div>
-            </>
-          )}
-
-          {/* STEP VERIFY */}
-          {step === "verify" && (
-            <>
-              <h1 className="text-xl font-bold text-primary text-center mb-1">
-                Enter OTP
-              </h1>
-              <form onSubmit={handleVerifyOtp} className="space-y-4">
-                <div className="flex gap-2 justify-between mb-2">
-                  {otp.map((v, i) => (
+            {/* STEP EMAIL */}
+            {step === "email" && (
+              <>
+                <h1 className="text-xl font-bold text-primary mb-1 text-center">
+                  Reset Password
+                </h1>
+                <p className="text-center text-muted-foreground mb-8">
+                  Enter your email address to reset your password
+                </p>
+                <form onSubmit={handleEmailSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Email Address</Label>
                     <Input
-                      key={i}
-                      id={`otp-input-${i}`}
-                      maxLength={1}
-                      className="w-12 h-12 text-center text-xl"
-                      value={v}
-                      ref={(el) => {
-                        otpInputsRef.current[i] = el;
-                      }}
-                      onChange={(e) => {
-                        const digit = e.target.value.replace(/\D/g, "");
-                        if (!digit) return;
-                        const next = [...otp];
-                        next[i] = digit;
-                        setOtp(next);
-                        setError("");
-                        // Auto focus next
-                        if (digit && i < 5) {
-                          const nextInput = document.querySelector(
-                            `#otp-input-${i + 1}`
-                          ) as HTMLInputElement | null;
-                          if (nextInput) nextInput.focus();
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Backspace") {
-                          if (otp[i]) {
-                            const next = [...otp];
-                            next[i] = "";
-                            setOtp(next);
-                          } else if (i > 0) {
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                  )}
+                  <Button disabled={isLoading} className="w-full h-11">
+                    {isLoading ? "Sending..." : "Send Recovery Code"}
+                  </Button>
+                </form>
+                <div className="mt-6 text-center text-sm">
+                  Remember your password?{" "}
+                  <Link to="/login" state={{ fromLanding }} className="text-primary font-semibold">
+                    Sign In
+                  </Link>
+                </div>
+              </>
+            )}
+
+            {/* STEP VERIFY */}
+            {step === "verify" && (
+              <>
+                <h1 className="text-xl font-bold text-primary text-center mb-1">
+                  Enter OTP
+                </h1>
+                <form onSubmit={handleVerifyOtp} className="space-y-4">
+                  <div className="flex gap-2 justify-between mb-2">
+                    {otp.map((v, i) => (
+                      <Input
+                        key={i}
+                        id={`otp-input-${i}`}
+                        maxLength={1}
+                        className="w-12 h-12 text-center text-xl"
+                        value={v}
+                        ref={(el) => {
+                          otpInputsRef.current[i] = el;
+                        }}
+                        onChange={(e) => {
+                          const digit = e.target.value.replace(/\D/g, "");
+                          if (!digit) return;
+                          const next = [...otp];
+                          next[i] = digit;
+                          setOtp(next);
+                          setError("");
+                          // Auto focus next
+                          if (digit && i < 5) {
+                            const nextInput = document.querySelector(
+                              `#otp-input-${i + 1}`
+                            ) as HTMLInputElement | null;
+                            if (nextInput) nextInput.focus();
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Backspace") {
+                            if (otp[i]) {
+                              const next = [...otp];
+                              next[i] = "";
+                              setOtp(next);
+                            } else if (i > 0) {
+                              const prevInput = document.querySelector(
+                                `#otp-input-${i - 1}`
+                              ) as HTMLInputElement;
+                              if (prevInput) prevInput.focus();
+                              const next = [...otp];
+                              next[i - 1] = "";
+                              setOtp(next);
+                            }
+                          } else if (e.key === "ArrowLeft" && i > 0) {
                             const prevInput = document.querySelector(
                               `#otp-input-${i - 1}`
                             ) as HTMLInputElement;
                             if (prevInput) prevInput.focus();
-                            const next = [...otp];
-                            next[i - 1] = "";
-                            setOtp(next);
+                          } else if (e.key === "ArrowRight" && i < 5) {
+                            const nextInput = document.querySelector(
+                              `#otp-input-${i + 1}`
+                            ) as HTMLInputElement;
+                            if (nextInput) nextInput.focus();
                           }
-                        } else if (e.key === "ArrowLeft" && i > 0) {
-                          const prevInput = document.querySelector(
-                            `#otp-input-${i - 1}`
-                          ) as HTMLInputElement;
-                          if (prevInput) prevInput.focus();
-                        } else if (e.key === "ArrowRight" && i < 5) {
-                          const nextInput = document.querySelector(
-                            `#otp-input-${i + 1}`
-                          ) as HTMLInputElement;
-                          if (nextInput) nextInput.focus();
-                        }
-                      }}
-                      onPaste={
-                        i === 0
-                          ? (e) => {
+                        }}
+                        onPaste={
+                          i === 0
+                            ? (e) => {
                               e.preventDefault();
                               const pasted = e.clipboardData
                                 .getData("text")
@@ -298,134 +298,134 @@ const ForgotPasswordPage: React.FC = () => {
                                 if (nextInput) nextInput.focus();
                               }, 10);
                             }
-                          : undefined
-                      }
-                      autoFocus={i === 0}
-                    />
-                  ))}
-                </div>
-                {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{error}</p>
+                            : undefined
+                        }
+                        autoFocus={i === 0}
+                      />
+                    ))}
                   </div>
-                )}
-                <Button disabled={isLoading} className="w-full h-11">
-                  {isLoading ? "Verifying..." : "Verify OTP"}
-                </Button>
-              </form>
-              <button
-                type="button"
-                onClick={handleResendOtp}
-                disabled={resendLoading}
-                className="w-full text-sm text-primary font-semibold mt-2"
-              >
-                {resendLoading ? "Resending..." : "Resend OTP"}
-              </button>
-            </>
-          )}
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                  )}
+                  <Button disabled={isLoading} className="w-full h-11">
+                    {isLoading ? "Verifying..." : "Verify OTP"}
+                  </Button>
+                </form>
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendLoading}
+                  className="w-full text-sm text-primary font-semibold mt-2"
+                >
+                  {resendLoading ? "Resending..." : "Resend OTP"}
+                </button>
+              </>
+            )}
 
-          {/* STEP RESET */}
-          {step === "reset" && (
-            <>
-              <h1 className="text-xl font-bold text-primary text-center mb-1">
-                Set New Password
-              </h1>
-              <form onSubmit={handleResetPassword} className="space-y-4">
-                <div className="space-y-1">
-                  <Label>New Password</Label>
-                  <div className="relative">
-                    <Input
-                      type={showNewPassword ? "text" : "password"}
-                      placeholder="New password"
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowNewPassword((v) => !v)}
-                      className="absolute right-3 top-2.5 text-muted-foreground"
-                      tabIndex={-1}
-                    >
-                      {showNewPassword ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </button>
+            {/* STEP RESET */}
+            {step === "reset" && (
+              <>
+                <h1 className="text-xl font-bold text-primary text-center mb-1">
+                  Set New Password
+                </h1>
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="space-y-1">
+                    <Label>New Password</Label>
+                    <div className="relative">
+                      <Input
+                        type={showNewPassword ? "text" : "password"}
+                        placeholder="New password"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword((v) => !v)}
+                        className="absolute right-3 top-2.5 text-muted-foreground"
+                        tabIndex={-1}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
+                    </div>
+                    <ul className="text-sm mt-2 space-y-1">
+                      <li
+                        className={
+                          passwordChecklist.length
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }
+                      >
+                        • At least 8 characters
+                      </li>
+                      <li
+                        className={
+                          passwordChecklist.upper
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }
+                      >
+                        • One uppercase letter
+                      </li>
+                      <li
+                        className={
+                          passwordChecklist.number
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }
+                      >
+                        • One number
+                      </li>
+                      <li
+                        className={
+                          passwordChecklist.special
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }
+                      >
+                        • One special character
+                      </li>
+                    </ul>
                   </div>
-                  <ul className="text-sm mt-2 space-y-1">
-                    <li
-                      className={
-                        passwordChecklist.length
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      • At least 8 characters
-                    </li>
-                    <li
-                      className={
-                        passwordChecklist.upper
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      • One uppercase letter
-                    </li>
-                    <li
-                      className={
-                        passwordChecklist.number
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      • One number
-                    </li>
-                    <li
-                      className={
-                        passwordChecklist.special
-                          ? "text-green-600"
-                          : "text-red-600"
-                      }
-                    >
-                      • One special character
-                    </li>
-                  </ul>
-                </div>
-                <div className="space-y-1">
-                  <Label>Confirm Password</Label>
-                  <div className="relative">
-                    <Input
-                      type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm password"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirmPassword((v) => !v)}
-                      className="absolute right-3 top-2.5 text-muted-foreground"
-                      tabIndex={-1}
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </button>
+                  <div className="space-y-1">
+                    <Label>Confirm Password</Label>
+                    <div className="relative">
+                      <Input
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="Confirm password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword((v) => !v)}
+                        className="absolute right-3 top-2.5 text-muted-foreground"
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
+                    </div>
                   </div>
-                </div>
-                {error && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-600">{error}</p>
-                  </div>
-                )}
-                <Button disabled={isLoading} className="w-full h-11">
-                  {isLoading ? "Updating..." : "Update Password"}
-                </Button>
-              </form>
-            </>
-          )}
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                      <p className="text-sm text-red-600">{error}</p>
+                    </div>
+                  )}
+                  <Button disabled={isLoading} className="w-full h-11">
+                    {isLoading ? "Updating..." : "Update Password"}
+                  </Button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       </div>

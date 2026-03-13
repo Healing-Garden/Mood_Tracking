@@ -43,13 +43,31 @@ const LandingPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    // Scroll to video section on mount/reload
-    const videoSection = document.getElementById('hero-video-section');
-    if (videoSection) {
-      videoSection.scrollIntoView({ behavior: 'instant' });
-    } else {
-      window.scrollTo(0, 0);
+    // Disable automatic scroll restoration by the browser
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
     }
+
+    // Scroll to video section on mount/reload
+    const scrollToVideo = () => {
+      const videoSection = document.getElementById('hero-video-section');
+      if (videoSection) {
+        videoSection.scrollIntoView({ behavior: 'instant' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+      }
+    };
+
+    // Run immediately and after a short delay to ensure it wins
+    scrollToVideo();
+    const timer = setTimeout(scrollToVideo, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'auto';
+      }
+    };
   }, []);
 
   return (
