@@ -115,6 +115,7 @@ export interface MoodHistoryItem {
   date: string;
   mood: number;
   theme: "negative" | "neutral" | "positive";
+  note?: string;
 }
 
 export interface MoodHistoryResponse {

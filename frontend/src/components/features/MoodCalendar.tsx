@@ -166,34 +166,50 @@ export default function MoodCalendar() {
                                     key={day}
                                     title={
                                         moodItem
-                                            ? `${moodItem.date} • Mood ${moodItem.mood}`
+                                            ? `${moodItem.date} • Mood ${moodItem.mood}${moodItem.note ? `\nNote: ${moodItem.note}` : ''}`
                                             : `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} • No check-in`
                                     }
                                     className={`
-                                        aspect-square
+                                        min-h-[125px]
                                         w-full
-                                        rounded-xl
+                                        rounded-2xl
                                         border
-                                        flex items-center justify-center
-                                        transition-all duration-200 ease-out
-                                        hover:scale-[1.05] hover:shadow-md
+                                        flex flex-col items-center justify-start
+                                        p-2.5
+                                        transition-all duration-300 ease-out
+                                        hover:scale-[1.02] hover:shadow-xl
                                         cursor-default
                                         group
                                         relative
                                         ${colorClass}
-                                        ${isToday ? "ring-2 ring-primary" : ""}
+                                        ${isToday ? "ring-2 ring-primary bg-white/40 shadow-inner" : ""}
                                     `}
                                 >
-                                    <span className="absolute top-2 left-2 text-xs font-medium opacity-60">
-                                        {day}
-                                    </span>
-                                    {moodItem && (
-                                        <span className="text-3xl">
-                                            {MOOD_EMOJI[moodItem.mood]}
+                                    <div className="w-full flex justify-between items-start mb-1.5">
+                                        <span className="text-sm font-black opacity-30 uppercase tracking-tighter">
+                                            {day}
                                         </span>
-                                    )}
+                                        {moodItem && (
+                                            <span className="text-2xl leading-none filter drop-shadow-sm">
+                                                {MOOD_EMOJI[moodItem.mood]}
+                                            </span>
+                                        )}
+                                    </div>
+                                    
+                                    {moodItem?.note ? (
+                                        <div className="w-full mt-1.5 overflow-hidden">
+                                            <p className="text-[11px] font-bold leading-[1.3] text-slate-700/80 line-clamp-4 break-words italic selection:bg-primary/20">
+                                                {moodItem.note}
+                                            </p>
+                                        </div>
+                                    ) : moodItem ? (
+                                        <div className="w-full mt-3 flex justify-center opacity-10">
+                                            <div className="w-10 h-0.5 bg-slate-400 rounded-full" />
+                                        </div>
+                                    ) : null}
+
                                     {moodItem && (
-                                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-sm bg-white shadow-sm border border-border group-hover:scale-125 transition-transform" />
+                                        <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-white/80 shadow-inner group-hover:scale-125 transition-transform" />
                                     )}
                                 </div>
                             )

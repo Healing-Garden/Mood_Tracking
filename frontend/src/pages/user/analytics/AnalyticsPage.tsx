@@ -482,22 +482,22 @@ const AnalyticsPage = () => {
               Mood Flow
             </TabsTrigger>
             <TabsTrigger
-              value="calendar"
-              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
-            >
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger
               value="triggers"
               className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
             >
-              Triggers
+              Trigger Heatmap
             </TabsTrigger>
             <TabsTrigger
               value="wordcloud"
               className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
             >
               Word Cloud
+            </TabsTrigger>
+            <TabsTrigger
+              value="calendar"
+              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
+            >
+              Mood Calendar
             </TabsTrigger>
           </TabsList>
 

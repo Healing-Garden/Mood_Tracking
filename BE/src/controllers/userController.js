@@ -423,7 +423,7 @@ module.exports = {
         user: userId,
         date: { $gte: startOfMonth, $lte: endOfMonth },
       })
-        .select("date mood theme")
+        .select("date mood theme note")
         .sort({ date: 1 })
         .lean();
 
