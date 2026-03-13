@@ -36,7 +36,7 @@ export const feedbackApi = {
      */
     submit: async (data: FeedbackSubmission): Promise<FeedbackResponse> => {
         const res = await http.post<FeedbackResponse>('/feedback/submit', data);
-        return res.data;
+        return res;
     },
 
     /**
@@ -44,6 +44,6 @@ export const feedbackApi = {
      */
     getHistory: async (): Promise<FeedbackHistoryResponse> => {
         const res = await http.get<FeedbackHistoryResponse>('/feedback/my-history');
-        return res.data;
+        return res;
     }
 };
