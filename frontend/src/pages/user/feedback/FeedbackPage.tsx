@@ -1,5 +1,4 @@
 import FeedbackForm from '../../../components/features/FeedbackForm';
-import { MessageCircle } from 'lucide-react';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 
 const FeedbackPage = () => {

@@ -332,7 +332,7 @@ const RegisterPage: React.FC = () => {
                 </button>
               </div>
 
-              {/* ✅ ĐÚNG CHỖ */}
+              {/* Correct position */}
               {confirmPasswordError && (
                 <p className="text-sm text-red-600">{confirmPasswordError}</p>
               )}

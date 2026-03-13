@@ -7,8 +7,8 @@ import { useChat } from '../../../hooks/useChat';
 import ChatSidebar from '../../../components/features/ChatSidebar';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 
-// Hàm lấy mood context (có thể gọi API hoặc từ store)
-const getMoodContext = () => {
+// Function to get mood context (can call API or from store)
+const getMoodContext = () => { 
   return {
     recentMood: 'anxious',
     energyLevel: 3,
@@ -21,7 +21,7 @@ export default function ChatBot() {
   const [userInput, setUserInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Chỉ kết nối chat khi có user
+  // Only connect to chat when user is logged in
   const moodContext = useMemo(() => getMoodContext(), []);
   const {
     messages,
@@ -34,7 +34,7 @@ export default function ChatBot() {
     resetSession
   } = useChat(user?.id || '', moodContext);
 
-  // Cuộn xuống cuối khi có tin nhắn mới
+  // Scroll to bottom when new message arrives
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

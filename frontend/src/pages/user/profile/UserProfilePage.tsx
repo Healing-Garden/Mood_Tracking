@@ -410,7 +410,11 @@ const UserProfilePage: React.FC = () => {
         setHasPinSet(!!profile.hasAppLockPin)
       } catch (error) {
         console.error('Failed to load profile:', error)
-        toast({ title: 'Lỗi', description: 'Không thể tải thông tin cá nhân', variant: 'destructive' })
+        toast({
+          title: 'Error',
+          description: 'Unable to load your personal information',
+          variant: 'destructive',
+        })
       } finally {
         setIsLoadingProfile(false)
       }
@@ -422,10 +426,21 @@ const UserProfilePage: React.FC = () => {
     setIsUploadingAvatar(true)
     try {
       const avatarResponse = await userApi.uploadAvatar(file)
-      setAvatar(avatarResponse.user?.avatarUrl || avatarResponse.imageUrl || '')
-      showSuccess('Avatar đã được cập nhật thành công.')
-    } catch (error) {
-      toast({ title: 'Lỗi', description: 'Không thể cập nhật avatar', variant: 'destructive' })
+      const nextAvatar =
+        avatarResponse.user?.avatarUrl ||
+        avatarResponse.imageUrl ||
+        ''
+
+      setAvatar(nextAvatar)
+
+      showSuccess('Avatar updated successfully.')
+    } catch (avatarError) {
+      console.error('Avatar upload error:', avatarError)
+      toast({
+        title: 'Error',
+        description: avatarError instanceof Error ? avatarError.message : 'Unable to update avatar',
+        variant: 'destructive',
+      })
     } finally {
       setIsUploadingAvatar(false)
     }
@@ -436,9 +451,14 @@ const UserProfilePage: React.FC = () => {
     try {
       const response = await userApi.removeAvatar()
       setAvatar(response.user.avatarUrl || '')
-      showSuccess('Avatar đã được gỡ bỏ.')
+      showSuccess('Avatar removed.')
     } catch (error) {
-      toast({ title: 'Lỗi', description: 'Không thể gỡ bỏ avatar', variant: 'destructive' })
+      console.error('Avatar removal error:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to remove avatar',
+        variant: 'destructive',
+      })
     } finally {
       setIsUploadingAvatar(false)
     }
@@ -458,7 +478,12 @@ const UserProfilePage: React.FC = () => {
       showSuccess('Thông tin cá nhân đã được cập nhật.')
       setShowEditModal(false)
     } catch (error) {
-      toast({ title: 'Lỗi', description: 'Không thể cập nhật hồ sơ', variant: 'destructive' })
+      console.error('Toggle App Lock error:', error)
+      toast({
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to change lock status',
+        variant: 'destructive',
+      })
     } finally {
       setIsLoading(false)
     }
