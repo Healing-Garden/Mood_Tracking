@@ -1,58 +1,81 @@
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/Card'
-import { dailyCheckInApi, type TriggerHeatmapRow } from '../../api/dailyCheckInApi'
-import { Flame, Info } from 'lucide-react'
+import { useState, useEffect } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/Card"
+import { dailyCheckInApi, type TriggerHeatmapRow } from "../../api/dailyCheckInApi"
+import { Flame, Info } from "lucide-react"
 
-type HeatmapPeriod = 'week' | 'month' | 'year'
+type HeatmapPeriod = "week" | "month" | "year"
 
-const MOOD_COLORS = {
-  negative: { light: 'rgb(254 226 226)', mid: 'rgb(248 113 113)', dark: 'rgb(220 38 38)' },
-  neutral: { light: 'rgb(229 231 235)', mid: 'rgb(156 163 175)', dark: 'rgb(75 85 99)' },
-  positive: { light: 'rgb(220 252 231)', mid: 'rgb(74 222 128)', dark: 'rgb(22 163 74)' },
+const COLOR_SCALE = {
+  negative: [
+    "rgb(254 226 226)",
+    "rgb(252 165 165)",
+    "rgb(248 113 113)",
+    "rgb(239 68 68)",
+    "rgb(220 38 38)",
+  ],
+  neutral: [
+    "rgb(255 237 213)",
+    "rgb(253 186 116)",
+    "rgb(251 146 60)",
+    "rgb(249 115 22)",
+    "rgb(194 65 12)",
+  ],
+  positive: [
+    "rgb(220 252 231)",
+    "rgb(134 239 172)",
+    "rgb(74 222 128)",
+    "rgb(34 197 94)",
+    "rgb(22 163 74)",
+  ],
 } as const
 
-function getHeatColor(
-  value: number,
-  max: number,
-  kind: 'negative' | 'neutral' | 'positive'
-): string {
-  if (max === 0) return MOOD_COLORS[kind].light
+function getHeatColor(value: number, max: number, kind: keyof typeof COLOR_SCALE) {
+  if (max === 0) return COLOR_SCALE[kind][0]
+
   const ratio = value / max
-  if (ratio <= 0) return MOOD_COLORS[kind].light
-  if (ratio >= 1) return MOOD_COLORS[kind].dark
-  return MOOD_COLORS[kind].mid
+  const index = Math.min(4, Math.floor(ratio * 5))
+
+  return COLOR_SCALE[kind][index]
 }
 
 interface HeatmapProps {
   defaultPeriod?: HeatmapPeriod
+  compact?: boolean
 }
 
-export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps) {
+export default function TriggerHeatmap({
+  defaultPeriod = "week",
+  compact = false,
+}: HeatmapProps) {
   const [period, setPeriod] = useState<HeatmapPeriod>(defaultPeriod)
   const [rows, setRows] = useState<TriggerHeatmapRow[]>([])
-
-  // Sync state if prop changes (needed for export capture)
-  useEffect(() => {
-    setPeriod(defaultPeriod);
-  }, [defaultPeriod]);
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  const [hoverRow, setHoverRow] = useState<number | null>(null)
+  const [hoverCol, setHoverCol] = useState<number | null>(null)
+
+  useEffect(() => {
+    setPeriod(defaultPeriod)
+  }, [defaultPeriod])
+
   useEffect(() => {
     let cancelled = false
+
     setLoading(true)
-    setError(null)
+
     dailyCheckInApi
       .getTriggerHeatmap(period)
       .then((res) => {
         if (!cancelled) setRows(res.rows || [])
       })
       .catch((err) => {
-        if (!cancelled) setError(err?.message || 'Failed to load heatmap')
+        if (!cancelled) setError(err?.message || "Failed to load heatmap")
       })
       .finally(() => {
         if (!cancelled) setLoading(false)
       })
+
     return () => {
       cancelled = true
     }
@@ -61,141 +84,143 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
   const maxNegative = Math.max(1, ...rows.map((r) => r.negative))
   const maxNeutral = Math.max(1, ...rows.map((r) => r.neutral))
   const maxPositive = Math.max(1, ...rows.map((r) => r.positive))
-  const hasData = rows.some((r) => r.negative + r.neutral + r.positive > 0)
+
   const triggers = rows.map((r) => r.trigger)
 
   const moodRows = [
-    {
-      label: 'Negative',
-      kind: 'negative' as const,
-      values: rows.map((r) => r.negative),
-      max: maxNegative,
-    },
-    {
-      label: 'Neutral',
-      kind: 'neutral' as const,
-      values: rows.map((r) => r.neutral),
-      max: maxNeutral,
-    },
-    {
-      label: 'Positive',
-      kind: 'positive' as const,
-      values: rows.map((r) => r.positive),
-      max: maxPositive,
-    },
-  ]
+    { label: "Negative", values: rows.map((r) => r.negative), max: maxNegative, kind: "negative" },
+    { label: "Neutral", values: rows.map((r) => r.neutral), max: maxNeutral, kind: "neutral" },
+    { label: "Positive", values: rows.map((r) => r.positive), max: maxPositive, kind: "positive" },
+  ] as const
+
+  const hasData = rows.some((r) => r.negative + r.neutral + r.positive > 0)
 
   return (
-    <Card id="trigger-heatmap-chart" className="border-border shadow-md">
+    <Card className="border-border shadow-md">
       <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex justify-between items-center">
           <div>
-            <CardTitle className="text-primary flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-primary">
               <Flame size={20} />
               Trigger Heatmap
             </CardTitle>
+
             <CardDescription className="flex items-center gap-1">
               <Info size={14} />
               Emotional frequency by trigger and mood quality.
             </CardDescription>
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Rare</span>
-              <div className="flex gap-1">
-                <span className="h-3 w-3 rounded-md bg-green-50" />
-                <span className="h-3 w-3 rounded-md bg-green-200" />
-                <span className="h-3 w-3 rounded-md bg-green-400" />
-                <span className="h-3 w-3 rounded-md bg-green-600" />
-              </div>
-              <span>Frequent</span>
-            </div>
-            <div className="flex gap-2">
-              {(['week', 'month', 'year'] as HeatmapPeriod[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPeriod(p)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${period === p
-                    ? 'bg-primary text-white'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                    }`}
-                >
-                  {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}
-                </button>
-              ))}
-            </div>
+
+          <div className="flex gap-2">
+            {(["week", "month", "year"] as HeatmapPeriod[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-3 py-1 rounded-lg text-sm font-medium transition ${period === p
+                  ? "bg-primary text-white"
+                  : "bg-muted text-muted-foreground hover:bg-muted/70"
+                  }`}
+              >
+                {p === "week" ? "7 days" : p === "month" ? "30 days" : "1 year"}
+              </button>
+            ))}
           </div>
         </div>
       </CardHeader>
+
       <CardContent>
         {loading && (
-          <div className="flex h-64 items-center justify-center text-muted-foreground">
-            Loading…
+          <div className="flex justify-center items-center h-64 text-muted-foreground">
+            Loading heatmap...
           </div>
         )}
+
         {error && (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          <div className="text-destructive text-sm border border-destructive/30 p-3 rounded-lg">
             {error}
           </div>
         )}
-        {!loading && !error && !hasData && (
-          <div className="rounded-lg border border-border bg-muted/30 px-4 py-8 text-center text-muted-foreground">
-            No trigger data yet. When you check in, optionally select triggers (e.g. Work, Family) to see correlations here.
-          </div>
-        )}
-        {!loading && !error && hasData && (
-          <div className="overflow-x-auto">
+
+        {!loading && hasData && (
+          <div className="relative overflow-x-auto">
             <div
-              className="grid gap-2"
+              className="grid relative rounded-2xl overflow-hidden"
               style={{
-                gridTemplateColumns: `96px repeat(${triggers.length}, minmax(48px, 1fr))`,
+                gridTemplateColumns: `100px repeat(${triggers.length}, minmax(44px, 1fr))`,
               }}
             >
-              {/* Header: Trigger */}
               <div />
-              {triggers.map((t) => (
+
+              {triggers.map((t, col) => (
                 <div
                   key={t}
-                  className="text-xs text-muted-foreground text-center truncate"
-                  title={t}
+                  className={`text-xs text-center truncate py-1 transition ${hoverCol === col ? "text-primary font-semibold" : "text-muted-foreground"
+                    }`}
                 >
                   {t}
                 </div>
               ))}
 
-              {/* Rows: Mood */}
-              {moodRows.map((row) => (
+              {moodRows.map((row, rowIndex) => (
                 <div key={row.label} className="contents">
-                  {/* Mood label */}
                   <div className="flex items-center text-sm font-medium">
                     {row.label}
                   </div>
 
-                  {/* Cells */}
-                  {row.values.map((value, idx) => (
-                    <div
-                      key={idx}
-                      className="
-                        aspect-square
-                        w-full
-                        rounded-full
-                        flex items-center justify-center
-                        text-[11px] font-semibold
-                        shadow-sm
-                      "
-                      style={{
-                        backgroundColor: getHeatColor(value, row.max, row.kind),
-                        color: value > row.max / 2 ? 'white' : 'inherit',
-                      }}
-                      title={`${row.label} • ${triggers[idx]}: ${value}`}
-                    >
-                      {value || ''}
-                    </div>
-                  ))}
+                  {row.values.map((value, colIndex) => {
+                    const isTop = rowIndex === 0
+                    const isBottom = rowIndex === moodRows.length - 1
+                    const isLeft = colIndex === 0
+                    const isRight = colIndex === row.values.length - 1
+
+                    const cornerRadius = `
+                      ${isTop && isLeft ? "rounded-tl-xl" : ""}
+                      ${isTop && isRight ? "rounded-tr-xl" : ""}
+                      ${isBottom && isLeft ? "rounded-bl-xl" : ""}
+                      ${isBottom && isRight ? "rounded-br-xl" : ""}
+                    `
+
+                    return (
+                      <div
+                        key={colIndex}
+                        onMouseEnter={() => {
+                          setHoverRow(rowIndex)
+                          setHoverCol(colIndex)
+                        }}
+                        onMouseLeave={() => {
+                          setHoverRow(null)
+                          setHoverCol(null)
+                        }}
+                        className={`
+                          aspect-square
+                          flex items-center justify-center
+                          text-[11px] font-semibold
+                          transition-transform duration-200
+                          ${hoverRow === rowIndex || hoverCol === colIndex ? "scale-[1.03]" : ""}
+                          ${cornerRadius}
+                        `}
+                        style={{
+                          backgroundColor: getHeatColor(value, row.max, row.kind),
+                          color: value > row.max / 2 ? "white" : "inherit",
+                        }}
+                      >
+                        {value || ""}
+                      </div>
+                    )
+                  })}
                 </div>
               ))}
             </div>
+
+            {/* overlay smoothing */}
+            <div
+              className="pointer-events-none absolute inset-0"
+              style={{
+                background:
+                  "radial-gradient(circle at center, rgba(255,255,255,0.03), transparent 70%)",
+                mixBlendMode: "overlay",
+              }}
+            />
           </div>
         )}
       </CardContent>

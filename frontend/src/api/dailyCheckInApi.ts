@@ -5,6 +5,8 @@ export const TRIGGER_OPTIONS = [
   "Work",
   "Health",
   "Relationships",
+  "Friends",
+  "Study",
   "Finance",
   "Sleep",
   "Social",
@@ -28,7 +30,7 @@ export interface DailyCheckInResponse {
   energy: number;
   note?: string;
   date: string;
-  theme: "low" | "neutral" | "positive";
+  theme: "negative" | "neutral" | "positive";
   triggers?: string[];
   createdAt: string;
   updatedAt: string;
@@ -112,7 +114,8 @@ export interface SummaryResponse {
 export interface MoodHistoryItem {
   date: string;
   mood: number;
-  theme: "low" | "neutral" | "positive";
+  theme: "negative" | "neutral" | "positive";
+  note?: string;
 }
 
 export interface MoodHistoryResponse {
