@@ -19,7 +19,7 @@ import { aiApi } from '../../../api/aiApi';
 import { Quote as QuoteIcon } from 'lucide-react';
 import type { HealingContent } from '../../../services/healingContentService';
 
-const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
+// const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
 const UserDashboardPage = () => {
   const navigate = useNavigate()
@@ -89,13 +89,13 @@ const UserDashboardPage = () => {
           userApi.getProfile(),
           userApi.getDashboardData()
         ])
-        
+
         setDashboardData({
           journeyDays: stats.journeyDays || 1,
           moodDistribution: stats.moodDistribution || [],
           userName: profile.fullName || 'User',
         })
-        
+
         if (stats.weeklyStats) {
           setWeeklyStats(stats.weeklyStats)
         }

@@ -13,7 +13,7 @@ export interface AggregatedInsightsParams {
 export const getAggregatedInsights = async (
   params: AggregatedInsightsParams
 ): Promise<AggregatedInsights> => {
-  const response = await http.get('/admin/analytics/aggregated-insights', {
+  const response = await http.get<AggregatedInsights>('/admin/analytics/aggregated-insights', {
     params: {
       dateRange: params.dateRange || 'last_30_days',
       startDate: params.startDate,

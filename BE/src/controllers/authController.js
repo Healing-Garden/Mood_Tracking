@@ -6,18 +6,23 @@ const { checkRateLimit } = require("../utils/rateLimit");
 
 module.exports = {
   register: async (req, res) => {
-    const { email } = req.body;
+    try {
+      const { email } = req.body;
 
-    if (await Users.findOne({ email }))
-      return res.status(400).json({ message: "Email already exists" });
+      if (await Users.findOne({ email }))
+        return res.status(400).json({ message: "Email already exists" });
 
-    await otpService.createOtp({
-      email,
-      type: "REGISTER",
-      payload: req.body,
-    });
+      await otpService.createOtp({
+        email,
+        type: "REGISTER",
+        payload: req.body,
+      });
 
-    res.json({ message: "OTP sent to email" });
+      res.json({ message: "OTP sent to email" });
+    } catch (err) {
+      console.error("Register error:", err);
+      res.status(500).json({ message: err.message || "Lỗi server khi đăng ký" });
+    }
   },
 
   verifyRegisterOtp: async (req, res) => {
@@ -50,16 +55,21 @@ module.exports = {
   },
 
   resendRegisterOtp: async (req, res) => {
-    if (!checkRateLimit(req.body.email))
-      return res.status(429).json({ message: "Wait before resend" });
+    try {
+      if (!checkRateLimit(req.body.email))
+        return res.status(429).json({ message: "Wait before resend" });
 
-    await otpService.createOtp({
-      email: req.body.email,
-      type: "REGISTER",
-      payload: req.body.payload,
-    });
+      await otpService.createOtp({
+        email: req.body.email,
+        type: "REGISTER",
+        payload: req.body.payload,
+      });
 
-    res.json({ message: "OTP resent" });
+      res.json({ message: "OTP resent" });
+    } catch (err) {
+      console.error("Resend OTP error:", err);
+      res.status(500).json({ message: err.message || "Lỗi server khi gửi lại OTP" });
+    }
   },
 
   login: async (req, res) => {
@@ -158,16 +168,21 @@ module.exports = {
   },
 
   forgotPassword: async (req, res) => {
-    const { email } = req.body;
-    if (!(await Users.findOne({ email })))
-      return res.status(404).json({ message: "Email not found" });
+    try {
+      const { email } = req.body;
+      if (!(await Users.findOne({ email })))
+        return res.status(404).json({ message: "Email not found" });
 
-    await otpService.createOtp({
-      email,
-      type: "FORGOT_PASSWORD",
-    });
+      await otpService.createOtp({
+        email,
+        type: "FORGOT_PASSWORD",
+      });
 
-    res.json({ message: "OTP sent" });
+      res.json({ message: "OTP sent" });
+    } catch (err) {
+      console.error("Forgot password error:", err);
+      res.status(500).json({ message: err.message || "Lỗi server khi gửi OTP khôi phục" });
+    }
   },
 
   verifyForgotOtp: async (req, res) => {

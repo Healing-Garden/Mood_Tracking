@@ -23,11 +23,11 @@ export default function ChatBot() {
 
   // Only connect to chat when user is logged in
   const moodContext = useMemo(() => getMoodContext(), []);
-  const { 
-    messages, 
-    sendMessage, 
-    isConnected, 
-    isTyping, 
+  const {
+    messages,
+    sendMessage,
+    isConnected,
+    isTyping,
     sessionId,
     loadSession,
     newSession,
@@ -87,7 +87,7 @@ export default function ChatBot() {
   }
 
   return (
-    <DashboardLayout 
+    <DashboardLayout
       title="AI Thought Partner"
     >
       <div className="h-full flex overflow-hidden">
@@ -126,11 +126,10 @@ export default function ChatBot() {
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${
-                    msg.sender === 'bot'
-                      ? 'bg-primary text-white'
-                      : 'bg-muted/30 text-foreground border border-border/50'
-                  }`}
+                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${msg.sender === 'bot'
+                    ? 'bg-primary text-white'
+                    : 'bg-muted/30 text-foreground border border-border/50'
+                    }`}
                 >
                   {msg.sender === 'bot' && (
                     <p className="text-[10px] font-bold uppercase mb-1.5 opacity-70 tracking-widest flex items-center gap-1.5">

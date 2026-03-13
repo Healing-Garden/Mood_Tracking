@@ -21,6 +21,9 @@ exports.createOtp = async ({ email, type, payload }) => {
     await sendOTP(email, otp);
   } catch (err) {
     console.error("Send OTP failed:", err.message);
+    // Xóa OTP vừa tạo vì không gửi được mail
+    await Otp.deleteOne({ email, type });
+    throw new Error("Không thể gửi email. Vui lòng kiểm tra cấu hình gửi mail trên server.");
   }
 };
 

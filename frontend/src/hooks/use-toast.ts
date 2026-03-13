@@ -13,8 +13,7 @@ export const ActionTypes = {
   REMOVE_TOAST: 'REMOVE_TOAST',
 } as const;
 
-export type ActionType = keyof typeof ActionTypes;
-
+export type ActionType = typeof ActionTypes[keyof typeof ActionTypes];
 
 /* ===================== TYPES ===================== */
 
@@ -27,21 +26,21 @@ type ToasterToast = ToastProps & {
 
 type Action =
   | {
-    type: typeof ActionTypes.ADD_TOAST
-    toast: ToasterToast
-  }
+      type: typeof ActionTypes.ADD_TOAST
+      toast: ToasterToast
+    }
   | {
-    type: typeof ActionTypes.UPDATE_TOAST
-    toast: Partial<ToasterToast>
-  }
+      type: typeof ActionTypes.UPDATE_TOAST
+      toast: Partial<ToasterToast> & { id: string }
+    }
   | {
-    type: typeof ActionTypes.DISMISS_TOAST
-    toastId?: string
-  }
+      type: typeof ActionTypes.DISMISS_TOAST
+      toastId?: string
+    }
   | {
-    type: typeof ActionTypes.REMOVE_TOAST
-    toastId?: string
-  }
+      type: typeof ActionTypes.REMOVE_TOAST
+      toastId?: string
+    }
 
 interface State {
   toasts: ToasterToast[]
@@ -119,6 +118,8 @@ export const reducer = (state: State, action: Action): State => {
             ? []
             : state.toasts.filter((t) => t.id !== action.toastId),
       }
+    default:
+      return state;
   }
 }
 
