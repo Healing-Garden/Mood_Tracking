@@ -129,7 +129,20 @@ export default function JournalPage() {
   const [newImages, setNewImages] = useState<File[]>([]);
   const [previewImages, setPreviewImages] = useState<string[]>([]);
   const [removedImages, setRemovedImages] = useState<string[]>([]);
-  const [voiceFile, setVoiceFile] = useState<File | null>(null);
+
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    confirmText?: string;
+    variant?: 'destructive' | 'primary';
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => { },
+  });
 
   const loadEntries = async () => {
     try {
@@ -514,16 +527,24 @@ export default function JournalPage() {
     }
   };
 
-  const handleDeleteEntry = async (id: string) => {
-    if (!confirm("Delete this entry? It will be moved to trash.")) return;
-
-    try {
-      await journalApi.delete(id);
-      await loadEntries();
-      await loadDeletedEntries();
-    } catch (error) {
-      console.error("Delete error:", error);
-    }
+  const handleDeleteEntry = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Confirm Deletion",
+      message: "Are you sure you want to delete this entry? It will be moved to the Trash for 30 days.",
+      confirmText: "Move to Trash",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await journalApi.delete(id);
+          await loadEntries();
+          await loadDeletedEntries();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error("Delete error:", error);
+        }
+      }
+    });
   };
 
   const removeImage = (index: number) => {
@@ -541,15 +562,23 @@ export default function JournalPage() {
     }
   };
 
-  const handlePermanentDeleteEntry = async (id: string) => {
-    if (!confirm("Delete this entry PERMANENTLY? This cannot be undone.")) return;
-
-    try {
-      await journalApi.permanentDelete(id);
-      await loadDeletedEntries();
-    } catch (error) {
-      console.error("Permanent delete error:", error);
-    }
+  const handlePermanentDeleteEntry = (id: string) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Permanent Deletion",
+      message: "This action cannot be undone. Are you sure you want to delete this entry FOREVER?",
+      confirmText: "Delete Forever",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          await journalApi.permanentDelete(id);
+          await loadDeletedEntries();
+          setConfirmDialog(prev => ({ ...prev, isOpen: false }));
+        } catch (error) {
+          console.error("Permanent delete error:", error);
+        }
+      }
+    });
   };
 
   const toggleEmotion = (emotion: string) => {
@@ -916,7 +945,6 @@ export default function JournalPage() {
                               setNewImages([]);
                               setPreviewImages([]);
                               setRemovedImages([]);
-                              setVoiceFile(null);
 
                               setIsEditMode(false);
                             }}
@@ -1309,6 +1337,37 @@ export default function JournalPage() {
               )}
             </div>
           </div>
+        </div>
+      )}
+      {/* Confirmation Dialog */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <Card className="w-full max-w-md p-6 rounded-3xl shadow-2xl border-none animate-in zoom-in duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-16 h-16 ${confirmDialog.variant === 'destructive' ? 'bg-red-50 text-red-500' : 'bg-primary/10 text-primary'} rounded-full flex items-center justify-center mb-4`}>
+                <Trash2 size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">{confirmDialog.title}</h3>
+              <p className="text-muted-foreground mb-8">{confirmDialog.message}</p>
+              
+              <div className="flex w-full gap-3">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-12 rounded-2xl font-bold border-2"
+                  onClick={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant={confirmDialog.variant === 'destructive' ? 'destructive' : 'default'}
+                  className={`flex-1 h-12 rounded-2xl font-bold ${confirmDialog.variant !== 'destructive' ? 'bg-primary hover:bg-primary/90 text-white' : ''}`}
+                  onClick={confirmDialog.onConfirm}
+                >
+                  {confirmDialog.confirmText || "Confirm"}
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       )}
     </DashboardLayout>
