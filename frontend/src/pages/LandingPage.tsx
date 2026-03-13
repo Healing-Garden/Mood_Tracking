@@ -98,30 +98,30 @@ const LandingPage: React.FC = () => {
             </Link>
 
             {/* Desktop Menu */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden md:flex items-center gap-4">
               <a
                 href="#aboutus"
-                className={`transition font-medium duration-300 ${scrollY > 400
-                  ? 'text-[#122012] hover:text-[#188618]'
-                  : 'text-white hover:text-green-100'
+                className={`px-4 py-2 rounded-full border border-transparent transition-all duration-300 font-medium ${scrollY > 400
+                  ? 'text-[#122012] hover:text-[#188618] hover:bg-green-50/80 hover:backdrop-blur-md hover:border-green-100 hover:shadow-[0_4px_20px_rgba(24,134,24,0.1)]'
+                  : 'text-white hover:bg-white/20 hover:backdrop-blur-md hover:border-white/30 hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)]'
                   }`}
               >
                 About Us
               </a>
               <a
                 href="#features"
-                className={`transition font-medium duration-300 ${scrollY > 400
-                  ? 'text-[#122012] hover:text-[#188618]'
-                  : 'text-white hover:text-green-100'
+                className={`px-4 py-2 rounded-full border border-transparent transition-all duration-300 font-medium ${scrollY > 400
+                  ? 'text-[#122012] hover:text-[#188618] hover:bg-green-50/80 hover:backdrop-blur-md hover:border-green-100 hover:shadow-[0_4px_20px_rgba(24,134,24,0.1)]'
+                  : 'text-white hover:bg-white/20 hover:backdrop-blur-md hover:border-white/30 hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)]'
                   }`}
               >
                 Features
               </a>
               <a
                 href="#how-it-works"
-                className={`transition font-medium duration-300 ${scrollY > 400
-                  ? 'text-[#122012] hover:text-[#188618]'
-                  : 'text-white hover:text-green-100'
+                className={`px-4 py-2 rounded-full border border-transparent transition-all duration-300 font-medium ${scrollY > 400
+                  ? 'text-[#122012] hover:text-[#188618] hover:bg-green-50/80 hover:backdrop-blur-md hover:border-green-100 hover:shadow-[0_4px_20px_rgba(24,134,24,0.1)]'
+                  : 'text-white hover:bg-white/20 hover:backdrop-blur-md hover:border-white/30 hover:shadow-[0_4px_20px_rgba(255,255,255,0.2)]'
                   }`}
               >
                 How It Works
@@ -164,21 +164,27 @@ const LandingPage: React.FC = () => {
             >
               <a
                 href="#aboutus"
-                className={`block px-4 py-3 rounded transition ${scrollY > 400 ? 'text-[#122012] hover:bg-green-50' : 'text-white hover:bg-white/10'
+                className={`block px-4 py-3 border border-transparent rounded-xl transition-all duration-300 ${scrollY > 400 
+                  ? 'text-[#122012] hover:bg-green-50/80 hover:backdrop-blur-md hover:border-green-100 hover:shadow-[0_4px_15px_rgba(24,134,24,0.1)]' 
+                  : 'text-white hover:bg-white/20 hover:backdrop-blur-md hover:border-white/30 hover:shadow-[0_4px_15px_rgba(255,255,255,0.1)]'
                   }`}
               >
                 About Us
               </a>
               <a
                 href="#features"
-                className={`block px-4 py-3 rounded transition ${scrollY > 400 ? 'text-[#122012] hover:bg-green-50' : 'text-white hover:bg-white/10'
+                className={`block px-4 py-3 border border-transparent rounded-xl transition-all duration-300 ${scrollY > 400 
+                  ? 'text-[#122012] hover:bg-green-50/80 hover:backdrop-blur-md hover:border-green-100 hover:shadow-[0_4px_15px_rgba(24,134,24,0.1)]' 
+                  : 'text-white hover:bg-white/20 hover:backdrop-blur-md hover:border-white/30 hover:shadow-[0_4px_15px_rgba(255,255,255,0.1)]'
                   }`}
               >
                 Features
               </a>
               <a
                 href="#how-it-works"
-                className={`block px-4 py-3 rounded transition ${scrollY > 400 ? 'text-[#122012] hover:bg-green-50' : 'text-white hover:bg-white/10'
+                className={`block px-4 py-3 border border-transparent rounded-xl transition-all duration-300 ${scrollY > 400 
+                  ? 'text-[#122012] hover:bg-green-50/80 hover:backdrop-blur-md hover:border-green-100 hover:shadow-[0_4px_15px_rgba(24,134,24,0.1)]' 
+                  : 'text-white hover:bg-white/20 hover:backdrop-blur-md hover:border-white/30 hover:shadow-[0_4px_15px_rgba(255,255,255,0.1)]'
                   }`}
               >
                 How It Works
