@@ -45,7 +45,6 @@ interface HeatmapProps {
 
 export default function TriggerHeatmap({
   defaultPeriod = "week",
-  compact = false,
 }: HeatmapProps) {
   const [period, setPeriod] = useState<HeatmapPeriod>(defaultPeriod)
   const [rows, setRows] = useState<TriggerHeatmapRow[]>([])

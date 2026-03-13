@@ -6,7 +6,7 @@ import { ArrowRight, Leaf, BookOpen, MessageSquare, TrendingUp, Menu, X } from '
 const LandingPage: React.FC = () => {
   const [scrollY, setScrollY] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const sectionRefs = useRef<Array<HTMLElement | null>>([]);
+  const sectionRefs = useRef<Array<HTMLElement | null>>([]); 
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);

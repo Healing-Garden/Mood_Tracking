@@ -5,7 +5,7 @@ import { Input } from '../../../components/ui/Input'
 // import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
-import { Lock, X, ShieldCheck, Key, User, Check, Cake, Ruler, Scale } from 'lucide-react'
+import { Lock, X, ShieldCheck, Key, User, Cake, Ruler, Scale } from 'lucide-react'
 import DashboardLayout from '../../../components/layout/DashboardLayout'
 import { Card } from '../../../components/ui/Card'
 import { useToast } from '../../../hooks/use-toast'
@@ -237,9 +237,9 @@ const PasswordChangeModal: React.FC<{
             <Button type="button" variant="ghost" onClick={onClose} className="px-6 py-2.5 text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors rounded-lg" disabled={isLoading}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading} 
+            <Button
+              type="submit"
+              disabled={isLoading}
               className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center"
             >
               {isLoading ? 'Saving...' : 'Update'}
@@ -337,10 +337,10 @@ const EditProfileModal: React.FC<{
           </div>
 
           <div className="py-6 flex items-center justify-end gap-4">
-            <Button 
-              type="button" 
-              variant="ghost" 
-              onClick={onClose} 
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClose}
               className="px-6 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors"
             >
               Cancel
@@ -494,10 +494,10 @@ const UserProfilePage: React.FC = () => {
         setIsAppLockEnabled(shouldEnable);
         showSuccess(`App Lock has been ${shouldEnable ? 'enabled' : 'disabled'} successfully.`);
       } catch (error) {
-        toast({ 
-          title: 'Error', 
-          description: `Unable to ${shouldEnable ? 'enable' : 'disable'} App Lock`, 
-          variant: 'destructive' 
+        toast({
+          title: 'Error',
+          description: `Unable to ${shouldEnable ? 'enable' : 'disable'} App Lock`,
+          variant: 'destructive'
         });
       }
     } else {
@@ -640,12 +640,12 @@ const UserProfilePage: React.FC = () => {
                         {isAppLockEnabled ? 'Protected' : 'Inactive'}
                       </span>
                       {hasPinSet && (
-                        <Button 
-                          variant="outline" 
-                          className="h-10 rounded-lg font-bold border-2" 
-                          onClick={() => { 
-                            setPinModalMode(isAppLockEnabled ? 'verify_to_disable' : 'verify_to_enable'); 
-                            setIsPinModalOpen(true); 
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-lg font-bold border-2"
+                          onClick={() => {
+                            setPinModalMode(isAppLockEnabled ? 'verify_to_disable' : 'verify_to_enable');
+                            setIsPinModalOpen(true);
                           }}
                         >
                           {isAppLockEnabled ? 'Disable' : 'Enable'}

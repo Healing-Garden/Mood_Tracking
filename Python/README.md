@@ -1,3 +1,12 @@
+---
+title: Mood Tracking Mental Health AI
+emoji: 🧠
+colorFrom: blue
+colorTo: green
+sdk: docker
+pinned: false
+---
+
 # Mood Tracking AI Module
 
 Python module cho xử lý AI/ML trong dự án Mood Tracking.

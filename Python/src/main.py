@@ -38,13 +38,17 @@ async def lifespan(app: FastAPI):
         await vector_store.connect()
         
         # Initialize AI services
-        await embedding_service.initialize()
-        await sentiment_analyzer.initialize()
-        await summarization_service.initialize()
-
-        await cbt_kb.ensure_collection()
-        
-        logger.info("All services initialized successfully")
+        if settings.load_heavy_models:
+            logger.info("Initializing heavy local AI models...")
+            await embedding_service.initialize()
+            await sentiment_analyzer.initialize()
+            await summarization_service.initialize()
+            logger.info("All heavy AI models initialized successfully")
+        else:
+            logger.info("Skipping heavy local AI models (LOAD_HEAVY_MODELS=false). Relying on Cloud AI and light fallbacks.")
+            # Initialize embedding service even in light mode as it's often needed for vector search
+            # but we can make it more light-weight if needed.
+            await embedding_service.initialize()
         
         yield
         
@@ -92,11 +96,16 @@ async def api_key_middleware(request: Request, call_next):
     public_paths = [
         "/",
         "/info",
+        f"{settings.api_prefix}/health",
         f"{settings.api_prefix}/chat/process_message",
+        f"{settings.api_prefix}/summary/daily",
+        f"{settings.api_prefix}/questions/suggest",
+        f"{settings.api_prefix}/actions/suggest",
         "/docs",
         "/redoc",
         "/openapi.json"
     ]
+    
     
     if request.url.path in public_paths:
         return await call_next(request)

@@ -1,7 +1,8 @@
 from typing import List, Dict, Any, Optional
 import logging
-from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-import torch
+# Lazy load transformers and torch
+# from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
+# import torch
 from src.config import settings
 from src.core.llm import call_llm
 
@@ -13,12 +14,21 @@ class SummarizationService:
     def __init__(self):
         self.summarizer = None
         self.tokenizer = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
     
     async def initialize(self):
         """Initialize summarization model"""
         try:
-            logger.info(f"Loading summarization model: {settings.summarization_model}")
+            if not settings.load_heavy_models:
+                logger.info("Skipping BART pipeline loading (LOAD_HEAVY_MODELS=false)")
+                self.summarizer = None
+                return
+
+            from transformers import pipeline
+            import torch
+            
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            logger.info(f"Loading summarization model: {settings.summarization_model} on {self.device}")
             
             self.summarizer = pipeline(
                 "summarization",

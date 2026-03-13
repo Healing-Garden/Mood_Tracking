@@ -23,8 +23,10 @@ services:
       - ./data:/app/data
       - ./logs:/app/logs
     depends_on:
-      - redis
-      - chromadb
+      redis:
+        condition: service_started
+      chromadb:
+        condition: service_started
     restart: unless-stopped
     networks:
       - mental-health-net
@@ -44,7 +46,7 @@ services:
 
   # ChromaDB (Vector Database)
   chromadb:
-    image: chromadb/chroma:latest
+    image: chromadb/chroma:0.4.24
     container_name: mental-health-chromadb
     ports:
       - "8001:8000"

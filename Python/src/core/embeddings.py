@@ -1,8 +1,10 @@
 import numpy as np
 from typing import List, Dict, Any, Optional
 import logging
-from sentence_transformers import SentenceTransformer
-import torch
+import logging
+# Lazy load sentence-transformers and torch
+# from sentence_transformers import SentenceTransformer
+# import torch
 from src.config import settings
 from src.database.redis_client import redis_client
 
@@ -12,13 +14,17 @@ class EmbeddingService:
     """Service for text embeddings using Sentence Transformers"""
     
     def __init__(self):
-        self.model: Optional[SentenceTransformer] = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.model = None
+        self.device = "cpu"
         
     async def initialize(self):
         """Initialize embedding model"""
         try:
-            logger.info(f"Loading embedding model: {settings.embedding_model}")
+            from sentence_transformers import SentenceTransformer
+            import torch
+            
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            logger.info(f"Loading embedding model: {settings.embedding_model} on {self.device}")
             
             self.model = SentenceTransformer(
                 settings.embedding_model,

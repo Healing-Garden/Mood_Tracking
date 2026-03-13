@@ -1,7 +1,8 @@
 from typing import Dict, Any, List, Tuple
 import logging
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-import torch
+# Lazy load transformers and torch
+# from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+# import torch
 from src.config import settings
 
 logger = logging.getLogger(__name__)
@@ -12,12 +13,22 @@ class SentimentAnalyzer:
     def __init__(self):
         self.sentiment_pipeline = None
         self.emotion_pipeline = None
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = "cpu"
     
     async def initialize(self):
         """Initialize sentiment and emotion models"""
         try:
-            logger.info("Loading sentiment analysis models...")
+            if not settings.load_heavy_models:
+                logger.info("Skipping local sentiment/emotion pipelines (LOAD_HEAVY_MODELS=false)")
+                self.sentiment_pipeline = None
+                self.emotion_pipeline = None
+                return
+
+            from transformers import pipeline
+            import torch
+            
+            self.device = "cuda" if torch.cuda.is_available() else "cpu"
+            logger.info(f"Loading sentiment analysis models on {self.device}...")
             
             # Sentiment analysis (positive/negative/neutral)
             self.sentiment_pipeline = pipeline(

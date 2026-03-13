@@ -13,9 +13,9 @@ chromadb==0.4.18
 # faiss-cpu==1.7.4
 
 # ML/NLP Models
-torch==2.1.2+cpu
-transformers==4.37.2
-sentence-transformers==2.6.1
+torch
+transformers
+sentence-transformers
 openai==1.6.1
 langchain==0.0.340
 langchain-openai==0.0.2

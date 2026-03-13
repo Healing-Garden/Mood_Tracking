@@ -30,15 +30,41 @@ export const useChat = (userId: string, moodContext?: MoodContext): UseChatRetur
     if (!userId) return;
     if (isInitializedRef.current) return;
     
-    const socketUrl = import.meta.env.VITE_SOCKET_URL || 'http://localhost:8080';
+    let socketUrl = import.meta.env.VITE_SOCKET_URL;
+    const apiUrl = import.meta.env.VITE_API_URL;
+
+    // Robust derivation logic
+    if (!socketUrl && apiUrl) {
+      try {
+        const urlObj = new URL(apiUrl);
+        // If apiUrl is like https://domain.com/api, origin is https://domain.com
+        socketUrl = urlObj.origin;
+      } catch (e) {
+        socketUrl = 'http://localhost:8080';
+      }
+    } else if (!socketUrl) {
+      socketUrl = 'http://localhost:8080';
+    }
+
+    // Aggressive sanitization: Ensure NO path is present to avoid "Invalid namespace" errors
+    try {
+      const sanitizedUrl = new URL(socketUrl);
+      socketUrl = sanitizedUrl.origin;
+    } catch (e) {
+      console.error('Invalid VITE_SOCKET_URL format:', socketUrl);
+    }
+
+    console.log('[Socket.io] Connecting to:', socketUrl);
+    
     const socket = io(socketUrl, {
+      path: '/socket.io',
       withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
       reconnectionDelay: 2000,
-      timeout: 10000,
-      forceNew: false 
+      timeout: 20000,
+      forceNew: true 
     });
     socketRef.current = socket;
     isInitializedRef.current = true;

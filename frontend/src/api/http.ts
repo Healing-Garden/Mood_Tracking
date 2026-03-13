@@ -7,8 +7,8 @@ interface FailedQueueItem {
 }
 
 const http = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://moodtracking-production.up.railway.app/api",
-  timeout: 10000,
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080/api",
+  timeout: 60000,
   withCredentials: true,
 });
 
