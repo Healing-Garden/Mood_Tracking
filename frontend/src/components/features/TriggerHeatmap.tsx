@@ -25,9 +25,10 @@ function getHeatColor(
 
 interface HeatmapProps {
   defaultPeriod?: HeatmapPeriod
+  compact?: boolean
 }
 
-export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps) {
+export default function TriggerHeatmap({ defaultPeriod = 'week', compact = false }: HeatmapProps) {
   const [period, setPeriod] = useState<HeatmapPeriod>(defaultPeriod)
   const [rows, setRows] = useState<TriggerHeatmapRow[]>([])
 
@@ -86,49 +87,53 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
   ]
 
   return (
-    <Card id="trigger-heatmap-chart" className="border-border shadow-md">
-      <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card id="trigger-heatmap-chart" className={`border-border shadow-md ${compact ? 'h-full' : ''}`}>
+      <CardHeader className={compact ? 'pb-3' : ''}>
+        <div className={`flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between ${compact ? 'gap-2' : ''}`}>
           <div>
-            <CardTitle className="text-primary flex items-center gap-2">
-              <Flame size={20} />
+            <CardTitle className={`text-primary flex items-center gap-2 ${compact ? 'text-sm' : ''}`}>
+              <Flame size={compact ? 16 : 20} />
               Trigger Heatmap
             </CardTitle>
-            <CardDescription className="flex items-center gap-1">
-              <Info size={14} />
-              Emotional frequency by trigger and mood quality.
-            </CardDescription>
+            {!compact && (
+              <CardDescription className="flex items-center gap-1">
+                <Info size={14} />
+                Emotional frequency by trigger and mood quality.
+              </CardDescription>
+            )}
           </div>
-          <div className="flex flex-col items-end gap-2">
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-              <span>Rare</span>
-              <div className="flex gap-1">
-                <span className="h-3 w-3 rounded-md bg-green-50" />
-                <span className="h-3 w-3 rounded-md bg-green-200" />
-                <span className="h-3 w-3 rounded-md bg-green-400" />
-                <span className="h-3 w-3 rounded-md bg-green-600" />
+          {!compact && (
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Rare</span>
+                <div className="flex gap-1">
+                  <span className="h-3 w-3 rounded-md bg-green-50" />
+                  <span className="h-3 w-3 rounded-md bg-green-200" />
+                  <span className="h-3 w-3 rounded-md bg-green-400" />
+                  <span className="h-3 w-3 rounded-md bg-green-600" />
+                </div>
+                <span>Frequent</span>
               </div>
-              <span>Frequent</span>
+              <div className="flex gap-2">
+                {(['week', 'month', 'year'] as HeatmapPeriod[]).map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setPeriod(p)}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${period === p
+                      ? 'bg-primary text-white'
+                      : 'bg-muted/60 text-muted-foreground hover:bg-muted'
+                      }`}
+                  >
+                    {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="flex gap-2">
-              {(['week', 'month', 'year'] as HeatmapPeriod[]).map((p) => (
-                <button
-                  key={p}
-                  type="button"
-                  onClick={() => setPeriod(p)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-all ${period === p
-                    ? 'bg-primary text-white'
-                    : 'bg-muted/60 text-muted-foreground hover:bg-muted'
-                    }`}
-                >
-                  {p === 'week' ? '7 days' : p === 'month' ? '30 days' : '1 year'}
-                </button>
-              ))}
-            </div>
-          </div>
+          )}
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className={compact ? 'p-2' : ''}>
         {loading && (
           <div className="flex h-64 items-center justify-center text-muted-foreground">
             Loading…
@@ -145,11 +150,13 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
           </div>
         )}
         {!loading && !error && hasData && (
-          <div className="overflow-x-auto">
+          <div className={compact ? "overflow-hidden" : "overflow-x-auto"}>
             <div
-              className="grid gap-2"
+              className={`grid ${compact ? 'gap-1' : 'gap-2'}`}
               style={{
-                gridTemplateColumns: `96px repeat(${triggers.length}, minmax(48px, 1fr))`,
+                gridTemplateColumns: compact 
+                  ? `60px repeat(${triggers.length}, minmax(32px, 1fr))`
+                  : `96px repeat(${triggers.length}, minmax(48px, 1fr))`,
               }}
             >
               {/* Header: Trigger */}
@@ -157,7 +164,7 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
               {triggers.map((t) => (
                 <div
                   key={t}
-                  className="text-xs text-muted-foreground text-center truncate"
+                  className={`${compact ? 'text-[10px]' : 'text-xs'} text-muted-foreground text-center truncate`}
                   title={t}
                 >
                   {t}
@@ -168,7 +175,7 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
               {moodRows.map((row) => (
                 <div key={row.label} className="contents">
                   {/* Mood label */}
-                  <div className="flex items-center text-sm font-medium">
+                  <div className={`flex items-center ${compact ? 'text-[11px] font-medium' : 'text-sm font-medium'}`}>
                     {row.label}
                   </div>
 
@@ -176,21 +183,21 @@ export default function TriggerHeatmap({ defaultPeriod = 'week' }: HeatmapProps)
                   {row.values.map((value, idx) => (
                     <div
                       key={idx}
-                      className="
+                      className={`
                         aspect-square
                         w-full
                         rounded-full
                         flex items-center justify-center
-                        text-[11px] font-semibold
+                        ${compact ? 'text-[8px]' : 'text-[11px]'} font-semibold
                         shadow-sm
-                      "
+                      `}
                       style={{
                         backgroundColor: getHeatColor(value, row.max, row.kind),
                         color: value > row.max / 2 ? 'white' : 'inherit',
                       }}
                       title={`${row.label} • ${triggers[idx]}: ${value}`}
                     >
-                      {value || ''}
+                      {compact && value > 0 ? '●' : value || ''}
                     </div>
                   ))}
                 </div>

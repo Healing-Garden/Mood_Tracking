@@ -4,7 +4,7 @@ import { dailyCheckInApi, type MoodHistoryItem } from '../../api/dailyCheckInApi
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
 
 const MOOD_COLORS = {
-    low: 'bg-red-200 border-red-300 text-red-700',
+    negative: 'bg-red-200 border-red-300 text-red-700',
     neutral: 'bg-gray-200 border-gray-300 text-gray-700',
     positive: 'bg-green-200 border-green-300 text-green-700',
     none: 'bg-muted/30 border-dashed border-border text-muted-foreground'
@@ -188,7 +188,7 @@ export default function MoodCalendar() {
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded bg-red-200 border border-red-300" />
-                        <span>Low</span>
+                        <span>Negative</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded bg-muted/30 border border-dashed border-border" />

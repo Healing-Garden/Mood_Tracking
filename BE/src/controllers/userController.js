@@ -13,7 +13,7 @@ const HealingPodcast = require("../models/HealingPodcast");
 
 // Helper to derive theme from mood (1–5)
 const getThemeByMood = (mood) => {
-  if (mood <= 2) return "low";
+  if (mood <= 2) return "negative";
   if (mood === 3) return "neutral";
   return "positive";
 };
@@ -157,7 +157,7 @@ module.exports = {
       const today = new Date().toISOString().split("T")[0];
       const theme = getThemeByMood(Number(mood));
 
-      const allowedTriggers = ["Family", "Work", "Health", "Relationships", "Finance", "Sleep", "Social", "Self-care", "Other"];
+      const allowedTriggers = ["Family", "Work", "Health", "Relationships", "Friends", "Study", "Finance", "Sleep", "Social", "Self-care", "Other"];
       const sanitizedTriggers = Array.isArray(triggers)
         ? triggers.filter((t) => allowedTriggers.includes(String(t)))
         : [];
@@ -287,9 +287,9 @@ module.exports = {
         .select("triggers theme")
         .lean();
 
-      const triggerOrder = ["Family", "Work", "Health", "Relationships", "Finance", "Sleep", "Social", "Self-care", "Other"];
+      const triggerOrder = ["Family", "Work", "Health", "Relationships", "Friends", "Study", "Finance", "Sleep", "Social", "Self-care", "Other"];
       const mapTheme = (theme) => {
-        if (theme === "low") return "negative";
+        if (theme === "negative") return "negative";
         if (theme === "neutral") return "neutral";
         return "positive";
       };

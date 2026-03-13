@@ -162,8 +162,8 @@ const ReportTemplate = React.forwardRef<HTMLDivElement, ReportTemplateProps>((pr
                     <h3 className="text-sm font-bold text-slate-800 border-l-4 border-primary pl-3 uppercase tracking-tight">Emotional Trigger Patterns</h3>
                     <div id="pdf-heatmap" className="bg-slate-50 rounded-xl border border-slate-200 min-h-[380px] p-4 flex items-center justify-center overflow-hidden font-sans">
                         {isPreview && exportConfig ? (
-                            <div className="w-full h-full">
-                                <TriggerHeatmap defaultPeriod={exportConfig.heatmapRange} />
+                            <div className="w-full h-full overflow-hidden flex items-center justify-center">
+                                <TriggerHeatmap defaultPeriod={exportConfig.heatmapRange} compact={true} />
                             </div>
                         ) : heatmapImg ? (
                             <img src={heatmapImg} alt="Heatmap" className="w-full h-full object-contain" />
