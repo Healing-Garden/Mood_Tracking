@@ -643,12 +643,6 @@ const UserProfilePage: React.FC = () => {
                         {isAppLockEnabled ? 'Protected' : 'Inactive'}
                       </span>
                       {hasPinSet && (
-<<<<<<< HEAD
-                        <Button
-                          variant="outline"
-                          className="h-10 rounded-lg font-bold border-2"
-                          onClick={() => { setPinModalMode('verify_to_disable'); setIsPinModalOpen(true); }}
-=======
                         <Button 
                           variant="outline" 
                           className="h-10 rounded-lg font-bold border-2" 
@@ -656,7 +650,6 @@ const UserProfilePage: React.FC = () => {
                             setPinModalMode(isAppLockEnabled ? 'verify_to_disable' : 'verify_to_enable'); 
                             setIsPinModalOpen(true); 
                           }}
->>>>>>> 7d44ebb8cf90133543137126e5fb7599ba28d3bd
                         >
                           {isAppLockEnabled ? 'Disable' : 'Enable'}
                         </Button>
