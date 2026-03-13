@@ -209,6 +209,18 @@
   }
 }
 
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
 @layer utilities {
   .animate-in {
     opacity: 1 !important;
@@ -357,5 +369,14 @@
     filter: blur(8px) !important;
     opacity: 1 !important;
     clip-path: none !important;
+  }
+
+  .hide-password-toggle::-ms-reveal,
+  .hide-password-toggle::-ms-clear {
+    display: none;
+  }
+  
+  .input-password-mask {
+    -webkit-text-security: disc !important;
   }
 }

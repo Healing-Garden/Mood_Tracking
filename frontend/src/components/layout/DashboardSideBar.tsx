@@ -79,11 +79,7 @@ export default function DashboardSidebar({
       icon: <BarChart3 size={20} />,
       href: "/admin/analytics",
     },
-    {
-      label: "Reports",
-      icon: <TrendingUp size={20} />,
-      href: "/admin/reports",
-    },
+    { label: "Feedback", icon: <MessageSquare size={20} />, href: "/admin/feedback" },
     { label: "Healing Content", icon: <BookOpen size={20} />, href: "/admin/healing-content" },
     { label: "Notifications", icon: <Bell size={20} />, href: "/admin/notifications" },
   ];
@@ -187,7 +183,7 @@ export default function DashboardSidebar({
         >
           <div className={`flex items-center ${collapsed ? '' : 'gap-3'} whitespace-nowrap flex-nowrap`}>
             <div className={`flex-shrink-0 ${collapsed ? 'w-auto' : 'w-10'} flex justify-center`}>
-               <LogOut size={20} />
+              <LogOut size={20} />
             </div>
             <span className={`transition-all duration-300 ease-in-out ${collapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100 w-auto'}`}>
               Logout

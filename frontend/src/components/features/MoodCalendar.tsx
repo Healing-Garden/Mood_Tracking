@@ -4,10 +4,18 @@ import { dailyCheckInApi, type MoodHistoryItem } from '../../api/dailyCheckInApi
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
 
 const MOOD_COLORS = {
-    low: 'bg-red-200 border-red-300 text-red-700',
-    neutral: 'bg-gray-200 border-gray-300 text-gray-700',
-    positive: 'bg-green-200 border-green-300 text-green-700',
+    negative: 'bg-gradient-to-br from-red-100 to-red-200 border-red-300 text-red-700',
+    neutral: 'bg-gradient-to-br from-orange-100 to-orange-200 border-orange-300 text-orange-700',
+    positive: 'bg-gradient-to-br from-green-100 to-green-200 border-green-300 text-green-700',
     none: 'bg-muted/30 border-dashed border-border text-muted-foreground'
+}
+
+const MOOD_EMOJI: Record<number, string> = {
+    1: "😢",
+    2: "😔",
+    3: "😐",
+    4: "🙂",
+    5: "😄",
 }
 
 export default function MoodCalendar() {
@@ -135,7 +143,7 @@ export default function MoodCalendar() {
                     </div>
                 )}
                 {!loading && !error && (
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-2 transition-all duration-200">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                             <div key={d} className="text-center text-xs font-bold text-muted-foreground py-2 uppercase tracking-wider">
                                 {d}
@@ -145,32 +153,63 @@ export default function MoodCalendar() {
                             <div key={`blank-${i}`} className="aspect-square w-full" />
                         ))}
                         {days.map(day => {
+                            const today = new Date()
+                            const isToday =
+                                today.getFullYear() === year &&
+                                today.getMonth() + 1 === month &&
+                                today.getDate() === day
                             const moodItem = getMoodForDay(day)
                             const colorClass = moodItem ? MOOD_COLORS[moodItem.theme] : MOOD_COLORS.none
 
                             return (
                                 <div
                                     key={day}
+                                    title={
+                                        moodItem
+                                            ? `${moodItem.date} • Mood ${moodItem.mood}${moodItem.note ? `\nNote: ${moodItem.note}` : ''}`
+                                            : `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} • No check-in`
+                                    }
                                     className={`
-                                        aspect-square
+                                        min-h-[125px]
                                         w-full
-                                        rounded-xl
+                                        rounded-2xl
                                         border
-                                        flex flex-col items-center justify-center
-                                        transition-all
-                                        hover:scale-105
+                                        flex flex-col items-center justify-start
+                                        p-2.5
+                                        transition-all duration-300 ease-out
+                                        hover:scale-[1.02] hover:shadow-xl
                                         cursor-default
                                         group
                                         relative
                                         ${colorClass}
+                                        ${isToday ? "ring-2 ring-primary bg-white/40 shadow-inner" : ""}
                                     `}
                                 >
-                                    <span className="text-xs font-medium opacity-60">{day}</span>
+                                    <div className="w-full flex justify-between items-start mb-1.5">
+                                        <span className="text-sm font-black opacity-30 uppercase tracking-tighter">
+                                            {day}
+                                        </span>
+                                        {moodItem && (
+                                            <span className="text-2xl leading-none filter drop-shadow-sm">
+                                                {MOOD_EMOJI[moodItem.mood]}
+                                            </span>
+                                        )}
+                                    </div>
+                                    
+                                    {moodItem?.note ? (
+                                        <div className="w-full mt-1.5 overflow-hidden">
+                                            <p className="text-[11px] font-bold leading-[1.3] text-slate-700/80 line-clamp-4 break-words italic selection:bg-primary/20">
+                                                {moodItem.note}
+                                            </p>
+                                        </div>
+                                    ) : moodItem ? (
+                                        <div className="w-full mt-3 flex justify-center opacity-10">
+                                            <div className="w-10 h-0.5 bg-slate-400 rounded-full" />
+                                        </div>
+                                    ) : null}
+
                                     {moodItem && (
-                                        <span className="text-lg font-bold">{moodItem.mood}</span>
-                                    )}
-                                    {moodItem && (
-                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-white shadow-sm border border-border group-hover:scale-125 transition-transform" />
+                                        <div className="absolute bottom-2 right-2 w-2 h-2 rounded-full bg-white/80 shadow-inner group-hover:scale-125 transition-transform" />
                                     )}
                                 </div>
                             )
@@ -188,7 +227,7 @@ export default function MoodCalendar() {
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded bg-red-200 border border-red-300" />
-                        <span>Low</span>
+                        <span>Negative</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                         <div className="w-3 h-3 rounded bg-muted/30 border border-dashed border-border" />

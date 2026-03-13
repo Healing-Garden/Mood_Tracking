@@ -1,9 +1,9 @@
 import logging
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from src.core.gemini_client import gemini_client
 from src.config import settings
 from src.core.sentiment import sentiment_analyzer 
+from src.core.llm import call_llm
 from collections import Counter
 
 logger = logging.getLogger(__name__)
@@ -74,14 +74,19 @@ class DailySummaryGenerator:
             "Do not judge the user. Focus on growth, reflection, and self-awareness."
         )
 
-        # 4. Gọi Gemini (có fallback)
+        # 4. Gọi OpenAI (có fallback)
         try:
-            ai_text = await gemini_client.generate_response(prompt, system_instruction=system_instruction)
+            messages = [
+                {"role": "system", "content": system_instruction},
+                {"role": "user", "content": prompt}
+            ]
+            ai_result = await call_llm(messages, temperature=0.7)
+            ai_text = ai_result.get("text")
             if not ai_text:
-                raise RuntimeError("Gemini returned empty response")
+                raise RuntimeError("AI returned empty response")
             summary = ai_text.strip()
         except Exception as e:
-            logger.error(f"Gemini generation failed: {e}, using rule-based fallback")
+            logger.error(f"AI generation failed: {e}, using rule-based fallback")
             summary = self._rule_based_fallback(len(entries), len(moods), avg_mood, dominant_mood)
 
         # 5. Hậu xử lý: đảm bảo độ dài và loại bỏ khoảng trắng thừa

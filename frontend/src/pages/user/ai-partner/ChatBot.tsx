@@ -7,8 +7,7 @@ import { useChat } from '../../../hooks/useChat';
 import ChatSidebar from '../../../components/features/ChatSidebar';
 import DashboardLayout from '../../../components/layout/DashboardLayout';
 
-// Function to get mood context (can call API or from store)
-const getMoodContext = () => { 
+const getMoodContext = () => {
   return {
     recentMood: 'anxious',
     energyLevel: 3,
@@ -21,20 +20,18 @@ export default function ChatBot() {
   const [userInput, setUserInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Only connect to chat when user is logged in
   const moodContext = useMemo(() => getMoodContext(), []);
-  const { 
-    messages, 
-    sendMessage, 
-    isConnected, 
-    isTyping, 
+  const {
+    messages,
+    sendMessage,
+    isConnected,
+    isTyping,
     sessionId,
     loadSession,
     newSession,
     resetSession
   } = useChat(user?.id || '', moodContext);
 
-  // Scroll to bottom when new message arrives
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
@@ -43,6 +40,10 @@ export default function ChatBot() {
     if (!userInput.trim() || !isConnected) return;
     sendMessage(userInput);
     setUserInput('');
+    // Ensure we scroll to bottom when sending
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
   };
 
   const handleNewSession = () => {
@@ -54,7 +55,6 @@ export default function ChatBot() {
   };
 
   const handleSessionDelete = (deletedSessionId: string) => {
-    // If the user deleted the currently-open session, reset UI but do NOT auto-create a new session
     if (deletedSessionId === sessionId) {
       resetSession();
     }
@@ -87,10 +87,11 @@ export default function ChatBot() {
   }
 
   return (
-    <DashboardLayout 
+    <DashboardLayout
       title="AI Thought Partner"
+      noScroll={true}
     >
-      <div className="h-full flex overflow-hidden">
+      <div className="h-[calc(100vh-80px)] flex overflow-hidden bg-white">
         {/* Chat History Sidebar */}
         <ChatSidebar
           userId={user.id}
@@ -126,11 +127,10 @@ export default function ChatBot() {
                 className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${
-                    msg.sender === 'bot'
+                  className={`max-w-[85%] md:max-w-2xl px-4 py-3 rounded-2xl shadow-sm ${msg.sender === 'bot'
                       ? 'bg-primary text-white'
                       : 'bg-muted/30 text-foreground border border-border/50'
-                  }`}
+                    }`}
                 >
                   {msg.sender === 'bot' && (
                     <p className="text-[10px] font-bold uppercase mb-1.5 opacity-70 tracking-widest flex items-center gap-1.5">
@@ -159,23 +159,22 @@ export default function ChatBot() {
 
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-primary/10 px-4 py-3 rounded-2xl flex gap-1.5 items-center">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
-                  <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                <div className="bg-muted px-4 py-3 rounded-2xl flex gap-1.5 items-center">
+                  <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" />
+                  <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                  <div className="w-2 h-2 bg-primary/40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
                 </div>
               </div>
             )}
 
-            <div ref={messagesEndRef} />
+            <div ref={messagesEndRef} className="h-4" />
           </div>
 
           {/* Input Area */}
-          <div className="border-t border-border p-4 md:p-6 bg-white/80 backdrop-blur-md">
-            <div className="flex gap-3 max-w-4xl mx-auto items-end">
+            <div className="sticky bottom-7 w-full max-w-4xl mx-auto px-6 flex gap-3 items-end bg-muted/50 p-2 rounded-3xl border border-border/50 transition-all focus-within:border-primary/30 focus-within:bg-white focus-within:shadow-sm">
               <div className="flex-1 relative">
                 <Input
-                  placeholder="Type a message..."
+                  placeholder="Type your message here..."
                   value={userInput}
                   onChange={(e) => setUserInput(e.target.value)}
                   onKeyDown={(e) => {
@@ -184,31 +183,25 @@ export default function ChatBot() {
                       handleSendMessage();
                     }
                   }}
-                  className="w-full pr-12 rounded-2xl border-border focus-visible:ring-primary shadow-sm"
+                  className="w-full bg-transparent border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-2 min-h-[44px] max-h-32"
                   disabled={isTyping || !isConnected}
                 />
-                {!userInput.trim() && isConnected && (
-                  <div className="absolute right-4 bottom-1/2 translate-y-1/2 pointer-events-none">
-                    <span className="text-xs text-muted-foreground opacity-50">Enter to send</span>
-                  </div>
-                )}
               </div>
               <Button
                 onClick={handleSendMessage}
                 disabled={isTyping || !userInput.trim() || !isConnected}
                 size="icon"
-                className="rounded-xl bg-primary hover:bg-primary/90 h-10 w-10 shrink-0 shadow-md transition-all active:scale-95"
+                className="rounded-xl bg-primary hover:bg-primary/90 h-10 w-10 shrink-0 shadow-sm transition-all active:scale-95 disabled:opacity-50"
               >
                 <Send size={18} />
               </Button>
             </div>
             {!isConnected && (
-              <div className="flex items-center justify-center gap-2 mt-3 text-xs text-muted-foreground">
-                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full animate-pulse" />
-                Connecting to secure session...
+              <div className="flex items-center justify-center gap-2 mt-3 text-xs text-muted-foreground bg-orange-50 py-1.5 rounded-lg border border-orange-100/50 max-w-xs mx-auto animate-pulse">
+                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full" />
+                Establishing secure connection...
               </div>
             )}
-          </div>
         </main>
       </div>
     </DashboardLayout>

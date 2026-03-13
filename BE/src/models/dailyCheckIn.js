@@ -31,10 +31,10 @@ const dailyCheckInSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // Derived from mood: low / neutral / positive
+    // Derived from mood: negative / neutral / positive
     theme: {
       type: String,
-      enum: ["low", "neutral", "positive"],
+      enum: ["negative", "neutral", "positive"],
       required: true,
     },
     // Optional: what triggered this mood (for heatmap analytics)

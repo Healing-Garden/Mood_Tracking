@@ -13,13 +13,13 @@ const FlowerMessenger: React.FC = () => {
   const [userInput, setUserInput] = useState('');
   const [hasGreeted, setHasGreeted] = useState(false);
 
-  // State for smart positioning
-  const [chatOffset, setChatOffset] = useState({ x: 0, y: -320 }); // Closer to bot (was -490)
+  const [chatOffset, setChatOffset] = useState({ x: 0, y: -320 }); 
   const [origin, setOrigin] = useState('bottom');
 
   const { user } = useAuth();
   const entityRef = useRef<HTMLDivElement>(null);
   const dragConstraintsRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { lastMood, currentCheckIn } = useDailyCheckInStore();
 
@@ -36,7 +36,7 @@ const FlowerMessenger: React.FC = () => {
       if (!user?.id) return;
       try {
         const res = await aiApi.checkActionEligibility(user.id) as any;
-        const eligible = res?.eligible ?? res?.data?.eligible;
+        const eligible = res?.bot_eligible ?? res?.data?.bot_eligible ?? res?.eligible ?? res?.data?.eligible;
         setIsEligibleByJournal(!!eligible);
       } catch (err) {
         console.error('Chatbot eligibility check failed:', err);
@@ -44,7 +44,6 @@ const FlowerMessenger: React.FC = () => {
     };
     
     checkJournalEligibility();
-    // Check again if lastMood changes as it might indicate new activity
   }, [user, lastMood]);
 
   const moodContext = useMemo(() => ({
@@ -55,13 +54,17 @@ const FlowerMessenger: React.FC = () => {
 
   const { messages, sendMessage, isTyping, isConnected } = useChat(user?.id || '', moodContext);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping, isChatOpen]);
+
   // Intelligent position calculation logic to avoid hiding the chat frame
   const calculateSmartPosition = () => {
     if (!entityRef.current) return;
 
     const rect = entityRef.current.getBoundingClientRect();
     const screenWidth = window.innerWidth;
-    const chatWidth = 384; // w-96 = 384px
+    const chatWidth = 384; 
     const chatHeight = 480;
 
     let newX = 0;
@@ -141,7 +144,7 @@ const FlowerMessenger: React.FC = () => {
         onDrag={isChatOpen ? calculateSmartPosition : undefined}
         onDragEnd={() => isChatOpen && calculateSmartPosition()}
         initial={{ y: 0, x: 0 }}
-        className="fixed bottom-24 right-24 z-50 flex items-center justify-center pointer-events-auto select-none touch-none"
+        className="fixed bottom-8 right-8 z-50 flex items-center justify-center pointer-events-auto select-none touch-none"
         ref={entityRef}
       >
         <div className="relative flex flex-col items-center">
@@ -163,12 +166,12 @@ const FlowerMessenger: React.FC = () => {
                 }}
               >
                 {/* Chat Header */}
-                <div className="bg-gradient-to-r from-primary to-green-500 p-5 text-white flex justify-between items-center shrink-0">
+                <div className="bg-gradient-to-r from-primary to-green-500 p-3 text-white flex justify-between items-center shrink-0">
                   <div className="flex items-center gap-3">
                     <Sparkles size={18} className="text-yellow-200" />
                     <div>
-                      <h3 className="font-bold text-sm">Daisy Assistant</h3>
-                      <p className="text-[10px] opacity-80 uppercase font-bold tracking-widest">Always with you</p>
+                      <h3 className="font-bold text-m">Daisy Assistant</h3>
+                      <p className="text-[12px] opacity-80 font-bold tracking-widest">Always with you</p>
                     </div>
                   </div>
                   <button
@@ -195,7 +198,21 @@ const FlowerMessenger: React.FC = () => {
                           ? 'bg-primary text-white rounded-tr-none'
                           : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none font-medium'
                           }`}>
-                          {msg.text}
+                          <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                          {msg.exercise && (
+                            <div className="mt-2 p-2.5 bg-green-50 rounded-xl border border-green-100/50">
+                              <p className="font-bold text-[11px] mb-1 flex items-center gap-1.5 text-green-700 uppercase tracking-widest">
+                                💡 Suggested Exercise
+                              </p>
+                              <p className="text-xs text-green-800/90 leading-relaxed font-normal">{msg.exercise}</p>
+                            </div>
+                          )}
+                          {msg.isCrisis && (
+                            <div className="mt-2 p-2.5 bg-red-50 rounded-xl border border-red-100/50">
+                              <p className="font-bold text-[11px] text-red-700 mb-0.5 uppercase tracking-widest">Support is available</p>
+                              <p className="text-xs text-red-600 font-normal">If you're in crisis, please contact Emergency: 115 (VN) or 911 (US)</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -209,10 +226,11 @@ const FlowerMessenger: React.FC = () => {
                       </div>
                     </div>
                   )}
+                  <div ref={messagesEndRef} className="h-1" />
                 </div>
 
                 {/* Input Area */}
-                <div className="p-5 bg-white border-t border-gray-100 shrink-0">
+                <div className="p-3 bg-white border-t border-gray-100 shrink-0">
                   <div className="flex gap-2 bg-gray-100 rounded-full px-5 py-3 items-center"
                     onClick={(e) => e.stopPropagation()}>
                     <input
@@ -222,7 +240,7 @@ const FlowerMessenger: React.FC = () => {
                       onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') handleSendMessage(e); }}
                       onPointerDown={(e) => e.stopPropagation()}
                       placeholder="Message Daisy..."
-                      className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0"
+                      className="flex-1 bg-transparent border-none p-0 text-sm focus:outline-none focus:ring-0 outline-none"
                     />
                     <button
                       type="button"
@@ -248,7 +266,7 @@ const FlowerMessenger: React.FC = () => {
             {!isChatOpen && hasGreeted && (
               <motion.div
                 initial={{ opacity: 0, scale: 0, y: 0 }}
-                animate={{ opacity: 1, scale: 1, y: -70 }} // Closer to bot (was -110)
+                animate={{ opacity: 1, scale: 1, y: -70 }} 
                 className="absolute bg-white px-6 py-3 rounded-full shadow-2xl border border-primary/20 text-xs font-bold text-primary whitespace-nowrap flex items-center gap-2 z-20 pointer-events-none"
               >
                 <Sparkles size={16} className="text-yellow-400" />

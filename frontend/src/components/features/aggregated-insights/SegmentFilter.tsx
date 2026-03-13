@@ -1,4 +1,5 @@
 import React from 'react';
+import { Users } from 'lucide-react';
 
 interface SegmentFilterProps {
   ageGroup?: string;
@@ -17,19 +18,22 @@ const ageGroups = [
 
 export const SegmentFilter: React.FC<SegmentFilterProps> = ({ ageGroup, onChange }) => {
   return (
-    <div className="flex items-center space-x-4">
-      <label className="text-sm font-medium text-gray-700">Age group:</label>
-      <select
-        value={ageGroup || ''}
-        onChange={(e) => onChange(e.target.value || undefined)}
-        className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-      >
-        {ageGroups.map((group) => (
-          <option key={group.value} value={group.value}>
-            {group.label}
-          </option>
-        ))}
-      </select>
+    <div className="flex items-center space-x-3">
+      <span className="text-sm font-bold text-slate-500 tracking-wider">Age group:</span>
+      <div className="flex items-center gap-2 px-3 py-2 bg-secondary/10 rounded-lg border border-border transition-all focus-within:ring-2 focus-within:ring-primary/20">
+        <Users size={16} className="text-primary" />
+        <select
+          value={ageGroup || ''}
+          onChange={(e) => onChange(e.target.value || undefined)}
+          className="bg-transparent text-sm font-semibold text-slate-700 outline-none cursor-pointer"
+        >
+          {ageGroups.map((group) => (
+            <option key={group.value} value={group.value}>
+              {group.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };

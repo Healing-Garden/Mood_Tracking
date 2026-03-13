@@ -29,41 +29,58 @@ class CBTKnowledgeBase:
     async def _seed_initial_data(self):
         logger.info("Seeding initial CBT data...")
         
-        # Danh sách kỹ thuật CBT 
+        # Danh sách kỹ thuật CBT (Bilingual)
         documents = [
+            # Exploratory (English & Vietnamese)
             "What's been going on in your mind lately?",
+            "Dạo này trong lòng bạn đang có chuyện gì thế?",
             "How does that feeling show up in your body?",
+            "Cảm giác đó biểu hiện trong cơ thể bạn như thế nào?",
             "Can you tell me more about what triggered this?",
+            "Bạn có thể chia sẻ thêm về điều gì đã dẫn đến cảm giác này không?",
             "What thoughts are running through your head right now?",
+            "Những suy nghĩ nào đang chạy qua đầu bạn lúc này?",
             "If this feeling had a shape or color, what would it be?",
-            "Cognitive Restructuring: Identify automatic negative thoughts and challenge them with evidence. Ask yourself: 'What evidence supports this thought? What contradicts it?'",
-            "Behavioral Activation: Schedule one small pleasant activity today. Even a 5-minute walk can improve your mood.",
-            "Mindful Breathing: Inhale for 4 counts, hold for 4, exhale for 4. Repeat 5 times. Focus on the sensation of breathing.",
-            "Thought Record: Write down: Situation → Automatic Thought → Emotion → Evidence For/Against → Balanced Thought.",
-            "Gratitude Practice: Name three things you're grateful for right now, no matter how small.",
-            "Grounding Technique (5-4-3-2-1): Acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you can smell, 1 you can taste.",
-            "Socratic Questioning: 'If your best friend had this thought, what would you tell them?'",
-            "Labeling Emotions: Simply name the emotion you're feeling. This reduces its intensity.",
-            "Self-Compassion Break: 'This is a moment of suffering. Suffering is part of life. May I be kind to myself.'",
+            "Nếu cảm xúc này có hình dáng hay màu sắc, nó sẽ trông như thế nào?",
+            
+            # Cognitive / Intervention (English & Vietnamese)
+            "Cognitive Restructuring: Identify automatic negative thoughts and challenge them with evidence.",
+            "Tái cấu trúc nhận thức: Xác định các suy nghĩ tiêu cực tự động và thử thách chúng bằng bằng chứng thực tế.",
+            "Behavioral Activation: Schedule one small pleasant activity today.",
+            "Kích hoạt hành vi: Lên kế hoạch cho một hoạt động nhỏ bạn yêu thích trong hôm nay.",
+            "Mindful Breathing: Inhale for 4 counts, hold for 4, exhale for 4. Repeat 5 times.",
+            "Thở chánh niệm: Hít vào 4 nhịp, giữ 4 nhịp, thở ra 4 nhịp. Lặp lại 5 lần.",
+            "Gratitude Practice: Name three things you're grateful for right now.",
+            "Thực hành lòng biết ơn: Hãy gọi tên 3 điều bạn cảm thấy biết ơn ngay lúc này.",
+            "Grounding Technique (5-4-3-2-1): Acknowledge 5 things you see, 4 you can touch, 3 you hear, 2 you smell, 1 you taste.",
+            "Kỹ thuật tiếp đất (5-4-3-2-1): Nhận diện 5 thứ bạn thấy, 4 thứ bạn chạm được, 3 âm thanh, 2 mùi hương, 1 vị giác.",
             "Pleasant Activity Scheduling: Plan one activity you used to enjoy, even if you don't feel like it right now.",
+            "Lên lịch hoạt động thú vị: Lên kế hoạch một hoạt động bạn từng yêu thích, dù hiện tại bạn chưa thấy hứng thú lắm."
         ]
         
         metadatas = [
-            {"technique": "exploratory_question", "category": "exploratory", "difficulty": 1},
-            {"technique": "exploratory_question", "category": "exploratory", "difficulty": 1},
-            {"technique": "exploratory_question", "category": "exploratory", "difficulty": 1},
-            {"technique": "exploratory_question", "category": "exploratory", "difficulty": 1},
-            {"technique": "exploratory_question", "category": "exploratory", "difficulty": 1},
-            {"technique": "cognitive_restructuring", "category": "cognitive", "difficulty": 2},
-            {"technique": "behavioral_activation", "category": "behavioral", "difficulty": 1},
-            {"technique": "breathing", "category": "grounding", "difficulty": 1},
-            {"technique": "thought_record", "category": "cognitive", "difficulty": 3},
-            {"technique": "gratitude", "category": "positive", "difficulty": 1},
-            {"technique": "grounding_54321", "category": "grounding", "difficulty": 1},
-            {"technique": "socratic", "category": "cognitive", "difficulty": 2},
-            {"technique": "labeling", "category": "emotion_focus", "difficulty": 1},
-            {"technique": "self_compassion", "category": "compassion", "difficulty": 2},
-            {"technique": "pleasant_activity", "category": "behavioral", "difficulty": 1},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "en"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "vi"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "en"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "vi"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "en"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "vi"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "en"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "vi"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "en"},
+            {"technique": "exploratory_question", "category": "exploratory", "lang": "vi"},
+            {"technique": "cognitive_restructuring", "category": "cognitive", "lang": "en"},
+            {"technique": "cognitive_restructuring", "category": "cognitive", "lang": "vi"},
+            {"technique": "behavioral_activation", "category": "behavioral", "lang": "en"},
+            {"technique": "behavioral_activation", "category": "behavioral", "lang": "vi"},
+            {"technique": "breathing", "category": "grounding", "lang": "en"},
+            {"technique": "breathing", "category": "grounding", "lang": "vi"},
+            {"technique": "gratitude", "category": "positive", "lang": "en"},
+            {"technique": "gratitude", "category": "positive", "lang": "vi"},
+            {"technique": "grounding_54321", "category": "grounding", "lang": "en"},
+            {"technique": "grounding_54321", "category": "grounding", "lang": "vi"},
+            {"technique": "pleasant_activity", "category": "behavioral", "lang": "en"},
+            {"technique": "pleasant_activity", "category": "behavioral", "lang": "vi"}
         ]
         
         ids = [f"cbt_{i}" for i in range(len(documents))]
@@ -85,21 +102,35 @@ class CBTKnowledgeBase:
         self,
         query: str,
         category: Optional[str] = None,
-        k: int = 3
+        k: int = 3,
+        lang: Optional[str] = None
     ) -> List[Dict]:
         """Truy vấn các kỹ thuật CBT phù hợp"""
         # Tạo embedding cho query
         query_emb = self.embedder.encode(query).tolist()
         
-        # Filter theo category nếu có
-        where = {"category": category} if category else None
-        
+        # Build ChromaDB where clause
+        # ChromaDB requires $and when combining multiple conditions
+        filters = []
+        if category:
+            filters.append({"category": {"$eq": category}})
+        if lang:
+            filters.append({"lang": {"$eq": lang}})
+
+        if len(filters) == 0:
+            where = None
+        elif len(filters) == 1:
+            where = filters[0]
+        else:
+            where = {"$and": filters}
+            
         results = await vector_store.query(
             collection_name=self.collection_name,
             query_embeddings=[query_emb],
             n_results=k,
             where=where
         )
+
         
         # Format kết quả
         docs = results.get("documents", [[]])[0]

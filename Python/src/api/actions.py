@@ -68,12 +68,20 @@ class ActionCompletionLog(BaseModel):
     post_mood_score: Optional[float] = None
 
 
+class SkipLog(BaseModel):
+    user_id: str
+    mood: Optional[str] = None
+    shown_actions: List[str] = Field(default_factory=list)
+    reason: Optional[str] = None
+
+
 class EligibilityRequest(BaseModel):
     user_id: str
 
 
 class EligibilityResponse(BaseModel):
     eligible: bool
+    bot_eligible: bool = False
 
 # -------------------- Helper Functions --------------------
 async def get_user_enhanced_context(db, user_id: str) -> Dict[str, Any]:
@@ -319,7 +327,7 @@ async def log_action_completion(log: ActionCompletionLog):
     """
     try:
         db = mongodb.get_db()
-        now = datetime.now()
+        now = datetime.utcnow()
         await db.ai_interactions.insert_one({
             "user_id": log.user_id,
             "type": "action_completed",
@@ -338,6 +346,35 @@ async def log_action_completion(log: ActionCompletionLog):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/log-completion")
+async def log_action_completion_alias(log: ActionCompletionLog):
+    return await log_action_completion(log)
+
+
+@router.post("/skip")
+async def log_action_skip(log: SkipLog):
+    """
+    Ghi nhận user skip các gợi ý hành động.
+    """
+    try:
+        db = mongodb.get_db()
+        now = datetime.utcnow()
+        await db.ai_interactions.insert_one({
+            "user_id": log.user_id,
+            "type": "action_skipped",
+            "content": {
+                "mood": log.mood,
+                "shown_actions": log.shown_actions,
+                "reason": log.reason,
+            },
+            "created_at": now
+        })
+        return {"success": True, "message": "Action skip logged"}
+    except Exception as e:
+        logger.error(f"Failed to log action skip: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/eligibility", response_model=EligibilityResponse)
 async def check_suggest_actions_eligibility(request: EligibilityRequest):
     """
@@ -352,7 +389,7 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
         except Exception:
             user_obj_id = request.user_id
 
-        now = datetime.now()
+        now = datetime.utcnow()
         since_journal = now - timedelta(days=7)
 
         # BẮT BUỘC: Có ít nhất 1 nhật ký tâm trạng tệ trong 7 ngày qua
@@ -364,18 +401,39 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
             {
                 "user_id": {"$in": user_ids},
                 "created_at": {"$gte": since_journal},
-                "deleted_at": None
+                "deleted_at": {"$in": [None, ""]}
             },
             {
                 "mood": 1,
-                "sentiment": 1
+                "sentiment": 1,
+                "created_at": 1,
+                "createdAt": 1
             }
         ).to_list(length=50)
 
+        if not bad_journals:
+            bad_journals = await db.journal_entries.find(
+                {
+                    "user_id": {"$in": user_ids},
+                    "created_at": {"$gte": since_journal},
+                    "deleted_at": {"$exists": False}
+                },
+                {
+                    "mood": 1,
+                    "sentiment": 1,
+                    "created_at": 1,
+                    "createdAt": 1
+                }
+            ).to_list(length=50)
+
+        # MỚI: Tổng hợp điều kiện "buồn/tệ" từ 3 nguồn: Journal, Checkin, Onboarding
         is_mood_bad = False
+        
+        # 1. Kiểm tra Journal (Rất gần đây hoặc trong 7 ngày)
+        # bad_journals đã được fetch ở trên
         for j in bad_journals:
-            mood = str(j.get("mood", "")).lower()
-            if mood in negative_moods:
+            m = str(j.get("mood", "")).lower()
+            if m in negative_moods:
                 is_mood_bad = True
                 break
             sent = j.get("sentiment") or {}
@@ -383,30 +441,84 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
                 is_mood_bad = True
                 break
 
-        if not is_mood_bad:
-            return EligibilityResponse(eligible=False)
-
-        # Kiểm tra thêm nếu user đã hoàn thành Quick Check-in hôm nay
-        # Handle timezone: check both createdAt (Date) and date (String)
-        # We look for ANY check-in from today (VN time today or server time today)
+        # 2. Kiểm tra Quick Check-in hôm nay
+        today_midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Nới lỏng window để tránh lệch múi giờ VN (UTC+7)
+        checkin_start = today_midnight - timedelta(hours=14) 
         today_str = now.strftime("%Y-%m-%d")
         
         recent_checkin = await db.dailycheckins.find_one(
             {
-                "user": user_obj_id,
+                "user": {"$in": user_ids},
                 "$or": [
                     {"date": today_str},
-                    {"createdAt": {"$gte": now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=7)}} # Look back a bit for TZ
+                    {"createdAt": {"$gte": checkin_start}}
                 ]
             }
         )
+        if recent_checkin:
+            m = str(recent_checkin.get("mood", "")).lower()
+            if m in negative_moods:
+                is_mood_bad = True
+
+        # 3. Kiểm tra Onboarding (Chỉ dùng nếu không có dữ liệu tích cực hôm nay)
+        if not is_mood_bad:
+            onboarding = await db.onboardings.find_one({"user": {"$in": user_ids}})
+            if onboarding:
+                # Kiểm tra các thách thức (challenges) hoặc mục tiêu
+                challenges = onboarding.get("challenges", [])
+                for c in challenges:
+                    if any(bad in str(c).lower() for bad in ["stress", "anxiety", "depression", "sad", "lonely"]):
+                        is_mood_bad = True
+                        break
+
+        if not is_mood_bad:
+            return EligibilityResponse(eligible=False, bot_eligible=False)
+
+        # 4. Kiểm tra xem đã "xử lý" (skip/complete) trigger gần nhất chưa?
+        def _to_dt(val):
+            if isinstance(val, datetime): return val
+            if isinstance(val, str):
+                try: return datetime.fromisoformat(val.replace("Z", "+00:00"))
+                except: return None
+            return None
+
+        latest_trigger_time = None
         
-        # User đủ điều kiện khi có tâm trạng tệ trong journal VÀ đã check-in hôm nay
-        return EligibilityResponse(eligible=True if recent_checkin else False)
+        # Lấy thời gian entry tệ gần nhất
+        for j in bad_journals:
+            m = str(j.get("mood", "")).lower()
+            s = j.get("sentiment") or {}
+            if m in negative_moods or (isinstance(s, dict) and s.get("sentiment") == "negative"):
+                ts = _to_dt(j.get("created_at")) or _to_dt(j.get("createdAt"))
+                if ts and (not latest_trigger_time or ts > latest_trigger_time):
+                    latest_trigger_time = ts
+        
+        if recent_checkin:
+            m = str(recent_checkin.get("mood", "")).lower()
+            if m in negative_moods:
+                ts = _to_dt(recent_checkin.get("created_at")) or _to_dt(recent_checkin.get("createdAt"))
+                if ts and (not latest_trigger_time or ts > latest_trigger_time):
+                    latest_trigger_time = ts
+
+        # Nếu đã có tương tác (skip/complete) sau trigger tệ nhất -> Không hiện nữa
+        if latest_trigger_time:
+            latest_interaction = await db.ai_interactions.find_one(
+                {
+                    "user_id": {"$in": user_ids},
+                    "type": {"$in": ["action_completed", "action_skipped"]},
+                    "created_at": {"$gt": latest_trigger_time}
+                },
+                sort=[("created_at", -1)]
+            )
+            if latest_interaction:
+                return EligibilityResponse(eligible=False, bot_eligible=True)
+
+        return EligibilityResponse(eligible=True, bot_eligible=True)
 
     except Exception as e:
         logger.error(f"Eligibility check failed: {e}")
-        return EligibilityResponse(eligible=False)
+        return EligibilityResponse(eligible=False, bot_eligible=False)
 
 # -------------------- Fallbacks --------------------
 def get_fallback_actions(count: int = 3) -> List[ActionItem]:

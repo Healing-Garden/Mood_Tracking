@@ -1,5 +1,6 @@
 const cloudinary = require("cloudinary").v2;
 const fs = require('fs');
+const streamifier = require('streamifier');
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -117,34 +118,66 @@ const deleteResourceByUrl = async (url, resourceType = "image") => {
 };
 
 /**
- * Uploads an image file buffer to Cloudinary using upload_stream.
+ * Uploads an image file to Cloudinary.
+ * Supports both memory (file.buffer) and disk (file.path) storage.
  *
- * @param {Object} file - The file object from multer containing the buffer
+ * @param {Object} file - The file object from multer
  * @returns {Promise<string>} - The secure URL of the uploaded image
  */
 const uploadImageToCloudinary = (file) => {
     return new Promise((resolve, reject) => {
-        if (!file || !file.buffer) {
-            return reject(new Error("No file buffer provided"));
+        if (!file) {
+            return reject(new Error("No file provided"));
         }
 
-        const uploadStream = cloudinary.uploader.upload_stream(
-            {
-                folder: "avatars",
-                resource_type: "image",
-                use_filename: true,
-                unique_filename: true,
-            },
-            (error, result) => {
-                if (error) {
-                    console.error("Cloudinary upload error:", error);
-                    return reject(error);
+        // Handle disk storage (file.path)
+        if (file.path) {
+            cloudinary.uploader.upload(
+                file.path,
+                {
+                    folder: "avatars",
+                    resource_type: "image",
+                    use_filename: true,
+                    unique_filename: true,
+                },
+                (error, result) => {
+                    // Clean up local file
+                    if (fs.existsSync(file.path)) {
+                        fs.unlinkSync(file.path);
+                    }
+                    if (error) {
+                        console.error("Cloudinary upload error:", error);
+                        return reject(error);
+                    }
+                    resolve(result.secure_url);
                 }
-                resolve(result.secure_url);
-            }
-        );
+            );
+            return;
+        }
 
-        streamifier.createReadStream(file.buffer).pipe(uploadStream);
+        // Handle memory storage (file.buffer)
+        if (file.buffer) {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    folder: "avatars",
+                    resource_type: "image",
+                    use_filename: true,
+                    unique_filename: true,
+                },
+                (error, result) => {
+                    if (error) {
+                        console.error("Cloudinary upload error:", error);
+                        return reject(error);
+                    }
+                    resolve(result.secure_url);
+                }
+            );
+
+            streamifier.createReadStream(file.buffer).pipe(uploadStream);
+            return;
+        }
+
+        return reject(new Error("File object does not contain path or buffer"));
     });
 };
 

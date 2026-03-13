@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react'
 import type { FormEvent, ChangeEvent } from 'react'
 import { Button } from '../../../components/ui/Button'
 import { Input } from '../../../components/ui/Input'
-import { Label } from '../../../components/ui/Label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/Tabs'
 import AvatarUpload from '../../../components/profile/AvatarUpload'
 import { Lock, X, ShieldCheck, Key, User, Check, Cake, Ruler, Scale } from 'lucide-react'
@@ -14,7 +13,7 @@ import { userApi } from '../../../api/userApi'
 const SecurityPinModal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  mode: 'setup' | 'verify_to_disable' | 'verify_to_change';
+  mode: 'setup' | 'verify_to_disable' | 'verify_to_enable' | 'verify_to_change';
   onSuccess: (newPin?: string) => void;
 }> = ({ isOpen, onClose, mode, onSuccess }) => {
   const [step, setStep] = useState(mode === 'setup' ? 'new' : 'verify');
@@ -62,7 +61,7 @@ const SecurityPinModal: React.FC<{
           onClose();
         }
       } catch (error) {
-        toast({ title: 'Lỗi', description: 'Mã PIN không chính xác', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Incorrect PIN', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
@@ -70,7 +69,7 @@ const SecurityPinModal: React.FC<{
       setStep('confirm');
     } else {
       if (pin !== confirmPin) {
-        toast({ title: 'Lỗi', description: 'Mã PIN xác nhận không khớp', variant: 'destructive' });
+        toast({ title: 'Error', description: 'PIN confirmation does not match', variant: 'destructive' });
         return;
       }
       setIsLoading(true);
@@ -79,7 +78,7 @@ const SecurityPinModal: React.FC<{
         onSuccess(pin);
         onClose();
       } catch (error) {
-        toast({ title: 'Lỗi', description: 'Không thể thiết lập mã PIN', variant: 'destructive' });
+        toast({ title: 'Error', description: 'Unable to set PIN', variant: 'destructive' });
       } finally {
         setIsLoading(false);
       }
@@ -91,6 +90,7 @@ const SecurityPinModal: React.FC<{
   const titles = {
     setup: 'Set App Lock PIN',
     verify_to_disable: 'Disable App Lock',
+    verify_to_enable: 'Enable App Lock',
     verify_to_change: 'Change App Lock PIN'
   };
 
@@ -119,13 +119,14 @@ const SecurityPinModal: React.FC<{
               <Input
                 key={i}
                 id={`${step === 'confirm' ? 'conf-' : 'pin-'}${i}`}
-                type="password"
+                type="text"
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, step === 'confirm')}
-                className="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-bold border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl outline-none transition-all shadow-sm"
+                className="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-bold border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl outline-none transition-all shadow-sm input-password-mask hide-password-toggle"
                 autoFocus={i === 0}
+                autoComplete="one-time-code"
               />
             ))}
           </div>
@@ -136,14 +137,11 @@ const SecurityPinModal: React.FC<{
             </Button>
             <Button 
               type="submit" 
-              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2" 
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center" 
               disabled={isLoading || (step === 'confirm' ? confirmPinDigits : pinDigits).some(d => !d)}
             >
               {isLoading ? 'Processing...' : (
-                <>
-                  <Check size={20} />
-                  {(step === 'confirm' || (step === 'verify' && mode === 'verify_to_disable')) ? 'Confirm' : 'Next'}
-                </>
+                (step === 'confirm' || (step === 'verify' && mode === 'verify_to_disable')) ? 'Confirm' : 'Next'
               )}
             </Button>
           </div>
@@ -164,30 +162,29 @@ const PasswordChangeModal: React.FC<{
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordError, setPasswordError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
 
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
     setPasswordError('')
     
     if (!newPassword || newPassword.length < 8) {
-      setPasswordError('Mật khẩu phải có ít nhất 8 ký tự')
+      setPasswordError('Password must be at least 8 characters')
       return
     }
     if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu xác nhận không khớp')
+      setPasswordError('Confirmation password does not match')
       return
     }
     
     setIsLoading(true)
     try {
       await userApi.changePassword({ currentPassword, newPassword })
-      toast({ title: 'Thành công', description: 'Mật khẩu đã được cập nhật.' })
       onSuccess()
       onClose()
       setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-    } catch (error) {
-      setPasswordError(error instanceof Error ? error.message : 'Lỗi cập nhật mật khẩu')
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Error updating password'
+      setPasswordError(errorMessage)
     } finally {
       setIsLoading(false)
     }
@@ -239,13 +236,12 @@ const PasswordChangeModal: React.FC<{
             <Button type="button" variant="ghost" onClick={onClose} className="px-6 py-2.5 text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors rounded-lg" disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2">
-              {isLoading ? 'Saving...' : (
-                <>
-                  <Check size={20} />
-                  Update
-                </>
-              )}
+            <Button 
+              type="submit" 
+              disabled={isLoading} 
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center"
+            >
+              {isLoading ? 'Saving...' : 'Update'}
             </Button>
           </div>
         </form>
@@ -340,21 +336,21 @@ const EditProfileModal: React.FC<{
           </div>
 
           <div className="py-6 flex items-center justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors">
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={onClose} 
+              className="px-6 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors"
+            >
               Cancel
-            </button>
-            <button 
+            </Button>
+            <Button 
               type="submit" 
               disabled={isLoading}
-              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2"
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center"
             >
-              {isLoading ? 'Saving...' : (
-                <>
-                  <Check size={20} />
-                  Save Changes
-                </>
-              )}
-            </button>
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </form>
       </Card>
@@ -385,7 +381,7 @@ const UserProfilePage: React.FC = () => {
 
   // PIN
   const [isPinModalOpen, setIsPinModalOpen] = useState(false);
-  const [pinModalMode, setPinModalMode] = useState<'setup' | 'verify_to_disable' | 'verify_to_change'>('setup');
+  const [pinModalMode, setPinModalMode] = useState<'setup' | 'verify_to_disable' | 'verify_to_enable' | 'verify_to_change'>('setup');
   const [isAppLockEnabled, setIsAppLockEnabled] = useState<boolean>(false)
   const [hasPinSet, setHasPinSet] = useState<boolean>(false)
 
@@ -475,13 +471,13 @@ const UserProfilePage: React.FC = () => {
         weight: weight ? parseFloat(weight) : undefined,
       })
       setAvatar(response.user.avatarUrl || avatar)
-      showSuccess('Thông tin cá nhân đã được cập nhật.')
+      showSuccess('Personal information has been updated.')
       setShowEditModal(false)
     } catch (error) {
-      console.error('Toggle App Lock error:', error)
+      console.error('Profile update error:', error)
       toast({
         title: 'Error',
-        description: error instanceof Error ? error.message : 'Unable to change lock status',
+        description: error instanceof Error ? error.message : 'Unable to update profile info',
         variant: 'destructive',
       })
     } finally {
@@ -490,18 +486,23 @@ const UserProfilePage: React.FC = () => {
   }
 
   const handlePinSuccess = async (_newPin?: string) => {
-    if (pinModalMode === 'verify_to_disable') {
+    if (pinModalMode === 'verify_to_disable' || pinModalMode === 'verify_to_enable') {
+      const shouldEnable = pinModalMode === 'verify_to_enable';
       try {
-        await userApi.toggleAppLock(false);
-        setIsAppLockEnabled(false);
-        toast({ title: 'Thành công', description: 'Đã tắt khóa ứng dụng' });
+        await userApi.toggleAppLock(shouldEnable);
+        setIsAppLockEnabled(shouldEnable);
+        showSuccess(`App Lock has been ${shouldEnable ? 'enabled' : 'disabled'} successfully.`);
       } catch (error) {
-        toast({ title: 'Lỗi', description: 'Không thể tắt khóa ứng dụng', variant: 'destructive' });
+        toast({ 
+          title: 'Error', 
+          description: `Unable to ${shouldEnable ? 'enable' : 'disable'} App Lock`, 
+          variant: 'destructive' 
+        });
       }
     } else {
       setHasPinSet(true);
       setIsAppLockEnabled(true);
-      toast({ title: 'Thành công', description: 'Mã PIN đã được thiết lập' });
+      showSuccess('PIN has been established successfully.');
     }
   }
 
@@ -597,7 +598,7 @@ const UserProfilePage: React.FC = () => {
                     ].map((item, i) => (
                       <div key={i} className="p-6 bg-white rounded-2xl border border-border/50 shadow-sm hover:border-primary/20 transition-all group">
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">{item.label}</p>
-                        <p className="text-base font-bold text-foreground">{item.value || 'Not provided'}</p>
+                        <p className="text-base font-medium text-foreground">{item.value || 'Not provided'}</p>
                       </div>
                     ))}
                   </div>
@@ -641,7 +642,10 @@ const UserProfilePage: React.FC = () => {
                         <Button 
                           variant="outline" 
                           className="h-10 rounded-lg font-bold border-2" 
-                          onClick={() => { setPinModalMode('verify_to_disable'); setIsPinModalOpen(true); }}
+                          onClick={() => { 
+                            setPinModalMode(isAppLockEnabled ? 'verify_to_disable' : 'verify_to_enable'); 
+                            setIsPinModalOpen(true); 
+                          }}
                         >
                           {isAppLockEnabled ? 'Disable' : 'Enable'}
                         </Button>
@@ -649,17 +653,17 @@ const UserProfilePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col items-center">
                     <Button 
                       onClick={() => { setPinModalMode(hasPinSet ? 'verify_to_change' : 'setup'); setIsPinModalOpen(true); }}
-                      className="h-14 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl font-bold text-lg gap-3"
+                      className="h-14 w-full md:w-2/3 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl font-bold text-lg gap-3"
                     >
                       <Key size={20} />
                       {hasPinSet ? 'Change Security PIN' : 'Set Security PIN'}
                     </Button>
                     {!hasPinSet && (
-                      <div className="flex items-center p-4 bg-primary/5 rounded-2xl">
-                        <p className="text-xs text-primary/70 italic leading-relaxed">
+                      <div className="mt-4 flex items-center p-4 bg-primary/5 rounded-2xl w-full md:w-2/3">
+                        <p className="text-xs text-primary/70 italic leading-relaxed text-center w-full">
                           Your peace of mind is our priority. A PIN adds an extra layer of privacy for your personal thoughts.
                         </p>
                       </div>
@@ -698,7 +702,10 @@ const UserProfilePage: React.FC = () => {
         isOpen={isPasswordModalOpen}
         onClose={() => setIsPasswordModalOpen(false)}
         hasPassword={hasPassword}
-        onSuccess={() => setHasPassword(true)}
+        onSuccess={() => {
+          setHasPassword(true);
+          showSuccess('Password has been updated successfully.');
+        }}
       />
     </DashboardLayout>
   )

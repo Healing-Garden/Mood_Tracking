@@ -89,13 +89,13 @@ const UserDashboardPage = () => {
           userApi.getProfile(),
           userApi.getDashboardData()
         ])
-        
+
         setDashboardData({
           journeyDays: stats.journeyDays || 1,
           moodDistribution: stats.moodDistribution || [],
           userName: profile.fullName || 'User',
         })
-        
+
         if (stats.weeklyStats) {
           setWeeklyStats(stats.weeklyStats)
         }
@@ -133,13 +133,11 @@ const UserDashboardPage = () => {
 
   useEffect(() => {
     const maybeOpenSuggestions = async () => {
-      // Bỏ guard mood ở frontend; để backend kiểm tra cả journal và checkin
       if (!user?.id) return;
       try {
         const res = await aiApi.checkActionEligibility(user.id) as any;
         const eligible = res?.eligible ?? res?.data?.eligible;
         if (eligible) {
-          // If no lastMood, still open modal but maybe with a default mood or 'neutral'
           openModal(lastMood || 'neutral');
         }
       } catch (err) {
@@ -278,10 +276,10 @@ const UserDashboardPage = () => {
                 <CardTitle className="text-xl font-bold">Quick Space</CardTitle>
               </CardHeader>
               <CardContent className="p-8 pt-0 flex flex-col gap-4">
-                <Link to="/user/feedback" className="group">
+                <Link to="/user/ai-partner" className="group">
                   <Button variant="ghost" className="w-full h-14 justify-between px-6 rounded-2xl bg-muted/40 hover:bg-muted text-foreground transition-all group-hover:shadow-sm">
-                    <span className="font-semibold text-base">Share Feedback</span>
-                    <MessageSquare size={22} className="group-hover:rotate-12 transition-transform" />
+                    <span className="font-semibold text-base">AI Soul Partner</span>
+                    <Brain size={22} className="group-hover:rotate-12 transition-transform" />
                   </Button>
                 </Link>
                 <Link to="/user/analytics" className="group">
@@ -290,10 +288,12 @@ const UserDashboardPage = () => {
                     <TrendingUp size={22} className="group-hover:rotate-12 transition-transform" />
                   </Button>
                 </Link>
-                <Button variant="ghost" className="w-full h-14 justify-between px-6 rounded-2xl bg-muted/40 hover:bg-muted text-foreground transition-all group-hover:shadow-sm">
-                  <span className="font-semibold text-base">AI Soul Partner</span>
-                  <Brain size={22} className="group-hover:rotate-12 transition-transform" />
-                </Button>
+                <Link to="/user/feedback" className="group">
+                  <Button variant="ghost" className="w-full h-14 justify-between px-6 rounded-2xl bg-muted/40 hover:bg-muted text-foreground transition-all group-hover:shadow-sm">
+                    <span className="font-semibold text-base">Share Feedback</span>
+                    <MessageSquare size={22} className="group-hover:rotate-12 transition-transform" />
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 

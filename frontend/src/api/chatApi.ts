@@ -10,10 +10,10 @@ export const chatApi = {
     getSessionDetail: async (
         sessionId: string
     ): Promise<{ session: ChatSession; messages: ChatMessage[] }> => {
-        const res = await http.get<{ success: boolean; data: { session: ChatSession; messages: ChatMessage[] } }>(
+        const res = await http.get<{ session: ChatSession; messages: ChatMessage[] }>(
           `/chat/session/${sessionId}`
         );
-        return res.data;
+        return res;
     },
 
     saveJournalNote: async (sessionId: string, note: string): Promise<void> => {
@@ -34,7 +34,7 @@ export const chatApi = {
     },
     
     loadSessionMessages: async (sessionId: string): Promise<ChatMessage[]> => {
-        const res = await http.get<{ success: boolean; messages: ChatMessage[] }>(`/chat/session/${sessionId}/messages`);
+        const res = await http.get<{ messages: ChatMessage[] }>(`/chat/session/${sessionId}/messages`);
         return Array.isArray(res.messages) ? res.messages : [];
     }
 };

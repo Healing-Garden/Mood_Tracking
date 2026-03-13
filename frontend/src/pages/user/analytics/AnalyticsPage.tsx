@@ -324,21 +324,7 @@ const AnalyticsPage = () => {
     </div>
   );
 
-  // Helper to convert internal score (-1 to +1) to 1-5 display scale
-  const scoreToDisplayMood = (score: number | undefined): string => {
-    if (score === undefined) return '—'
-    // internal: -1→1, -0.5→2, 0→3, 0.5→4, 1→5
-    const display = (score + 1) / 2 * 4 + 1
-    return Math.min(5, Math.max(1, display)).toFixed(1)
-  }
 
-  // Helper to get trend arrow
-  const getTrendArrow = (slope: number | undefined) => {
-    if (slope === undefined) return null
-    if (slope > 0.02) return <span className="text-green-500">↑</span>
-    if (slope < -0.02) return <span className="text-red-500">↓</span>
-    return <span className="text-muted-foreground">→</span>
-  }
 
   // Helper để lấy icon cho insight
   const getInsightIcon = (insight: string) => {
@@ -409,66 +395,63 @@ const AnalyticsPage = () => {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          <Card className="border-border shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">Avg Mood Score</CardTitle>
+          <Card className="border-border shadow-md hover:shadow-lg transition-all duration-300">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-s font-bold uppercase tracking-wider text-muted-foreground">Avg Mood Score</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">
+            <CardContent className="pt-0">
+              <div className="text-4xl font-extrabold text-primary">
                 {loading ? '...' : (summary?.current.avgMood || 0)}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {summary && summary.moodTrend !== 0 ? (
                   <>
-                    <span className={summary.moodTrend > 0 ? 'text-green-500' : 'text-red-500'}>
+                    <span className={summary.moodTrend > 0 ? 'text-green-500 font-bold' : 'text-red-500 font-bold'}>
                       {summary.moodTrend > 0 ? '↑' : '↓'} {Math.abs(summary.moodTrend)}
-                    </span> from last {timeRange}
+                    </span> compared to last {timeRange}
                   </>
-                ) : 'No change'}
+                ) : 'Stable trend'}
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border-border shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">Consistency</CardTitle>
+          <Card className="border-border shadow-md hover:shadow-lg transition-all duration-300">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-s font-bold uppercase tracking-wider text-muted-foreground">Consistency</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-accent">
+            <CardContent className="pt-0">
+              <div className="text-4xl font-extrabold text-accent">
                 {loading ? '...' : `${summary?.current.consistency || 0}%`}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">Daily check-ins</p>
+              <p className="text-xs text-muted-foreground mt-0.5 font-medium">Daily check-ins completion</p>
             </CardContent>
           </Card>
 
-          <Card className="border-border shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">Entries</CardTitle>
+          <Card className="border-border shadow-md hover:shadow-lg transition-all duration-300">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-s font-bold uppercase tracking-wider text-muted-foreground">Entries</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-primary">
+            <CardContent className="pt-0">
+              <div className="text-4xl font-extrabold text-primary">
                 {loading ? '...' : (summary?.current.journalEntries || 0)}
               </div>
-
-              <p className="text-xs text-muted-foreground mt-1">
-                In this {timeRange}
-              </p>
+              <p className="text-xs text-muted-foreground mt-0.5 font-medium">Logged in this {timeRange}</p>
             </CardContent>
           </Card>
 
-          <Card className="border-border shadow-md">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-semibold text-muted-foreground">AI Insights</CardTitle>
+          <Card className="border-border shadow-md hover:shadow-lg transition-all duration-300">
+            <CardHeader className="pb-1">
+              <CardTitle className="text-s font-bold uppercase tracking-wider text-muted-foreground">AI Insights</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-0">
               {loadingAI ? (
-                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
+                <div className="h-10 w-16 bg-muted/30 animate-pulse rounded mb-1" />
               ) : (
-                <div className="text-3xl font-bold text-accent">
+                <div className="text-4xl font-extrabold text-accent">
                   {trendData?.insights?.length ?? '—'}
                 </div>
               )}
-              <p className="text-xs text-muted-foreground mt-1">AI insights generated</p>
+              <p className="text-xs text-muted-foreground mt-0.5 font-medium">Deep analysis results</p>
             </CardContent>
           </Card>
         </div>
@@ -482,22 +465,22 @@ const AnalyticsPage = () => {
               Mood Flow
             </TabsTrigger>
             <TabsTrigger
-              value="calendar"
-              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
-            >
-              Calendar
-            </TabsTrigger>
-            <TabsTrigger
               value="triggers"
               className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
             >
-              Triggers
+              Trigger Heatmap
             </TabsTrigger>
             <TabsTrigger
               value="wordcloud"
               className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
             >
               Word Cloud
+            </TabsTrigger>
+            <TabsTrigger
+              value="calendar"
+              className="data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm rounded-md text-muted-foreground hover:bg-white/50 transition-all"
+            >
+              Mood Calendar
             </TabsTrigger>
           </TabsList>
 
@@ -518,44 +501,44 @@ const AnalyticsPage = () => {
 
           {/* Trigger Heatmap */}
           <TabsContent value="triggers">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
 
               {/* Heatmap - main */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 h-full flex flex-col">
                 <TriggerHeatmap defaultPeriod="week" />
               </div>
 
               {/* Insight panel */}
-              <Card className="border-border shadow-md">
+              <Card className="border-border shadow-md h-full flex flex-col">
                 <CardHeader>
-                  <CardTitle className="text-primary">Trigger Insights</CardTitle>
-                  <CardDescription>Key emotional correlations</CardDescription>
+                  <CardTitle className="text-primary text-xl font-bold">Trigger Insights</CardTitle>
+                  <CardDescription className="font-medium">Key emotional correlations</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
-                    <p className="text-sm font-semibold text-destructive">
+                <CardContent className="space-y-4 flex-1">
+                  <div className="p-4 rounded-xl bg-destructive/5 border border-destructive/10">
+                    <p className="text-sm font-bold text-destructive flex items-center gap-2 mb-1">
                       🚨 Most Negative Trigger
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       Work-related triggers correlate strongly with negative moods.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-green-500/5 border border-green-500/20">
-                    <p className="text-sm font-semibold text-green-600">
+                  <div className="p-4 rounded-xl bg-green-500/5 border border-green-500/10">
+                    <p className="text-sm font-bold text-green-600 flex items-center gap-2 mb-1">
                       🌱 Most Positive Trigger
                     </p>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground leading-relaxed">
                       Social & leisure activities improve mood significantly.
                     </p>
                   </div>
 
-                  <div className="p-4 rounded-lg bg-muted/40 border border-border">
-                    <p className="text-sm font-semibold">
+                  <div className="mt-auto p-4 rounded-xl bg-muted/30 border border-border/50">
+                    <p className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-1">
                       ℹ How to read
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Darker colors indicate higher frequency of that mood for a trigger.
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      Darker colors indicate higher frequency of that mood for a specific trigger.
                     </p>
                   </div>
                 </CardContent>
@@ -567,7 +550,7 @@ const AnalyticsPage = () => {
         </Tabs>
 
         {/* Comparative Analysis */}
-        <Card className="mb-10 border-border shadow-md">
+        <Card className="mt-12 mb-10 border-border shadow-md">
           <CardHeader>
             <CardTitle className="text-primary flex items-center gap-2">
               <TrendingUp size={20} />
