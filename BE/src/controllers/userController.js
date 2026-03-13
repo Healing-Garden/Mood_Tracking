@@ -1,3 +1,4 @@
+const nlp = require("compromise");
 const User = require("../models/users");
 const DailyCheckIn = require("../models/dailyCheckIn");
 const Onboarding = require("../models/onboarding");
@@ -6,6 +7,9 @@ const SmartNotification = require("../models/SmartNotification");
 const webNotification = require("../services/webNotification");
 const JournalEntry = require("../models/journalEntries");
 const ChatSession = require("../models/chatSession");
+const HealingQuote = require("../models/HealingQuote");
+const HealingVideo = require("../models/HealingVideo");
+const HealingPodcast = require("../models/HealingPodcast");
 
 // Helper to derive theme from mood (1–5)
 const getThemeByMood = (mood) => {
@@ -14,18 +18,30 @@ const getThemeByMood = (mood) => {
   return "positive";
 };
 
+const getModelByType = (type) => {
+  switch (type) {
+    case 'quote': return HealingQuote;
+    case 'video': return HealingVideo;
+    case 'podcast': return HealingPodcast;
+    default: return null;
+  }
+};
+
 module.exports = {
   // GET /api/user/onboarding/status
   getOnboardingStatus: async (req, res) => {
     try {
       const userId = req.user.id;
       const onboarding = await Onboarding.findOne({ user: userId }).select(
-        "isOnboarded"
+        "isOnboarded updatedAt"
       );
       if (!onboarding) {
         return res.json({ isOnboarded: false });
       }
-      return res.json({ isOnboarded: onboarding.isOnboarded || false });
+      return res.json({ 
+        isOnboarded: onboarding.isOnboarded || false,
+        onboardedAt: onboarding.updatedAt 
+      });
     } catch (err) {
       console.error("getOnboardingStatus error:", err);
       return res.status(500).json({ message: "Internal server error" });
@@ -52,6 +68,16 @@ module.exports = {
     try {
       const userId = req.user.id;
       const {
+        improveGoals = [],
+        frequentFeeling,
+        personalGoalDescription,
+        stressLevel,
+        recentState,
+        emotionalClarity,
+        reflectionFrequency,
+        negativeEmotionHandling,
+        experienceLearning,
+        // Legacy fields
         goals = [],
         emotionalSensitivity,
         reminderTone,
@@ -61,6 +87,16 @@ module.exports = {
       const payload = {
         user: userId,
         isOnboarded: true,
+        improveGoals,
+        frequentFeeling,
+        personalGoalDescription,
+        stressLevel,
+        recentState,
+        emotionalClarity,
+        reflectionFrequency,
+        negativeEmotionHandling,
+        experienceLearning,
+        // Legacy fields
         goals,
         emotionalSensitivity,
         reminderTone,
@@ -165,6 +201,18 @@ module.exports = {
           console.error("Failed to generate instant AI tip after check-in:", e?.message);
         }
       })();
+      // Delete cached daily summary for today to force regeneration
+      const mongoose = require("mongoose");
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+      try {
+        await mongoose.connection.collection("daily_summaries").deleteMany({
+          user_id: mongoose.Types.ObjectId.isValid(userId) ? new mongoose.Types.ObjectId(userId) : userId,
+          date: startOfDay
+        });
+      } catch (err) {
+        console.error("Failed to invalidate daily summary cache:", err);
+      }
 
       return res.status(200).json(entry);
     } catch (err) {
@@ -296,7 +344,7 @@ module.exports = {
       const toStr = today.toISOString().split("T")[0];
       const fromStr = start.toISOString().split("T")[0];
 
-      const entries = await DailyCheckIn.find({
+      const checkinEntries = await DailyCheckIn.find({
         user: userId,
         date: { $gte: fromStr, $lte: toStr },
         note: { $exists: true, $ne: "" },
@@ -304,45 +352,40 @@ module.exports = {
         .select("note")
         .lean();
 
-      // Common stop words to filter out
-      const stopWords = new Set([
-        "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
-        "of", "with", "by", "from", "as", "is", "was", "are", "were", "been",
-        "be", "have", "has", "had", "do", "does", "did", "will", "would", "could",
-        "should", "may", "might", "must", "can", "i", "me", "my", "myself", "we",
-        "our", "ours", "ourselves", "you", "your", "yours", "yourself", "yourselves",
-        "he", "him", "his", "himself", "she", "her", "hers", "herself", "it", "its",
-        "itself", "they", "them", "their", "theirs", "themselves", "what", "which",
-        "who", "whom", "this", "that", "these", "those", "am", "been", "being",
-        "have", "has", "had", "having", "do", "does", "did", "doing", "would",
-        "should", "could", "ought", "i'm", "you're", "he's", "she's", "it's",
-        "we're", "they're", "i've", "you've", "we've", "they've", "i'd", "you'd",
-        "he'd", "she'd", "we'd", "they'd", "i'll", "you'll", "he'll", "she'll",
-        "we'll", "they'll", "isn't", "aren't", "wasn't", "weren't", "hasn't",
-        "haven't", "hadn't", "doesn't", "don't", "didn't", "won't", "wouldn't",
-        "shan't", "shouldn't", "can't", "cannot", "couldn't", "mustn't", "let's",
-        "that's", "who's", "what's", "here's", "there's", "when's", "where's",
-        "why's", "how's", "just", "very", "too", "so", "than", "such", "no",
-        "not", "only", "own", "same", "then", "there", "when", "where", "why",
-        "how", "all", "both", "each", "few", "more", "most", "other", "some",
-      ]);
+      // Fetch from JournalEntry (title, text)
+      const journalEntries = await JournalEntry.find({
+        user_id: userId,
+        created_at: {
+          $gte: new Date(fromStr),
+          $lte: new Date(toStr + "T23:59:59.999Z")
+        },
+        deleted_at: null,
+      })
+        .select("title text")
+        .lean();
 
       // Word frequency map
       const wordFreq = {};
 
-      entries.forEach((entry) => {
-        if (!entry.note) return;
+      const processText = (text) => {
+        if (!text) return;
+        const doc = nlp(text);
+        const adjectives = doc.adjectives().out('array');
 
-        // Extract words: lowercase, remove punctuation, split by whitespace
-        const words = entry.note
-          .toLowerCase()
-          .replace(/[^\w\s]/g, " ")
-          .split(/\s+/)
-          .filter((w) => w.length > 2 && !stopWords.has(w));
-
-        words.forEach((word) => {
-          wordFreq[word] = (wordFreq[word] || 0) + 1;
+        adjectives.forEach((word) => {
+          // Remove punctuation from the start and end of the word
+          const cleanedWord = word.toLowerCase().trim().replace(/^[^\w\s]+|[^\w\s]+$/g, '');
+          if (cleanedWord.length > 2) {
+            wordFreq[cleanedWord] = (wordFreq[cleanedWord] || 0) + 1;
+          }
         });
+      };
+
+      // Process all sources
+      checkinEntries.forEach((entry) => processText(entry.note));
+      journalEntries.forEach((entry) => {
+        processText(entry.title);
+        processText(entry.text);
       });
 
       // Convert to array and sort by frequency
@@ -451,10 +494,9 @@ module.exports = {
       const consistency = calculateConsistency(currentCheckIns, days);
       const prevConsistency = calculateConsistency(prevCheckIns, days);
 
-      // 3. Total Entries (Journal) - Within the specific period
+      // 3. Total Entries (Journal) - Global total matching dashboard logic
       const currentEntries = await JournalEntry.countDocuments({
         user_id: userId,
-        createdAt: { $gte: start, $lte: today },
         deleted_at: null,
       });
       const prevEntries = await JournalEntry.countDocuments({
@@ -530,7 +572,6 @@ module.exports = {
       const avgMood = calculateAvg(currentCheckIns);
       const totalEntriesLabel = await JournalEntry.countDocuments({
         user_id: userId,
-        createdAt: { $gte: weekStart, $lte: today },
         deleted_at: null,
       });
       const insightCount = await ChatSession.countDocuments({
@@ -742,6 +783,28 @@ module.exports = {
     } catch (err) {
       console.error("toggleAppLock error:", err);
       return res.status(400).json({ message: err.message || "Internal server error" });
+    }
+  },
+
+  // GET /api/user/healing-content
+  getHealingContent: async (req, res) => {
+    try {
+      const { type } = req.query;
+      let content = [];
+      if (type) {
+        const Model = getModelByType(type);
+        if (!Model) return res.status(400).json({ message: "Invalid type" });
+        content = await Model.find({ is_active: true }).sort({ createdAt: -1 });
+      } else {
+        const quotes = await HealingQuote.find({ is_active: true }).sort({ createdAt: -1 });
+        const videos = await HealingVideo.find({ is_active: true }).sort({ createdAt: -1 });
+        const podcasts = await HealingPodcast.find({ is_active: true }).sort({ createdAt: -1 });
+        content = [...quotes, ...videos, ...podcasts].sort((a, b) => b.createdAt - a.createdAt);
+      }
+      return res.status(200).json(content);
+    } catch (error) {
+      console.error("getHealingContent error:", error);
+      res.status(500).json({ message: "Server error fetching healing content" });
     }
   },
 };

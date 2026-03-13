@@ -12,6 +12,47 @@ const onboardingSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
+        // New Fields for UC 42-45
+        improveGoals: [
+            {
+                type: String,
+                trim: true,
+            },
+        ],
+        frequentFeeling: {
+            type: String,
+            trim: true,
+        },
+        personalGoalDescription: {
+            type: String,
+            trim: true,
+        },
+        stressLevel: {
+            type: String,
+            trim: true,
+        },
+        recentState: {
+            type: String,
+            trim: true,
+        },
+        emotionalClarity: {
+            type: String,
+            trim: true,
+        },
+        reflectionFrequency: {
+            type: String,
+            trim: true,
+        },
+        negativeEmotionHandling: {
+            type: String,
+            trim: true,
+        },
+        experienceLearning: {
+            type: String,
+            trim: true,
+        },
+
+        // Legacy Fields (kept for backward compatibility)
         goals: [
             {
                 type: String,

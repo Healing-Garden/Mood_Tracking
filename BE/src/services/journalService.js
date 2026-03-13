@@ -14,7 +14,7 @@ module.exports = {
     images = [],
     voice_note_url = null,
   }) => {
-    return await Journal.create({
+    const journal = new Journal({
       user_id: userId,
       title,
       mood,

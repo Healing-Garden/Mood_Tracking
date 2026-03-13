@@ -12,7 +12,6 @@ import Step1 from "../pages/user/onboarding/Step1";
 import Step2 from "../pages/user/onboarding/Step2";
 import Step3 from "../pages/user/onboarding/Step3";
 import Step4 from "../pages/user/onboarding/Step4";
-import Step5 from "../pages/user/onboarding/Step5";
 import NotificationsPage from "../pages/user/notifications/NotificationPage";
 import ChatBot from "../pages/user/ai-partner/ChatBot";
 import FeedbackPage from "../pages/user/feedback/FeedbackPage";
@@ -23,6 +22,7 @@ import AdminVerifyPinPage from "../pages/admin/verify-pin/AdminVerifyPinPage";
 import AnalyticPage from "../pages/admin/analytics/AnalyticsPage";
 import HealingContentPage from "../pages/admin/healing/HealingContentPage";
 import AdminUserList from "../pages/admin/users/AdminUserList";
+import AdminFeedbackPage from "../pages/admin/feedback/AdminFeedbackPage";
 import ProtectedRoute from "./ProtectedRoute";
 
 const routes = [
@@ -71,14 +71,6 @@ const routes = [
     element: (
       <ProtectedRoute role="user">
         <Step4 />
-      </ProtectedRoute>
-    ),
-  },
-  {
-    path: "/onboarding/step-5",
-    element: (
-      <ProtectedRoute role="user">
-        <Step5 />
       </ProtectedRoute>
     ),
   },
@@ -175,6 +167,14 @@ const routes = [
     element: (
       <ProtectedRoute role="admin">
         <AdminUserList />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/feedback",
+    element: (
+      <ProtectedRoute role="admin">
+        <AdminFeedbackPage />
       </ProtectedRoute>
     ),
   },

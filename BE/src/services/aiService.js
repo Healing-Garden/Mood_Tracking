@@ -56,16 +56,17 @@ class AIServiceClient {
     /**
      * UC-18: Suggest prompting questions
      */
-    async suggestQuestions(userId, recentMood = null, count = 3) {
+    async suggestQuestions(userId, recentMood = null, count = 3, language = 'en') {
         try {
             const response = await this.client.post(
                 '/api/v1/questions/suggest',
                 {
                     user_id: userId,
                     recent_mood: recentMood,
-                    count: count
+                    count: count,
+                    language: language
                 },
-                { timeout: 12000 }
+                { timeout: 35000 }  // Increased: OpenAI 429 fallback to Gemini can take up to ~25s
             );
 
             return {
@@ -308,14 +309,15 @@ class AIServiceClient {
     /**
      * UC-23: Log action completion
      */
-    async logActionCompletion(userId, actionId, durationSeconds, moodAtTime = null, source = 'suggestion') {
+    async logActionCompletion(userId, actionId, durationSeconds, moodAtTime = null, source = 'suggestion', postMoodScore = null) {
         try {
             const response = await this.client.post('/api/v1/actions/log_completion', {
                 user_id: userId,
                 action_id: actionId,
                 duration_seconds: durationSeconds,
                 mood_at_time: moodAtTime,
-                source: source
+                source: source,
+                post_mood_score: postMoodScore
             });
             return {
                 success: true,
@@ -374,6 +376,21 @@ class AIServiceClient {
                 error: error.message,
                 completions: []
             };
+        }
+    }
+
+    /**
+     * Check eligibility for suggesting actions
+     */
+    async checkActionEligibility(userId) {
+        try {
+            const response = await this.client.post('/api/v1/actions/eligibility', {
+                user_id: userId,
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to check action eligibility:', error.message);
+            return { eligible: false, error: error.message };
         }
     }
 

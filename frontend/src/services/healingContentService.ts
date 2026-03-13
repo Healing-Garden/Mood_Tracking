@@ -4,10 +4,19 @@ export interface HealingContent {
     _id: string;
     title: string;
     description: string;
-    type: 'quote' | 'video' | 'article';
+    type: 'quote' | 'video' | 'podcast';
+    moodLevel: number;
+    is_active?: boolean;
     content?: string;
     videoUrl?: string;
     thumbnail?: string;
+    author?: string;
+    metadata?: {
+        duration_seconds?: number;
+        difficulty?: 'easy' | 'medium' | 'hard';
+        mood_tags?: string[];
+        author?: string;
+    };
     createdAt: string;
     updatedAt: string;
 }

@@ -39,24 +39,26 @@ class CBTChatAgent:
                 "intent": "crisis_response",
             }
         
-        # 2. Sentiment analysis
-        sentiment_result = await asyncio.to_thread(sentiment_analyzer.analyze_journal_entry, user_input)
-        
-        # Xác định giai đoạn hiện tại
+        # 2 & 3. Sentiment analysis AND Retrieval (Run in PARALLEL to optimize speed)
+        # Identify current state and message count first
         current_state = session_state.get("state", "initial")
         user_message_count = 1  
         if conversation_history:
             user_message_count += sum(1 for msg in conversation_history if msg.get('sender') == 'user')
+
+        query = f"{user_input}" # Simplified query for speed
         
-        # 3. Retrieve CBT techniques
-        query = f"{user_input} {sentiment_result['dominant_emotion']}"
-
+        sentiment_task = asyncio.to_thread(sentiment_analyzer.analyze_journal_entry, user_input)
+        
         if current_state in ["initial", "assessment"]:
-            techniques = await cbt_kb.retrieve_techniques(query=query, category="exploratory", k=2)
+            techniques_task = cbt_kb.retrieve_techniques(query=query, category="exploratory", k=2)
         else:
-            techniques = await cbt_kb.retrieve_techniques(query, k=3)
-
-        # 4. Generate response với Gemini
+            techniques_task = cbt_kb.retrieve_techniques(query, k=3)
+            
+        # Execute both tasks concurrently
+        sentiment_result, techniques = await asyncio.gather(sentiment_task, techniques_task)
+        
+        # 4. Generate response with Gemini
         response_text = await self._generate_with_gemini(
             user_input,
             sentiment_result,
@@ -238,6 +240,31 @@ Now respond to the user's message following the guidelines above."""
                 "Mình ở đây để lắng nghe. Bạn cần mình hỗ trợ điều gì lúc này?",
                 "Hôm nay của bạn thế nào? Bạn có điều gì muốn chia sẻ không?",
                 "Mình sẵn sàng lắng nghe bất cứ điều gì bạn nghĩ đến."
+            ],
+            ('negative', 'sadness', 'en'): [
+                "I hear that you're feeling really exhausted. That feeling is completely normal. Could you share more about what's worrying you?",
+                "It sounds like you're under a lot of pressure today. Would you like to talk more about it?",
+                "I'm here for you. What's making you the saddest right now?"
+            ],
+            ('negative', 'anger', 'en'): [
+                "It seems you're feeling frustrated. I understand. What made you so upset?",
+                "Anger sometimes hides other emotions. Can you tell me more?",
+                "I'm here to listen. What happened?"
+            ],
+            ('negative', 'other', 'en'): [
+                "Thank you for sharing. It takes courage to express these feelings. How long have you felt this way?",
+                "That sounds difficult. Would you like to talk more about it?",
+                "I'm listening. Please share whatever you're feeling."
+            ],
+            ('positive', None, 'en'): [
+                "I'm so glad to see you're feeling better! What helped bringing this positive change?",
+                "That's wonderful! Can you tell me about that positive moment?",
+                "Positive emotions are precious. What did you do to achieve it?"
+            ],
+            ('neutral', None, 'en'): [
+                "I'm here to listen. How can I support you right now?",
+                "How is your day going? Do you have anything you'd like to share?",
+                "I'm ready to listen to whatever is on your mind."
             ]
         }
         # Tương tự cho tiếng Anh (có thể mở rộng)
@@ -255,7 +282,7 @@ Now respond to the user's message following the guidelines above."""
         else:
             key = ('neutral', None, lang)
 
-        candidates = templates.get(key, templates[('neutral', None, lang)])
+        candidates = templates.get(key, templates.get(('neutral', None, lang), templates[('neutral', None, 'vi')]))
 
         for candidate in candidates:
             if candidate != last_bot_msg:

@@ -231,9 +231,9 @@ class AIController {
             }
 
             const result = await aiService.suggestPracticalActions(
-                userId, 
-                currentMood, 
-                Number(count), 
+                userId,
+                currentMood,
+                Number(count),
                 Array.isArray(excludeIds) ? excludeIds : []
             );
 
@@ -266,18 +266,19 @@ class AIController {
     async logActionCompletion(req, res) {
         try {
             const userId = req.userId || req.body.userId;
-            const { actionId, durationSeconds, moodAtTime, source } = req.body;
+            const { actionId, durationSeconds, moodAtTime, source, postMoodScore } = req.body;
 
             if (!userId || !actionId) {
                 return res.status(400).json({ success: false, error: "userId and actionId are required" });
             }
 
             const result = await aiService.logActionCompletion(
-                userId, 
-                actionId, 
-                Number(durationSeconds), 
-                moodAtTime, 
-                source
+                userId,
+                actionId,
+                Number(durationSeconds),
+                moodAtTime,
+                source,
+                postMoodScore
             );
             res.json(result);
         } catch (error) {
@@ -295,9 +296,9 @@ class AIController {
             }
 
             const result = await aiService.logSkip(
-                userId, 
-                mood, 
-                Array.isArray(shownActions) ? shownActions : [], 
+                userId,
+                mood,
+                Array.isArray(shownActions) ? shownActions : [],
                 reason
             );
             res.json(result);
@@ -311,6 +312,19 @@ class AIController {
             const userId = req.params.userId || req.userId;
             const { days = 7 } = req.query;
             const result = await aiService.getActionHistory(userId, Number(days));
+            res.json(result);
+        } catch (error) {
+            res.status(500).json({ success: false, error: error.message });
+        }
+    }
+
+    async checkActionEligibility(req, res) {
+        try {
+            const userId = req.userId || req.body.userId;
+            if (!userId) {
+                return res.status(400).json({ success: false, error: "userId is required" });
+            }
+            const result = await aiService.checkActionEligibility(userId);
             res.json(result);
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });

@@ -23,6 +23,7 @@ class MoodPoint(BaseModel):
     mood_score: Optional[float] = None
     sentiment_score: Optional[float] = None
     energy_level: Optional[int] = None
+    moving_average: Optional[float] = None  
 
 class TrendResponse(BaseModel):
     mood_points: List[MoodPoint]
@@ -147,16 +148,16 @@ async def aggregate_daily_scores(mood_entries: List[dict], journal_entries: List
     return daily_scores
 
 def insufficient_data_response(data_points: int) -> TrendResponse:
-    """Trả về response khi không đủ dữ liệu"""
-    days_remaining = max(1, 7 - data_points)
+    """Trả về response khi không đủ 3 ngày dữ liệu (Onboarding Phase)"""
+    days_remaining = max(1, 3 - data_points)
     return TrendResponse(
         mood_points=[],
-        overall_trend="insufficient_data",
+        overall_trend="onboarding",
         trend_score=0.0,
         volatility=0.0,
-        insights=[f"Please continue logging for {days_remaining} more day(s) to enable AI trend analysis."],
+        insights=[f"Keep journaling! We need {days_remaining} more day(s) to unlock your first AI Insight."],
         risk_flags=[],
-        stats={"data_points": data_points, "days_remaining": days_remaining}
+        stats={"data_points": data_points, "phase": "onboarding"}
     )
 
 def convert_to_mood_points(daily_scores: List[dict]) -> List[MoodPoint]:
@@ -166,7 +167,8 @@ def convert_to_mood_points(daily_scores: List[dict]) -> List[MoodPoint]:
             date=item["date"],
             mood_score=item["mood_score"],
             sentiment_score=item["sentiment_score"],
-            energy_level=item["energy_level"]
+            energy_level=item["energy_level"],
+            moving_average=item.get("moving_average")
         )
         for item in daily_scores
     ]
@@ -256,7 +258,7 @@ def generate_enhanced_insights(trend: str, slope: float, volatility: float,
     if recent_avg < -0.2:
         insights.append("Your mood has been below average lately. Small self-care acts might help.")
 
-    return insights[:5]  # giới hạn 5 insights
+    return insights[:5]  
 
 async def save_analysis_to_db(user_id: str, trend: str, slope: float, volatility: float,
                                insights: List[str], risk_flags: List[str], stats: Dict[str, Any]):
@@ -343,50 +345,78 @@ async def analyze_trends(request: TrendAnalysisRequest):
         # Tổng hợp dữ liệu theo ngày (now async)
         daily_scores = await aggregate_daily_scores(mood_entries, journal_entries)
 
-        # Kiểm tra đủ dữ liệu (tối thiểu 7 ngày)
-        if len(daily_scores) < 7:
-            return insufficient_data_response(len(daily_scores))
-
+        # UC-22: Các phase dựa trên số lượng dữ liệu
+        data_count = len(daily_scores)
+        if data_count < 3:
+            return insufficient_data_response(data_count)
+        
+        phase = "full_analysis" if data_count >= 7 else "preliminary"
+        
         # Mảng các overall_score
         y = np.array([d["overall_score"] for d in daily_scores])
         x = np.arange(len(y))
 
-        # Tính trend (linear regression)
-        slope, intercept = np.polyfit(x, y, 1)
+        # --- TÍNH TOÁN THEO UC-22 ---
+        
+        # 1. Rolling Analysis: 7-day Moving Average (Trendline)
+        moving_averages = []
+        for i in range(len(y)):
+            window = y[max(0, i-6) : i+1]
+            moving_averages.append(float(np.mean(window)))
+        
+        for i, d in enumerate(daily_scores):
+            d["moving_average"] = moving_averages[i]
 
-        # Tính volatility (std deviation)
-        volatility = float(np.std(y))
-
-        # Xác định trend type
+        # 2. Compare today against previous 3-day average (Volatility)
+        volatility_status = "stable"
+        volatility = float(np.std(y)) 
+        if data_count >= 4:
+            today_score = y[-1]
+            prev_3d_avg = np.mean(y[-4:-1])
+            volatility_diff = today_score - prev_3d_avg
+            if abs(volatility_diff) > 0.3:
+                volatility_status = "high_fluctuation"
+        
+        # Xác định trend type dựa trên slope
+        slope, _ = np.polyfit(x, y, 1)
         if slope > 0.05:
             trend = "improving"
         elif slope < -0.05:
             trend = "declining"
-        elif volatility > 0.3:
-            trend = "volatile"
         else:
             trend = "stable"
 
-        # Kiểm tra risk flags (BR-22-01)
-        risk_flag_set = set()
-        if len(y) >= 7:
-            recent_scores = y[-7:]
-            # Cách 1: tất cả 7 ngày gần nhất đều âm (dưới -0.3)
-            if all(score < -0.3 for score in recent_scores):
-                risk_flag_set.add("prolonged_negative_trend")
-            # Cách 2: độ dốc 7 ngày gần nhất âm rõ rệt
-            recent_slope = np.polyfit(np.arange(7), recent_scores, 1)[0]
-            if recent_slope < -0.1:
-                risk_flag_set.add("prolonged_negative_trend")
-        if len(y) >= 3:
-            recent_change = y[-1] - y[-3]
-            if recent_change < -0.5:
-                risk_flag_set.add("rapid_mood_decline")
-        if len(y) >= 5:
-            recent_volatility = np.std(y[-5:])
-            if recent_volatility > 0.5:
-                risk_flag_set.add("high_emotional_volatility")
-        risk_flags = list(risk_flag_set)
+        # 3. Business Rules (BR-22-01 & BR-22-02)
+        risk_flags = []
+        
+        # BR-22-01: Soft Reflection Prompt (Anomaly > 20% drop vs 7-day avg)
+        if data_count >= 7:
+            seven_day_avg = moving_averages[-1]
+            today_score = y[-1]
+            # Normalizing score range for 20% calculation (scores are -1 to 1, shift to 0-2)
+            if (today_score + 1) < (seven_day_avg + 1) * 0.8:
+                risk_flags.append("mood_dip_detected") # Sẽ trigger Soft Reflection Prompt ở FE
+        
+        # BR-22-02: Continuous Trend Alert (7 consecutive days decline)
+        if data_count >= 7:
+            recent_7 = y[-7:]
+            is_declining = True
+            for i in range(1, len(recent_7)):
+                if recent_7[i] >= recent_7[i-1]:
+                    is_declining = False
+                    break
+            if is_declining:
+                risk_flags.append("continuous_negative_trend")
+
+        # 4. Extract recurring keywords (BR-22-03)
+        # (Tạm thời logic đơn giản, có thể mở rộng với NLP sau)
+        common_keywords = []
+        if journal_entries:
+            all_text = " ".join([e.get("text", "").lower() for e in journal_entries[-10:]])
+            # Giả định một số activities quan trọng
+            activities = ["yoga", "work", "reading", "sleep", "exercise", "family", "friends", "gym"]
+            for act in activities:
+                if act in all_text: common_keywords.append(act)
 
         # Phát hiện patterns theo ngày trong tuần
         patterns = await detect_weekday_patterns(request.user_id, daily_scores)
@@ -396,13 +426,13 @@ async def analyze_trends(request: TrendAnalysisRequest):
 
         # Thống kê
         stats = {
-            "data_points": len(daily_scores),
+            "data_points": data_count,
+            "phase": phase,
             "average_mood": float(np.mean(y)),
-            "min_mood": float(np.min(y)),
-            "max_mood": float(np.max(y)),
-            "trend_slope": float(slope),
-            "volatility": volatility,
-            "analysis_period_days": request.days
+            "trend_slope": float(np.polyfit(x, y, 1)[0]),
+            "volatility": float(np.std(y)),
+            "analysis_period_days": request.days,
+            "detected_keywords": common_keywords[:5]
         }
 
         # Lưu vào ai_interactions (tuỳ chọn, có thể bỏ qua nếu muốn)
@@ -438,9 +468,18 @@ async def detect_patterns(user_id: str, days: int = 90):
     """
     try:
         db = mongodb.get_db()
+        query_ids = [user_id]
+        try:
+            query_ids.append(ObjectId(user_id))
+        except:
+            pass
+
         mood_entries = await db.dailycheckins.find({
-            "user_id": user_id,
-            "created_at": {"$gte": datetime.now() - timedelta(days=days)}
+            "user": {"$in": query_ids},
+            "$or": [
+                {"created_at": {"$gte": datetime.now() - timedelta(days=days)}},
+                {"createdAt": {"$gte": datetime.now() - timedelta(days=days)}}
+            ]
         }).to_list(length=None)
 
         if not mood_entries:

@@ -1,4 +1,5 @@
 import http from "./http";
+import type { HealingContent } from "../services/healingContentService";
 
 interface UserProfile {
   _id: string;
@@ -10,6 +11,8 @@ interface UserProfile {
   weight?: number;
   avatarUrl?: string;
   hasPassword?: boolean;
+  appLockEnabled?: boolean;
+  hasAppLockPin?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -22,7 +25,7 @@ interface UpdateProfilePayload {
 }
 
 export const userApi = {
-  getOnboardingStatus(): Promise<{ isOnboarded: boolean }> {
+  getOnboardingStatus(): Promise<{ isOnboarded: boolean; onboardedAt?: string }> {
     return http.get("/user/onboarding/status");
   },
 
@@ -71,5 +74,14 @@ export const userApi = {
 
   toggleAppLock(enabled: boolean): Promise<{ message: string }> {
     return http.put("/user/app-lock/toggle", { enabled });
+  },
+
+  getHealingContent(type?: string): Promise<HealingContent[]> {
+    const params = type ? { type } : {};
+    return http.get("/user/healing-content", { params });
+  },
+
+  getDashboardData(): Promise<any> {
+    return http.get("/user/dashboard/data");
   },
 };

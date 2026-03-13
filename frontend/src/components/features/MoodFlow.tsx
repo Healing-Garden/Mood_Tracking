@@ -113,11 +113,39 @@ export default function MoodFlow({ defaultPeriod = 'week', onDataChange }: MoodF
                         <ComposedChart data={moodTrendData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
                             <XAxis dataKey="label" stroke="var(--color-muted-foreground)" />
-                            <YAxis stroke="var(--color-muted-foreground)" />
+                            <YAxis 
+                                yAxisId="mood" 
+                                domain={[0, 5]} 
+                                stroke="var(--color-chart-1)" 
+                                label={{ value: 'Mood', angle: -90, position: 'insideLeft', offset: 10 }}
+                            />
+                            <YAxis 
+                                yAxisId="energy" 
+                                orientation="right" 
+                                domain={[0, 10]} 
+                                stroke="var(--color-chart-2)" 
+                                label={{ value: 'Energy', angle: 90, position: 'insideRight', offset: 10 }}
+                            />
                             <Tooltip contentStyle={{ backgroundColor: '#fff', border: '1px solid var(--color-border)' }} />
                             <Legend />
-                            <Line type="monotone" dataKey="mood" stroke="var(--color-chart-1)" strokeWidth={2} dot={{ r: 4 }} name="Mood" />
-                            <Line type="monotone" dataKey="energy" stroke="var(--color-chart-2)" strokeWidth={2} dot={{ r: 4 }} name="Energy" />
+                            <Line 
+                                yAxisId="mood"
+                                type="monotone" 
+                                dataKey="mood" 
+                                stroke="var(--color-chart-1)" 
+                                strokeWidth={2} 
+                                dot={{ r: 4 }} 
+                                name="Mood (1-5)" 
+                            />
+                            <Line 
+                                yAxisId="energy"
+                                type="monotone" 
+                                dataKey="energy" 
+                                stroke="var(--color-chart-2)" 
+                                strokeWidth={2} 
+                                dot={{ r: 4 }} 
+                                name="Energy (1-10)" 
+                            />
                         </ComposedChart>
                     </ResponsiveContainer>
                 )}

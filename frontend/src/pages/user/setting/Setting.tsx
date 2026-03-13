@@ -5,8 +5,8 @@ import { useNavigate } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/Card'
 import { useOnboarding } from '../../../hooks/useOnboarding'
-import { RotateCcw, Lock, Bell, Palette, LogOut, Menu, X, ArrowLeft } from 'lucide-react'
-import DashboardSidebar from '../../../components/layout/DashboardSideBar'
+import { RotateCcw, Lock, Bell, Palette, LogOut, ArrowLeft } from 'lucide-react'
+import DashboardLayout from '../../../components/layout/DashboardLayout'
 import NotificationSettings from '../../../components/features/NotificationSettings'
 
 type SettingsCategory = {
@@ -19,7 +19,6 @@ type SettingsCategory = {
 
 export default function SettingsPage() {
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(false)
   const [view, setView] = useState<'main' | 'notifications'>('main') // state điều khiển view
 
   const {
@@ -33,7 +32,7 @@ export default function SettingsPage() {
   const [goals, setGoals] = useState<string[]>([])
 
   useEffect(() => {
-    setGoals(goalsSelected)
+    setGoals(goalsSelected || [])
   }, [goalsSelected])
 
   const handleRestartOnboarding = () => {
@@ -63,52 +62,21 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-30 ${sidebarOpen ? 'block' : 'hidden'} lg:static lg:block`}>
-        <DashboardSidebar userType="user" onClose={() => setSidebarOpen(false)} />
-      </div>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
+    <DashboardLayout title={view === 'main' ? 'Settings' : 'Notification Settings'}>
       <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <header className="sticky top-0 z-10 bg-white border-b border-border/50 shadow-sm">
-          <div className="px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4">
-              {/* Nút back khi ở view notifications */}
-              {view === 'notifications' && (
-                <button
-                  onClick={() => setView('main')}
-                  className="p-2 hover:bg-muted rounded-lg"
-                >
-                  <ArrowLeft size={20} />
-                </button>
-              )}
-              <h1 className="text-2xl font-bold text-primary">
-                {view === 'main' ? 'Settings' : 'Notification Settings'}
-              </h1>
-            </div>
-
-            <button 
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-        </header>
-
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="max-w-4xl mx-auto">
+        <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-0">
+          <div className="max-w-4xl mx-auto py-8">
+            {view === 'notifications' && (
+              <Button
+                variant="ghost"
+                onClick={() => setView('main')}
+                className="mb-4 gap-2 px-0 hover:bg-transparent text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft size={20} />
+                Back to Settings
+              </Button>
+            )}
             {view === 'main' ? (
               /* Nội dung settings chính */
               <div className="space-y-6">
@@ -245,6 +213,6 @@ export default function SettingsPage() {
           </div>
         </main>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }
