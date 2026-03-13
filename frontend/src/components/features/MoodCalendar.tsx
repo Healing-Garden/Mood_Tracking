@@ -4,10 +4,18 @@ import { dailyCheckInApi, type MoodHistoryItem } from '../../api/dailyCheckInApi
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react'
 
 const MOOD_COLORS = {
-    negative: 'bg-red-200 border-red-300 text-red-700',
-    neutral: 'bg-gray-200 border-gray-300 text-gray-700',
-    positive: 'bg-green-200 border-green-300 text-green-700',
+    negative: 'bg-gradient-to-br from-red-100 to-red-200 border-red-300 text-red-700',
+    neutral: 'bg-gradient-to-br from-orange-100 to-orange-200 border-orange-300 text-orange-700',
+    positive: 'bg-gradient-to-br from-green-100 to-green-200 border-green-300 text-green-700',
     none: 'bg-muted/30 border-dashed border-border text-muted-foreground'
+}
+
+const MOOD_EMOJI: Record<number, string> = {
+    1: "😢",
+    2: "😔",
+    3: "😐",
+    4: "🙂",
+    5: "😄",
 }
 
 export default function MoodCalendar() {
@@ -135,7 +143,7 @@ export default function MoodCalendar() {
                     </div>
                 )}
                 {!loading && !error && (
-                    <div className="grid grid-cols-7 gap-2">
+                    <div className="grid grid-cols-7 gap-2 transition-all duration-200">
                         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
                             <div key={d} className="text-center text-xs font-bold text-muted-foreground py-2 uppercase tracking-wider">
                                 {d}
@@ -145,32 +153,47 @@ export default function MoodCalendar() {
                             <div key={`blank-${i}`} className="aspect-square w-full" />
                         ))}
                         {days.map(day => {
+                            const today = new Date()
+                            const isToday =
+                                today.getFullYear() === year &&
+                                today.getMonth() + 1 === month &&
+                                today.getDate() === day
                             const moodItem = getMoodForDay(day)
                             const colorClass = moodItem ? MOOD_COLORS[moodItem.theme] : MOOD_COLORS.none
 
                             return (
                                 <div
                                     key={day}
+                                    title={
+                                        moodItem
+                                            ? `${moodItem.date} • Mood ${moodItem.mood}`
+                                            : `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')} • No check-in`
+                                    }
                                     className={`
                                         aspect-square
                                         w-full
                                         rounded-xl
                                         border
-                                        flex flex-col items-center justify-center
-                                        transition-all
-                                        hover:scale-105
+                                        flex items-center justify-center
+                                        transition-all duration-200 ease-out
+                                        hover:scale-[1.05] hover:shadow-md
                                         cursor-default
                                         group
                                         relative
                                         ${colorClass}
+                                        ${isToday ? "ring-2 ring-primary" : ""}
                                     `}
                                 >
-                                    <span className="text-xs font-medium opacity-60">{day}</span>
+                                    <span className="absolute top-2 left-2 text-xs font-medium opacity-60">
+                                        {day}
+                                    </span>
                                     {moodItem && (
-                                        <span className="text-lg font-bold">{moodItem.mood}</span>
+                                        <span className="text-3xl">
+                                            {MOOD_EMOJI[moodItem.mood]}
+                                        </span>
                                     )}
                                     {moodItem && (
-                                        <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-white shadow-sm border border-border group-hover:scale-125 transition-transform" />
+                                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-sm bg-white shadow-sm border border-border group-hover:scale-125 transition-transform" />
                                     )}
                                 </div>
                             )
