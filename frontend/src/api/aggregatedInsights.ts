@@ -21,6 +21,6 @@ export const getAggregatedInsights = async (
       segments: params.segments ? JSON.stringify(params.segments) : undefined,
     },
   });
-  // http interceptor đã trả về res.data, nên response là dữ liệu cần
+  // http interceptor đã trả về res.data, nên response là dữ liệu cần.
   return response as unknown as AggregatedInsights;
 };
