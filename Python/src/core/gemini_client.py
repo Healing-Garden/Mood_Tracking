@@ -48,11 +48,10 @@ class GeminiClient:
 
     @staticmethod
     def _parse_retry_delay(error_message: str) -> float:
-        """Lấy thời gian retry từ message lỗi 429, mặc định 30s."""
         match = re.search(r"retry in (\d+(?:\.\d+)?)s", str(error_message), re.IGNORECASE)
         if match:
-            return min(float(match.group(1)), 3.0)  # Cap tối đa 3s để tránh chain quá chậm
-        return 3.0
+            return float(match.group(1))
+        return 10.0
 
     async def generate_response(
         self,

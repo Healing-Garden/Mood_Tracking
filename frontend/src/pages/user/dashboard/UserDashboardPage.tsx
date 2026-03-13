@@ -89,13 +89,13 @@ const UserDashboardPage = () => {
           userApi.getProfile(),
           userApi.getDashboardData()
         ])
-        
+
         setDashboardData({
           journeyDays: stats.journeyDays || 1,
           moodDistribution: stats.moodDistribution || [],
           userName: profile.fullName || 'User',
         })
-        
+
         if (stats.weeklyStats) {
           setWeeklyStats(stats.weeklyStats)
         }
@@ -133,13 +133,14 @@ const UserDashboardPage = () => {
 
   useEffect(() => {
     const maybeOpenSuggestions = async () => {
-      if (!lastMood || !NEGATIVE_MOODS.includes(lastMood.toLowerCase())) return;
+      // Bỏ guard mood ở frontend; để backend kiểm tra cả journal và checkin
       if (!user?.id) return;
       try {
         const res = await aiApi.checkActionEligibility(user.id) as any;
         const eligible = res?.eligible ?? res?.data?.eligible;
         if (eligible) {
-          openModal(lastMood);
+          // If no lastMood, still open modal but maybe with a default mood or 'neutral'
+          openModal(lastMood || 'neutral');
         }
       } catch (err) {
         console.error('Failed to check action suggestion eligibility:', err);

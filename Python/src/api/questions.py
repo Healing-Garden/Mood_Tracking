@@ -6,6 +6,7 @@ import json
 import re
 import random
 from pydantic import BaseModel
+from bson import ObjectId
 
 from src.database import mongodb
 from src.core.embeddings import embedding_service
@@ -35,8 +36,13 @@ async def suggest_questions(request: QuestionRequest):
         # ---- 1. Lấy mood gần nhất (nếu request không cung cấp) ----
         recent_mood = request.recent_mood
         if not recent_mood:
-            mood_doc = await db.mood_entries.find_one(
-                {"user_id": user_id, "created_at": {"$gte": datetime.now() - timedelta(hours=24)}},
+            try:
+                user_obj_id = ObjectId(user_id)
+            except:
+                user_obj_id = user_id
+                
+            mood_doc = await db.dailycheckins.find_one(
+                {"user": user_obj_id, "created_at": {"$gte": datetime.now() - timedelta(hours=24)}},
                 sort=[("created_at", -1)]
             )
             recent_mood = mood_doc.get("mood") if mood_doc else None
@@ -70,7 +76,10 @@ async def suggest_questions(request: QuestionRequest):
         snippets = []
         if results.get("documents") and len(results["documents"]) > 0:
             snippets = results["documents"][0]
-        snippets = snippets[:3]
+        if isinstance(snippets, list):
+            snippets = snippets[:3]
+        else:
+            snippets = []
 
         # ---- 4. Sinh câu hỏi bằng LLM ----
         questions = await _generate_questions(

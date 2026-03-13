@@ -68,6 +68,13 @@ class ActionCompletionLog(BaseModel):
     post_mood_score: Optional[float] = None
 
 
+class SkipLog(BaseModel):
+    user_id: str
+    mood: Optional[str] = None
+    shown_actions: List[str] = Field(default_factory=list)
+    reason: Optional[str] = None
+
+
 class EligibilityRequest(BaseModel):
     user_id: str
 
@@ -87,10 +94,12 @@ async def get_user_enhanced_context(db, user_id: str) -> Dict[str, Any]:
     
     try:
         # 1. Fetch Onboarding Data
-        onboarding = await db.onboardings.find_one({"userId": ObjectId(user_id)})
+        onboarding = await db.onboardings.find_one({"user": user_id})
         if not onboarding:
-            # Fallback for string ID
-            onboarding = await db.onboardings.find_one({"userId": user_id})
+            try:
+                onboarding = await db.onboardings.find_one({"user": ObjectId(user_id)})
+            except:
+                onboarding = None
             
         if onboarding:
             context["onboarding_goals"] = onboarding.get("goals", [])
@@ -114,7 +123,7 @@ async def get_user_enhanced_context(db, user_id: str) -> Dict[str, Any]:
             
             context["recent_journal_themes"] = list(set(themes))
             if sentiments:
-                context["recent_journal_sentiment"] = sentiments[0] # Most recent
+                context["recent_journal_sentiment"] = sentiments[0] 
                 
     except Exception as e:
         logger.error(f"Error fetching enhanced context: {e}")
@@ -183,7 +192,7 @@ async def fetch_actions_from_new_tables(
     mood_levels = get_mood_levels(mood)
     
     all_docs: List[Dict] = []
-    collections = ["healingquotes", "healingvideos", "healingpodcasts"]
+    collections = ["healingvideos", "healingpodcasts"]
     
     # Try multiple strategies to find best content
     strategies = [
@@ -250,8 +259,8 @@ async def suggest_actions(request: ActionRequest):
         # 3. SCORE & RE-RANK based on Onboarding Goals and Journal Themes
         all_actions = []
         for doc in actions_docs:
-            # Derive type from collection; default to 'article'
-            col_type = doc.get("_source_collection", "healingarticles").replace("healing", "").rstrip("s")
+            # Derive type from collection; default to 'video'
+            col_type = doc.get("_source_collection", "healingvideos").replace("healing", "").rstrip("s")
             action = convert_doc_to_action(doc, col_type)
             
             # Simple Scoring Logic
@@ -296,7 +305,7 @@ async def suggest_actions(request: ActionRequest):
             "actions": final_actions,
             "context": {
                 "mood": current_mood,
-                "analysis_sources": ["quick_checkin", "onboarding", "journals"],
+                "analysis_sources": ["dailycheckins", "onboardings", "journal_entries"],
                 "personalized_scores": True
             },
             "suggested_at": datetime.now().isoformat()
@@ -317,7 +326,7 @@ async def log_action_completion(log: ActionCompletionLog):
     """
     try:
         db = mongodb.get_db()
-        now = datetime.now()
+        now = datetime.utcnow()
         await db.ai_interactions.insert_one({
             "user_id": log.user_id,
             "type": "action_completed",
@@ -336,6 +345,35 @@ async def log_action_completion(log: ActionCompletionLog):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.post("/log-completion")
+async def log_action_completion_alias(log: ActionCompletionLog):
+    return await log_action_completion(log)
+
+
+@router.post("/skip")
+async def log_action_skip(log: SkipLog):
+    """
+    Ghi nhận user skip các gợi ý hành động.
+    """
+    try:
+        db = mongodb.get_db()
+        now = datetime.utcnow()
+        await db.ai_interactions.insert_one({
+            "user_id": log.user_id,
+            "type": "action_skipped",
+            "content": {
+                "mood": log.mood,
+                "shown_actions": log.shown_actions,
+                "reason": log.reason,
+            },
+            "created_at": now
+        })
+        return {"success": True, "message": "Action skip logged"}
+    except Exception as e:
+        logger.error(f"Failed to log action skip: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/eligibility", response_model=EligibilityResponse)
 async def check_suggest_actions_eligibility(request: EligibilityRequest):
     """
@@ -350,22 +388,42 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
         except Exception:
             user_obj_id = request.user_id
 
-        now = datetime.now()
-        since_journal = now - timedelta(days=7) # Thu hẹp lại 7 ngày cho gần nhất
+        now = datetime.utcnow()
+        since_journal = now - timedelta(days=7)
 
         # BẮT BUỘC: Có ít nhất 1 nhật ký tâm trạng tệ trong 7 ngày qua
         negative_moods = {"very sad", "very low", "sad", "low", "anxious", "stressed", "angry", "tired", "overwhelmed"}
+        user_ids = [request.user_id]
+        if user_obj_id is not None:
+            user_ids.insert(0, user_obj_id)
         bad_journals = await db.journal_entries.find(
             {
-                "user_id": request.user_id,
+                "user_id": {"$in": user_ids},
                 "created_at": {"$gte": since_journal},
-                "deleted_at": None
+                "deleted_at": {"$in": [None, ""]}
             },
             {
                 "mood": 1,
-                "sentiment": 1
+                "sentiment": 1,
+                "created_at": 1,
+                "createdAt": 1
             }
         ).to_list(length=50)
+
+        if not bad_journals:
+            bad_journals = await db.journal_entries.find(
+                {
+                    "user_id": {"$in": user_ids},
+                    "created_at": {"$gte": since_journal},
+                    "deleted_at": {"$exists": False}
+                },
+                {
+                    "mood": 1,
+                    "sentiment": 1,
+                    "created_at": 1,
+                    "createdAt": 1
+                }
+            ).to_list(length=50)
 
         is_mood_bad = False
         for j in bad_journals:
@@ -381,16 +439,53 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
         if not is_mood_bad:
             return EligibilityResponse(eligible=False)
 
+        # MỚI: Tìm journal có tâm trạng tệ GẦN NHẤT
+        def _to_dt(val):
+            if isinstance(val, datetime):
+                return val
+            if isinstance(val, str):
+                try:
+                    return datetime.fromisoformat(val.replace("Z", "+00:00"))
+                except Exception:
+                    return None
+            return None
+
+        latest_bad_journal_time = None
+        for j in bad_journals:
+            m = str(j.get("mood", "")).lower()
+            s = j.get("sentiment") or {}
+            if m in negative_moods or (isinstance(s, dict) and s.get("sentiment") == "negative"):
+                ts = _to_dt(j.get("created_at")) or _to_dt(j.get("createdAt"))
+                if ts and (not latest_bad_journal_time or ts > latest_bad_journal_time):
+                    latest_bad_journal_time = ts
+
+        # KIỂM TRA: User đã hoàn thực hiện hoặc skip gợi ý nào SAU journal tệ nhất này chưa?
+        if latest_bad_journal_time:
+            latest_interaction = await db.ai_interactions.find_one(
+                {
+                    "user_id": {"$in": user_ids},
+                    "type": {"$in": ["action_completed", "action_skipped"]},
+                    "created_at": {"$gt": latest_bad_journal_time}
+                },
+                sort=[("created_at", -1)]
+            )
+            if latest_interaction:
+                # Đã xử lý rồi, không cần gợi ý lại cho đến khi có journal mới
+                return EligibilityResponse(eligible=False)
+
         # Kiểm tra thêm nếu user đã hoàn thành Quick Check-in hôm nay
-        since_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        today_str = now.strftime("%Y-%m-%d")
+        
         recent_checkin = await db.dailycheckins.find_one(
             {
                 "user": user_obj_id,
-                "createdAt": {"$gte": since_today}
+                "$or": [
+                    {"date": today_str},
+                    {"createdAt": {"$gte": now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=7)}} 
+                ]
             }
         )
         
-        # User đủ điều kiện khi có tâm trạng tệ trong journal VÀ đã check-in hôm nay
         return EligibilityResponse(eligible=True if recent_checkin else False)
 
     except Exception as e:
