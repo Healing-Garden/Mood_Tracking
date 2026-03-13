@@ -112,7 +112,7 @@ const SecurityPinModal: React.FC<{
             <X size={24} />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="px-8 py-6 space-y-8">
           <div className="flex justify-center gap-2 sm:gap-3">
             {(step === 'confirm' ? confirmPinDigits : pinDigits).map((digit, i) => (
@@ -129,14 +129,14 @@ const SecurityPinModal: React.FC<{
               />
             ))}
           </div>
-          
+
           <div className="pt-2 flex items-center justify-end gap-4">
             <Button type="button" variant="ghost" onClick={onClose} className="px-6 py-2.5 text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors rounded-lg" disabled={isLoading}>
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2" 
+            <Button
+              type="submit"
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2"
               disabled={isLoading || (step === 'confirm' ? confirmPinDigits : pinDigits).some(d => !d)}
             >
               {isLoading ? 'Processing...' : (
@@ -169,7 +169,7 @@ const PasswordChangeModal: React.FC<{
   const handlePasswordChange = async (e: FormEvent) => {
     e.preventDefault()
     setPasswordError('')
-    
+
     if (!newPassword || newPassword.length < 8) {
       setPasswordError('Mật khẩu phải có ít nhất 8 ký tự')
       return
@@ -178,7 +178,7 @@ const PasswordChangeModal: React.FC<{
       setPasswordError('Mật khẩu xác nhận không khớp')
       return
     }
-    
+
     setIsLoading(true)
     try {
       await userApi.changePassword({ currentPassword, newPassword })
@@ -207,10 +207,10 @@ const PasswordChangeModal: React.FC<{
             <X size={24} />
           </button>
         </div>
-        
+
         <form onSubmit={handlePasswordChange} className="px-8 py-6 space-y-5">
           {passwordError && <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 animate-in fade-in">{passwordError}</div>}
-          
+
           {hasPassword && (
             <div className="flex flex-col gap-2">
               <label className="text-primary text-sm font-semibold flex items-center gap-2">
@@ -219,7 +219,7 @@ const PasswordChangeModal: React.FC<{
               <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-400" placeholder="••••••••" required />
             </div>
           )}
-          
+
           <div className="flex flex-col gap-2">
             <label className="text-primary text-sm font-semibold flex items-center gap-2">
               <Key size={16} /> New Password
@@ -227,7 +227,7 @@ const PasswordChangeModal: React.FC<{
             <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-slate-400" placeholder="••••••••" required />
             <p className="text-[10px] text-muted-foreground uppercase font-bold ml-1">8+ chars, uppercase & special char</p>
           </div>
-          
+
           <div className="flex flex-col gap-2">
             <label className="text-primary text-sm font-semibold flex items-center gap-2">
               <ShieldCheck size={16} /> Confirm New Password
@@ -288,11 +288,11 @@ const EditProfileModal: React.FC<{
             <label className="text-primary text-sm font-semibold flex items-center gap-2">
               <User size={16} /> Full Name
             </label>
-            <Input 
-              className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400" 
-              placeholder="Enter your name" 
-              type="text" 
-              value={name} 
+            <Input
+              className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400"
+              placeholder="Enter your name"
+              type="text"
+              value={name}
               onChange={(e) => setName(e.target.value)}
               required
             />
@@ -303,10 +303,10 @@ const EditProfileModal: React.FC<{
               <label className="text-primary text-sm font-semibold flex items-center gap-2">
                 <Cake size={16} /> Age
               </label>
-              <Input 
-                className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400" 
-                placeholder="Years" 
-                type="number" 
+              <Input
+                className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400"
+                placeholder="Years"
+                type="number"
                 value={age}
                 onChange={(e) => setAge(e.target.value)}
               />
@@ -315,10 +315,10 @@ const EditProfileModal: React.FC<{
               <label className="text-primary text-sm font-semibold flex items-center gap-2">
                 <Ruler size={16} /> Height (cm)
               </label>
-              <Input 
-                className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400" 
-                placeholder="cm" 
-                type="number" 
+              <Input
+                className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400"
+                placeholder="cm"
+                type="number"
                 value={height}
                 onChange={(e) => setHeight(e.target.value)}
               />
@@ -329,10 +329,10 @@ const EditProfileModal: React.FC<{
             <label className="text-primary text-sm font-semibold flex items-center gap-2">
               <Scale size={16} /> Weight (kg)
             </label>
-            <Input 
-              className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400" 
-              placeholder="kg" 
-              type="number" 
+            <Input
+              className="w-full px-4 py-3 rounded-lg border border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent text-slate-900 dark:text-slate-100 outline-none transition-all placeholder:text-slate-400"
+              placeholder="kg"
+              type="number"
               step="0.1"
               value={weight}
               onChange={(e) => setWeight(e.target.value)}
@@ -343,8 +343,8 @@ const EditProfileModal: React.FC<{
             <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors">
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={isLoading}
               className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2"
             >
@@ -542,7 +542,7 @@ const UserProfilePage: React.FC = () => {
                 {successMessage}
               </div>
             )}
-            
+
             <Card className="bg-white rounded-2xl shadow-lg border-none p-6">
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
                 <TabsList className="grid w-full grid-cols-3 bg-secondary/50 rounded-lg">
@@ -579,8 +579,8 @@ const UserProfilePage: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <Button 
-                      onClick={() => setShowEditModal(true)} 
+                    <Button
+                      onClick={() => setShowEditModal(true)}
                       className="px-8 h-12 bg-primary hover:bg-primary/90 rounded-xl shadow-lg font-bold transition-all active:scale-95"
                     >
                       Edit Profile
@@ -611,7 +611,7 @@ const UserProfilePage: React.FC = () => {
                         Update your password every 3 months to keep your account safe and secure.
                       </p>
                     </div>
-                    <Button 
+                    <Button
                       onClick={() => setIsPasswordModalOpen(true)}
                       className="px-8 h-12 bg-primary hover:bg-primary/90 rounded-xl shadow-lg font-bold transition-all active:scale-95"
                     >
@@ -638,9 +638,9 @@ const UserProfilePage: React.FC = () => {
                         {isAppLockEnabled ? 'Protected' : 'Inactive'}
                       </span>
                       {hasPinSet && (
-                        <Button 
-                          variant="outline" 
-                          className="h-10 rounded-lg font-bold border-2" 
+                        <Button
+                          variant="outline"
+                          className="h-10 rounded-lg font-bold border-2"
                           onClick={() => { setPinModalMode('verify_to_disable'); setIsPinModalOpen(true); }}
                         >
                           {isAppLockEnabled ? 'Disable' : 'Enable'}
@@ -650,7 +650,7 @@ const UserProfilePage: React.FC = () => {
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button 
+                    <Button
                       onClick={() => { setPinModalMode(hasPinSet ? 'verify_to_change' : 'setup'); setIsPinModalOpen(true); }}
                       className="h-14 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl font-bold text-lg gap-3"
                     >
@@ -687,10 +687,10 @@ const UserProfilePage: React.FC = () => {
         isLoading={isLoading}
       />
 
-      <SecurityPinModal 
-        isOpen={isPinModalOpen} 
-        onClose={() => setIsPinModalOpen(false)} 
-        mode={pinModalMode} 
+      <SecurityPinModal
+        isOpen={isPinModalOpen}
+        onClose={() => setIsPinModalOpen(false)}
+        mode={pinModalMode}
         onSuccess={handlePinSuccess}
       />
 
