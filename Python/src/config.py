@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     app_name: str = Field(default="Mental Health AI Service")
     environment: str = Field(default="development")
     debug: bool = Field(default=False)
+    load_heavy_models: bool = Field(default=False)
     
     # Server
     host: str = Field(default="0.0.0.0")

@@ -42,9 +42,9 @@ RUN useradd -m -u 1000 appuser && \
 
 USER appuser
 
-EXPOSE 8000
+EXPOSE 7860
 
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-CMD curl -f http://localhost:7860/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-7860}/api/v1/health || exit 1
 
-CMD ["python","-m","uvicorn","src.main:app","--host","0.0.0.0","--port","7860"]
+CMD python -m uvicorn src.main:app --host 0.0.0.0 --port 7860
