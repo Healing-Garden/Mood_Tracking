@@ -89,13 +89,13 @@ const UserDashboardPage = () => {
           userApi.getProfile(),
           userApi.getDashboardData()
         ])
-        
+
         setDashboardData({
           journeyDays: stats.journeyDays || 1,
           moodDistribution: stats.moodDistribution || [],
           userName: profile.fullName || 'User',
         })
-        
+
         if (stats.weeklyStats) {
           setWeeklyStats(stats.weeklyStats)
         }

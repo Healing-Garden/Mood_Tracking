@@ -11,5 +11,7 @@ router.use(requireAdmin);
 router.get("/users", adminController.getUsers);
 router.patch("/users/:id/ban", adminController.banUser);
 router.patch("/users/:id/unban", adminController.unbanUser);
+router.get("/feedback", adminController.getAllFeedback);
+router.patch("/feedback/:id/status", adminController.updateFeedbackStatus);
 
 module.exports = router;

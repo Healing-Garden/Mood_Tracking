@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from "axios";
+import type { AxiosError, AxiosResponse, InternalAxiosRequestConfig, AxiosRequestConfig, AxiosInstance } from "axios";
 
 interface FailedQueueItem {
   resolve: (value: AxiosResponse) => void;
@@ -89,4 +89,12 @@ http.interceptors.response.use(
   }
 );
 
-export default http;
+export interface TypedAxiosInstance extends Omit<AxiosInstance, 'get' | 'post' | 'patch' | 'put' | 'delete'> {
+  get<R = any>(url: string, config?: AxiosRequestConfig): Promise<R>;
+  post<R = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R>;
+  patch<R = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R>;
+  put<R = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<R>;
+  delete<R = any>(url: string, config?: AxiosRequestConfig): Promise<R>;
+}
+
+export default http as unknown as TypedAxiosInstance;
