@@ -67,7 +67,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSuccess }) => {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Type Selection */}
                     <div className="flex gap-4 p-1 bg-secondary/50 rounded-lg">
                         {(['feature', 'bug', 'content_rating'] as FeedbackType[]).map((t) => (
@@ -90,9 +90,9 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSuccess }) => {
 
                     {/* Rating for content_rating type */}
                     {type === 'content_rating' && (
-                        <div className="space-y-2">
+                        <div className="space-y-1">
                             <label className="text-sm font-medium text-slate-700">Rate your experience (1-5)</label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 py-1">
                                 {[1, 2, 3, 4, 5].map((num) => (
                                     <button
                                         key={num}
@@ -111,7 +111,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSuccess }) => {
                     )}
 
                     {/* Subject */}
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                         <label htmlFor="subject" className="text-sm font-medium text-slate-700">Subject</label>
                         <input
                             id="subject"
@@ -125,7 +125,7 @@ const FeedbackForm: React.FC<FeedbackFormProps> = ({ onSuccess }) => {
                     </div>
 
                     {/* Message */}
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                         <label htmlFor="message" className="text-sm font-medium text-slate-700">Message</label>
                         <textarea
                             id="message"
