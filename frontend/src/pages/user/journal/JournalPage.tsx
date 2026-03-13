@@ -55,6 +55,7 @@ declare global {
   }
 }
 
+
 const EMOTIONS = [
   "Happy",
   "Sad",
