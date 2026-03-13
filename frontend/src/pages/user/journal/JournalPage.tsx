@@ -113,7 +113,6 @@ export default function JournalPage() {
   const audioChunksRef = useRef<Blob[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const speechRecognitionRef = useRef<SpeechRecognition | null>(null);
   const transcriptRef = useRef<string>(""); // lưu tạm nội dung nói
 
@@ -617,12 +616,17 @@ export default function JournalPage() {
                   </div>
                 )}
                 {/* Title Input */}
-                <Input
-                  placeholder="Journal Title..."
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="text-lg font-semibold"
-                />
+                <div className="space-y-1">
+                  <span className="text-sm font-semibold ml-1">Title</span>
+                  <Input
+                    placeholder="Journal Title..."
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="text-lg font-semibold"
+                    autoComplete="off"
+                    name="journal-title-new"
+                  />
+                </div>
 
                 {/* Textarea */}
                 <Textarea
@@ -643,9 +647,9 @@ export default function JournalPage() {
                       <button
                         key={mood}
                         onClick={() => setSelectedMood(mood)}
-                        className={`text-2xl p-1.5 rounded transition-all ${selectedMood === mood
-                          ? "bg-primary/20 scale-110"
-                          : "hover:bg-secondary/50"
+                        className={`text-2xl p-1 rounded-md transition-all ${selectedMood === mood
+                          ? "bg-white shadow-md scale-110 ring-2 ring-primary/20"
+                          : "hover:bg-white/50 opacity-60 hover:opacity-100"
                           }`}
                       >
                         {mood}
@@ -1034,14 +1038,15 @@ export default function JournalPage() {
                 <Input
                   key={i}
                   id={isConfirming ? `confirm-pin-${i}` : `pin-${i}`}
-                  type="password"
+                  type="text"
                   inputMode="numeric"
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handlePinInputChange(i, e.target.value, isConfirming)}
                   onKeyDown={(e) => handlePinKeyDown(i, e, isConfirming)}
-                  className="w-full h-10 text-center text-lg font-bold border-2 focus:border-primary rounded-lg px-0"
+                  className="w-full h-10 text-center text-lg font-bold border-2 focus:border-primary rounded-lg px-0 input-password-mask hide-password-toggle"
                   autoFocus={i === 0}
+                  autoComplete="one-time-code"
                 />
               ))}
             </div>
@@ -1076,173 +1081,195 @@ export default function JournalPage() {
         </div>
       )}
       {selectedEntry && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl p-6 relative">
-            {/* Close */}
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-black"
-              onClick={() => setSelectedEntry(null)}
-            >
-              ✕
-            </button>
-
-            {/* TITLE */}
-            <div className="mb-4">
-              {isEditMode ? (
-                <Input
-                  value={editTitle}
-                  onChange={(e) => setEditTitle(e.target.value)}
-                />
-              ) : (
-                <h2 className="text-2xl font-bold">{selectedEntry.title}</h2>
-              )}
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-3xl max-h-[85vh] rounded-[2rem] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* MODAL HEADER */}
+            <div className="px-8 py-4 border-b flex justify-between items-center bg-gray-50/50">
+              <h3 className="text-3xl font-bold text-gray-800">
+                {isEditMode ? "Edit Journal" : "My Journal"}
+              </h3>
+              <button
+                className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-500"
+                onClick={() => setSelectedEntry(null)}
+              >
+                <X size={20} />
+              </button>
             </div>
 
-            {/* MOOD + ENERGY */}
-            <div className="flex gap-4 mb-4 items-center">
-              {isEditMode ? (
-                <>
+            {/* MODAL BODY (SCROLLABLE) */}
+            <div className="flex-1 overflow-y-auto p-8 custom-scrollbar space-y-4">
+              {/* TITLE SECTION */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Title</label>
+                {isEditMode ? (
                   <Input
-                    value={editMood}
-                    onChange={(e) => setEditMood(e.target.value)}
-                    placeholder="Mood 😄"
-                    className="w-32"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="text-xl font-bold bg-gray-50/50 border-none px-4 py-5 rounded-xl focus-visible:ring-primary/30"
+                    autoComplete="off"
+                    placeholder="Capture your thought's title..."
                   />
-                  <Input
-                    type="number"
-                    value={editEnergy}
-                    onChange={(e) => setEditEnergy(Number(e.target.value))}
-                    className="w-24"
-                  />
-                </>
-              ) : (
-                <>
-                  <span className="text-2xl">{selectedEntry.mood}</span>
-                  <span className="text-gray-600">
-                    Energy: {selectedEntry.energy_level}
-                  </span>
-                </>
-              )}
-            </div>
+                ) : (
+                  <h2 className="text-3xl font-extrabold text-gray-900 leading-tight">{selectedEntry.title}</h2>
+                )}
+              </div>
 
-            {/* TEXT */}
-            <div className="mb-6">
-              {isEditMode ? (
-                <Textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="min-h-40"
-                />
-              ) : (
-                <p className="whitespace-pre-line text-gray-700">
-                  {selectedEntry.text}
-                </p>
-              )}
-            </div>
-
-            {/* OLD IMAGES */}
-            {selectedEntry.images?.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {selectedEntry.images
-                  .filter((img) => !removedImages.includes(img))
-                  .map((img: string, index: number) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={img}
-                        alt="journal"
-                        className="rounded-lg object-cover w-full h-40"
-                      />
-
-                      {isEditMode && (
+              {/* MOOD & METADATA SECTION */}
+              <div className="flex flex-wrap gap-6 items-start">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Mood</label>
+                  {isEditMode ? (
+                    <div >
+                      {MOODS.map((mood) => (
                         <button
-                          onClick={() =>
-                            setRemovedImages((prev) => [...prev, img])
-                          }
-                          className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded"
+                          key={mood}
+                          onClick={() => setEditMood(mood)}
+                          className={`text-2xl p-1 rounded-md transition-all ${editMood === mood
+                            ? "bg-white shadow-md scale-110 ring-2 ring-primary/20"
+                            : "hover:bg-white/50 opacity-60 hover:opacity-100"
+                            }`}
                         >
-                          X
+                          {mood}
                         </button>
-                      )}
+                      ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="flex items-center gap-3 px-4 py-2 bg-primary/5 rounded-2xl border border-primary/10">
+                      <span className="text-3xl">{selectedEntry.mood}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-primary/80">
+                          {selectedEntry.energy_level !== undefined ? `Energy: ${selectedEntry.energy_level}` : "Feeling Good"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {!isEditMode && (
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Created</label>
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-2xl border border-gray-100 text-gray-600">
+                      <Calendar size={18} className="text-primary/60" />
+                      <span className="text-sm font-medium">
+                        {new Date(selectedEntry.created_at).toLocaleDateString(undefined, {
+                          weekday: 'long',
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            {/* NEW IMAGE PREVIEW */}
-            {previewImages.length > 0 && (
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                {previewImages.map((img, index) => (
-                  <img
-                    key={index}
-                    src={img}
-                    className="rounded-lg object-cover w-full h-40"
+
+              {/* CONTENT SECTION */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Content</label>
+                {isEditMode ? (
+                  <Textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="min-h-[300px] text-lg leading-relaxed bg-gray-50/50 border-none rounded-2xl p-6 focus-visible:ring-primary/30"
+                    placeholder="Your story goes here..."
                   />
-                ))}
+                ) : (
+                  <div className="prose prose-emerald max-w-none">
+                    <p className="text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                      {selectedEntry.text}
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
 
-            {isEditMode && (
-              <>
-                <input
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  className="mb-3"
-                  onChange={(e) => {
-                    const files = Array.from(e.target.files || []);
-                    setNewImages(files);
-                    setPreviewImages(files.map((f) => URL.createObjectURL(f)));
-                  }}
-                />
+              {/* IMAGES SECTION */}
+              {(selectedEntry.images?.length > 0 || previewImages.length > 0 || isEditMode) && (
+                <div className="space-y-3">
+                  <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Gallery</label>
+                  
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {/* EXISTING IMAGES */}
+                    {selectedEntry.images
+                      ?.filter((img) => !removedImages.includes(img))
+                      .map((img: string, index: number) => (
+                        <div key={`old-${index}`} className="relative aspect-video group overflow-hidden rounded-2xl border shadow-sm">
+                          <img
+                            src={img}
+                            alt="journal"
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          {isEditMode && (
+                            <button
+                              onClick={() => setRemovedImages((prev) => [...prev, img])}
+                              className="absolute top-2 right-2 bg-red-500/90 hover:bg-red-600 text-white p-1.5 rounded-full shadow-lg transition-colors"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
 
-                <input
-                  type="file"
-                  accept="audio/*"
-                  className="mb-3"
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) {
-                      setVoiceFile(e.target.files[0]);
-                    }
-                  }}
-                />
-              </>
-            )}
+                    {/* NEW PREVIEW IMAGES */}
+                    {previewImages.map((img, index) => (
+                      <div key={`new-${index}`} className="relative aspect-video group overflow-hidden rounded-2xl border-2 border-primary/20 shadow-sm">
+                        <img
+                          src={img}
+                          alt="preview"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                        />
+                        <div className="absolute top-2 left-2 bg-primary/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">NEW</div>
+                      </div>
+                    ))}
 
-            {/* ACTIONS */}
-            <div className="flex justify-end gap-3">
+                    {/* ADD MORE TRIGGER (EDIT MODE ONLY) */}
+                    {isEditMode && (
+                      <label className="relative aspect-video flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group">
+                        <Plus size={32} className="text-gray-300 group-hover:text-primary/40 mb-1" />
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Add Photo</span>
+                        <input
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const files = Array.from(e.target.files || []);
+                            setNewImages((prev) => [...prev, ...files]);
+                            setPreviewImages((prev) => [
+                              ...prev,
+                              ...files.map((f) => URL.createObjectURL(f)),
+                            ]);
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* MODAL FOOTER */}
+            <div className="px-8 py-4 border-t bg-gray-50/50 flex justify-end gap-4">
               {isEditMode ? (
                 <>
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={() => setIsEditMode(false)}
+                    className="px-6"
                   >
                     Cancel
                   </Button>
-
                   <Button
                     onClick={async () => {
                       if (!selectedEntry) return;
-
+                      setIsSaving(true);
                       try {
-                        // 1️⃣ Optimize and upload new images in parallel
-                        const uploadedNewImagesPromise = Promise.all(
+                        const uploadedNewImages = await Promise.all(
                           newImages.map(async (file) => {
                             const compressed = await compressImage(file);
                             return uploadToCloudinary(compressed as File);
                           })
                         );
 
-                        // 2️⃣ Upload audio if it exists
-                        const uploadedVoiceUrlPromise = voiceFile
-                          ? uploadToCloudinary(voiceFile)
-                          : Promise.resolve(selectedEntry.voice_note_url || null);
-
-                        // Wait for all uploads to complete in parallel
-                        const [uploadedNewImages, uploadedVoiceUrl] = await Promise.all([
-                          uploadedNewImagesPromise,
-                          uploadedVoiceUrlPromise
-                        ]);
-
-                        // Giữ lại ảnh cũ không bị xóa
                         const remainingOldImages = selectedEntry.images.filter(
                           (img) => !removedImages.includes(img)
                         );
@@ -1254,23 +1281,31 @@ export default function JournalPage() {
                           text: editContent,
                           trigger_tags: selectedEntry.trigger_tags || [],
                           images: [...remainingOldImages, ...uploadedNewImages],
-                          voice_note_url: uploadedVoiceUrl,
+                          voice_note_url: selectedEntry.voice_note_url,
                         });
 
                         await loadEntries();
-
                         setSelectedEntry(null);
                         setIsEditMode(false);
                       } catch (err) {
                         console.error(err);
+                      } finally {
+                        setIsSaving(false);
                       }
                     }}
+                    className="bg-primary hover:bg-primary/90 text-white px-8 font-bold"
+                    disabled={isSaving}
                   >
-                    Save Changes
+                    {isSaving ? "Saving Changes..." : "Save Changes"}
                   </Button>
                 </>
               ) : (
-                <Button onClick={() => setIsEditMode(true)}>Edit</Button>
+                <Button 
+                  onClick={() => setIsEditMode(true)}
+                  className="bg-primary hover:bg-primary/90 text-white px-8 font-bold"
+                >
+                  Edit Entry
+                </Button>
               )}
             </div>
           </div>
