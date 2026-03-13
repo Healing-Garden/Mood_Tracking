@@ -102,7 +102,7 @@ const LandingPage: React.FC = () => {
 
             {/* Desktop Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <Link to="/login">
+              <Link to="/login" state={{ fromLanding: true }}>
                 <Button
                   className={`${scrollY > 400
                     ? 'border border-[#188618] text-[#188618] bg-transparent hover:bg-[#188618] hover:text-white'
@@ -112,7 +112,7 @@ const LandingPage: React.FC = () => {
                   Sign In
                 </Button>
               </Link>
-              <Link to="/register">
+              <Link to="/register" state={{ fromLanding: true }}>
                 <Button className="bg-[#188618] hover:bg-[#127012] text-white">
                   Get Started
                 </Button>
@@ -156,7 +156,7 @@ const LandingPage: React.FC = () => {
                 How It Works
               </a>
               <div className="flex gap-3 px-4 pt-4">
-                <Link to="/login" className="flex-1">
+                <Link to="/login" state={{ fromLanding: true }} className="flex-1">
                   <Button
                     variant="outline"
                     className="w-full border-[#188618] text-[#188618]"
@@ -164,7 +164,7 @@ const LandingPage: React.FC = () => {
                     Sign In
                   </Button>
                 </Link>
-                <Link to="/register" className="flex-1">
+                <Link to="/register" state={{ fromLanding: true }} className="flex-1">
                   <Button className="w-full bg-[#188618] text-white">
                     Get Started
                   </Button>
@@ -228,7 +228,7 @@ const LandingPage: React.FC = () => {
             <div
               className="flex flex-col sm:flex-row gap-6 justify-center transition-all duration-700 delay-200 opacity-100 translate-y-0"
             >
-              <Link to="/register">
+              <Link to="/register" state={{ fromLanding: true }}>
                 <Button size="lg" className="bg-[#188618] hover:bg-[#127012] text-white shadow-lg hover:shadow-xl gap-2 px-8">
                   Start Growing <ArrowRight size={20} />
                 </Button>
@@ -435,7 +435,7 @@ const LandingPage: React.FC = () => {
           <p className="text-[#122012]/75 text-lg md:text-xl mb-12 max-w-2xl mx-auto font-medium leading-relaxed">
             Join thousands nurturing their emotional gardens. Create a calming routine with mood check-ins, journaling, and gentle AI support.
           </p>
-          <Link to="/register">
+          <Link to="/register" state={{ fromLanding: true }}>
             <Button
               size="lg"
               className="bg-[#188618] hover:bg-[#127012] text-white shadow-2xl hover:shadow-2xl gap-2 px-10 py-7 text-lg rounded-full transition-all hover:scale-105 duration-300"

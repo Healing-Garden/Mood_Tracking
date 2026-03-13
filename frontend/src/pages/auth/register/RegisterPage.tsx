@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { X, Eye, EyeOff, Leaf } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { X, Eye, EyeOff } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
 import { Label } from "../../../components/ui/Label";
@@ -127,10 +127,10 @@ const RegisterPage: React.FC = () => {
       // Reset persisted stores so they scope to the newly logged-in user
       try {
         resetOnboarding()
-      } catch {}
+      } catch { }
       try {
         resetDailyStore()
-      } catch {}
+      } catch { }
 
       // Check if user has completed onboarding
       try {
@@ -184,297 +184,294 @@ const RegisterPage: React.FC = () => {
     }
   };
 
+  const location = useLocation();
+  const fromLanding = location.state?.fromLanding;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-secondary/30 flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Decorative leaves */}
-      <div className="absolute top-10 right-10 opacity-20 animate-pulse pointer-events-none select-none">
-        <Leaf size={60} className="text-primary" />
-      </div>
-      <div
-        className="absolute bottom-10 left-10 opacity-20 animate-pulse pointer-events-none select-none"
-        style={{ animationDelay: "1s" }}
-      >
-        <Leaf size={80} className="text-primary" />
-      </div>
-      <div className="w-full max-w-md z-10">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="/healing-garden-logo.png"
-            alt="Healing Garden"
-            width={80}
-            height={80}
-            className="rounded-lg shadow-lg"
-          />
-        </div>
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-border">
-          <h1 className="text-3xl font-bold text-primary mb-2 text-center">
-            Create Your Account
-          </h1>
-          <p className="text-center text-muted-foreground mb-8">
-            Start your wellness journey today
-          </p>
+    <>
+      <div className={`auth-bg ${!fromLanding ? 'no-animation' : ''}`} />
+      <div className="auth-card-container">
+        {/* Overlay for readability and animation */}
+        <div className={`auth-overlay ${!fromLanding ? 'no-animation' : ''}`} />
 
-          <form onSubmit={handleRegister} className="space-y-4">
-            {/* Full name */}
-            <div className="space-y-2">
-              <Label>Full Name</Label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-              />
-            </div>
-
-            {/* Email */}
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <Input
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  setEmailError("");
-                }}
-              />
-              {emailError && (
-                <p className="text-sm text-red-600">{emailError}</p>
-              )}
-            </div>
-
-            {/* Password */}
-            <div className="space-y-1">
-              <Label>Password</Label>
-              <div className="relative">
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    setPasswordError("");
-                  }}
+        <div className={`w-full max-w-5xl z-10 ${fromLanding ? 'animate-fade-in-form' : ''}`}>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-border/50 flex flex-col md:flex-row min-h-[600px]">
+            {/* Left: Form area - animates only when NOT coming from landing */}
+            <div className={`w-full md:w-1/2 p-8 md:p-12 lg:p-14 flex flex-col justify-center overflow-y-auto custom-scrollbar ${!fromLanding ? 'animate-fade-in-form-fast' : ''}`}>
+              {/* Logo */}
+              <div className="flex justify-center mb-6">
+                <img
+                  src="/healing-garden-logo.png"
+                  alt="Healing Garden"
+                  width={55}
+                  height={55}
+                  className="rounded-xl shadow-sm"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-2.5 text-muted-foreground"
-                  // aria-label={showPassword ? "Hide password" : "Show password"}
-                  // title={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
               </div>
 
-              <ul className="text-sm mt-2 space-y-1">
-                <li
-                  className={
-                    passwordChecklist.length ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  • At least 8 characters
-                </li>
-                <li
-                  className={
-                    passwordChecklist.upper ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  • One uppercase letter
-                </li>
-                <li
-                  className={
-                    passwordChecklist.number ? "text-green-600" : "text-red-600"
-                  }
-                >
-                  • One number
-                </li>
-                <li
-                  className={
-                    passwordChecklist.special
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }
-                >
-                  • One special character
-                </li>
-              </ul>
+              <h1 className="text-3xl font-bold text-primary mb-1 text-center tracking-tight">
+                Create Your Account
+              </h1>
+              <p className="text-center text-muted-foreground mb-8">
+                Start your wellness journey today
+              </p>
 
-              {passwordError && (
-                <p className="text-sm text-red-600">{passwordError}</p>
-              )}
-            </div>
+              <form onSubmit={handleRegister} className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold ml-1">Full Name</Label>
+                  <Input
+                    className="h-12 text-sm focus:border-primary border-border/50 rounded-xl bg-gray-50/50"
+                    placeholder="Enter your full name"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                  />
+                </div>
 
-            {/* Confirm password */}
-            <div className="space-y-1">
-              <Label>Confirm Password</Label>
-              <div className="relative">
-                <Input
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setConfirmPasswordError("");
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-2.5 text-muted-foreground"
-                  // aria-label={
-                  //   showConfirmPassword ? "Hide confirm password" : "Show confirm password"
-                  // }
-                  // title={
-                  //   showConfirmPassword ? "Hide confirm password" : "Show confirm password"
-                  // }
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff size={18} />
-                  ) : (
-                    <Eye size={18} />
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-semibold ml-1">Email</Label>
+                  <Input
+                    className="h-12 text-sm focus:border-primary border-border/50 rounded-xl bg-gray-50/50"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      setEmailError("");
+                    }}
+                  />
+                  {emailError && (
+                    <p className="text-xs text-red-600 ml-1 font-medium">{emailError}</p>
                   )}
-                </button>
-              </div>
+                </div>
 
-              {/* Correct position */}
-              {confirmPasswordError && (
-                <p className="text-sm text-red-600">{confirmPasswordError}</p>
-              )}
+                {/* Password split row */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold ml-1">Password</Label>
+                    <div className="relative">
+                      <Input
+                        className="h-12 text-sm focus:border-primary border-border/50 pr-10 rounded-xl bg-gray-50/50"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => {
+                          setPassword(e.target.value);
+                          setPasswordError("");
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-4 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-semibold ml-1">Confirm</Label>
+                    <div className="relative">
+                      <Input
+                        className="h-12 text-sm focus:border-primary border-border/50 pr-10 rounded-xl bg-gray-50/50"
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                          setConfirmPassword(e.target.value);
+                          setConfirmPasswordError("");
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-4 text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <ul className="text-xs grid grid-cols-2 gap-x-2 gap-y-1 leading-tight bg-green-50/50 p-3 rounded-xl border border-green-100/50">
+                  <li className={passwordChecklist.length ? "text-green-600 font-bold" : "text-red-500"}>
+                    • 8+ chars
+                  </li>
+                  <li className={passwordChecklist.upper ? "text-green-600 font-bold" : "text-red-500"}>
+                    • 1 Uppercase
+                  </li>
+                  <li className={passwordChecklist.number ? "text-green-600 font-bold" : "text-red-500"}>
+                    • 1 Number
+                  </li>
+                  <li className={passwordChecklist.special ? "text-green-600 font-bold" : "text-red-500"}>
+                    • 1 Special
+                  </li>
+                </ul>
+
+                {(passwordError || confirmPasswordError) && (
+                  <p className="text-xs text-red-600 ml-1 font-medium">
+                    {passwordError || confirmPasswordError}
+                  </p>
+                )}
+
+                {error && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl animate-in fade-in">
+                    <p className="text-xs text-red-600 text-center">{error}</p>
+                  </div>
+                )}
+
+                <Button className="w-full h-12 rounded-xl font-bold shadow-lg mt-2 active:scale-[0.98] transition-all" disabled={loading}>
+                  {loading ? "Creating..." : "Create Account"}
+                </Button>
+              </form>
+
+              <div className="mt-8 text-center text-sm">
+                <span className="text-muted-foreground">Already have an account? </span>
+                <Link to="/login" state={{ fromLanding: false }} className="text-primary font-bold hover:underline underline-offset-4">
+                  Sign In
+                </Link>
+              </div>
             </div>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600">{error}</p>
+            {/* Right: Image */}
+            <div className="hidden md:flex w-1/2 p-4">
+              <div
+                className="w-full h-full bg-cover bg-center relative rounded-[2rem] overflow-hidden"
+                style={{ backgroundImage: "url('/login_form_1 (2).jpg')" }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex items-end p-10">
+                  <div className="text-white">
+                    <h2 className="text-3xl font-bold mb-2 shadow-sm">Grow with Us</h2>
+                    <p className="text-white/80 font-medium">Start your journey towards emotional wellness and inner peace.</p>
+                  </div>
+                </div>
               </div>
-            )}
-
-            <Button className="w-full h-11" disabled={loading}>
-              {loading ? "Creating Account..." : "Create Account"}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center text-sm">
-            Already have an account?{" "}
-            <Link to="/login" className="text-primary font-semibold">
-              Sign In
-            </Link>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* ================= OTP MODAL ================= */}
-      {showOtpModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative">
-            <button
-              // type="button"
-              onClick={() => setShowOtpModal(false)}
-              className="absolute right-4 top-4 text-gray-400"
+        {/* ================= OTP MODAL ================= */}
+        {showOtpModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white w-full max-w-sm rounded-2xl p-6 relative">
+              <button
+                // type="button"
+                onClick={() => setShowOtpModal(false)}
+                className="absolute right-4 top-4 text-gray-400"
               // aria-label="Close dialog"
               // title="Close dialog"
-            >
-              <X size={20} />
-            </button>
+              >
+                <X size={20} />
+              </button>
 
-            <h2 className="text-xl font-bold text-center mb-4">
-              Verify your email
-            </h2>
+              <h2 className="text-xl font-bold text-center mb-4">
+                Verify your email
+              </h2>
 
-            <div className="flex justify-between gap-2 mb-4">
-              {otp.map((v, i) => (
-                <Input
-                  key={i}
-                  maxLength={1}
-                  className="w-12 h-12 text-center text-xl"
-                  value={v}
-                  onChange={(e) => {
-                    const digit = e.target.value.replace(/\D/g, "");
-                    if (!digit) return;
-                    const next = [...otp];
-                    next[i] = digit;
-                    setOtp(next);
-                    setOtpError(""); // Xóa thông báo lỗi khi nhập lại
-                    // Auto focus next
-                    if (digit && i < 5) {
-                      const nextInput = document.querySelector(
-                        `#otp-input-${i + 1}`
-                      ) as HTMLInputElement | null;
-                      if (nextInput) nextInput.focus();
-                    }
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Backspace") {
-                      if (otp[i]) {
-                        const next = [...otp];
-                        next[i] = "";
-                        setOtp(next);
-                      } else if (i > 0) {
+              <div className="flex justify-between gap-2 mb-4">
+                {otp.map((v, i) => (
+                  <Input
+                    key={i}
+                    maxLength={1}
+                    className="w-12 h-12 text-center text-xl"
+                    value={v}
+                    onChange={(e) => {
+                      const digit = e.target.value.replace(/\D/g, "");
+                      if (!digit) return;
+                      const next = [...otp];
+                      next[i] = digit;
+                      setOtp(next);
+                      setOtpError(""); // Xóa thông báo lỗi khi nhập lại
+                      // Auto focus next
+                      if (digit && i < 5) {
+                        const nextInput = document.querySelector(
+                          `#otp-input-${i + 1}`
+                        ) as HTMLInputElement | null;
+                        if (nextInput) nextInput.focus();
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Backspace") {
+                        if (otp[i]) {
+                          const next = [...otp];
+                          next[i] = "";
+                          setOtp(next);
+                        } else if (i > 0) {
+                          const prevInput = document.querySelector(
+                            `#otp-input-${i - 1}`
+                          ) as HTMLInputElement;
+                          if (prevInput) prevInput.focus();
+                          const next = [...otp];
+                          next[i - 1] = "";
+                          setOtp(next);
+                        }
+                      } else if (e.key === "ArrowLeft" && i > 0) {
                         const prevInput = document.querySelector(
                           `#otp-input-${i - 1}`
                         ) as HTMLInputElement;
                         if (prevInput) prevInput.focus();
-                        const next = [...otp];
-                        next[i - 1] = "";
-                        setOtp(next);
+                      } else if (e.key === "ArrowRight" && i < 5) {
+                        const nextInput = document.querySelector(
+                          `#otp-input-${i + 1}`
+                        ) as HTMLInputElement;
+                        if (nextInput) nextInput.focus();
                       }
-                    } else if (e.key === "ArrowLeft" && i > 0) {
-                      const prevInput = document.querySelector(
-                        `#otp-input-${i - 1}`
-                      ) as HTMLInputElement;
-                      if (prevInput) prevInput.focus();
-                    } else if (e.key === "ArrowRight" && i < 5) {
-                      const nextInput = document.querySelector(
-                        `#otp-input-${i + 1}`
-                      ) as HTMLInputElement;
-                      if (nextInput) nextInput.focus();
+                    }}
+                    onPaste={
+                      i === 0
+                        ? (e) => {
+                          e.preventDefault();
+                          const pasted = e.clipboardData
+                            .getData("text")
+                            .replace(/\D/g, "")
+                            .slice(0, 6);
+                          setOtp(
+                            pasted
+                              .split("")
+                              .concat(Array(6 - pasted.length).fill(""))
+                          );
+                          // focus next empty input
+                          setTimeout(() => {
+                            const nextInput = document.querySelector(
+                              `#otp-input-${pasted.length}`
+                            ) as HTMLInputElement;
+                            if (nextInput) nextInput.focus();
+                          }, 10);
+                        }
+                        : undefined
                     }
-                  }}
-                  onPaste={
-                    i === 0
-                      ? (e) => {
-                        e.preventDefault();
-                        const pasted = e.clipboardData
-                          .getData("text")
-                          .replace(/\D/g, "")
-                          .slice(0, 6);
-                        setOtp(
-                          pasted
-                            .split("")
-                            .concat(Array(6 - pasted.length).fill(""))
-                        );
-                        // focus next empty input
-                        setTimeout(() => {
-                          const nextInput = document.querySelector(
-                            `#otp-input-${pasted.length}`
-                          ) as HTMLInputElement;
-                          if (nextInput) nextInput.focus();
-                        }, 10);
-                      }
-                      : undefined
-                  }
-                  id={`otp-input-${i}`}
-                  autoFocus={i === 0 && showOtpModal && otp.every((d) => !d)}
-                />
-              ))}
+                    id={`otp-input-${i}`}
+                    autoFocus={i === 0 && showOtpModal && otp.every((d) => !d)}
+                  />
+                ))}
+              </div>
+
+              {otpError && (
+                <p className="text-sm text-red-600 text-center mb-3">
+                  {otpError}
+                </p>
+              )}
+
+              <Button className="w-full mb-3" onClick={handleVerifyOtp}>
+                Verify OTP
+              </Button>
+
+              <button
+                onClick={handleResendOtp}
+                disabled={resendLoading}
+                className="w-full text-sm text-primary font-semibold"
+              >
+                {resendLoading ? "Resending..." : "Resend OTP"}
+              </button>
             </div>
-
-            {otpError && (
-              <p className="text-sm text-red-600 text-center mb-3">
-                {otpError}
-              </p>
-            )}
-
-            <Button className="w-full mb-3" onClick={handleVerifyOtp}>
-              Verify OTP
-            </Button>
-
-            <button
-              onClick={handleResendOtp}
-              disabled={resendLoading}
-              className="w-full text-sm text-primary font-semibold"
-            >
-              {resendLoading ? "Resending..." : "Resend OTP"}
-            </button>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 };
 

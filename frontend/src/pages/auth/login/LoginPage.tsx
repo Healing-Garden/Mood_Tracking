@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Leaf } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
@@ -202,139 +201,154 @@ export default function LoginPage() {
     }
   };
 
+  const location = useLocation();
+  const fromLanding = location.state?.fromLanding;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center px-4 relative overflow-hidden">
-      {/* Decorative leaves */}
-      <div className="absolute top-10 right-10 opacity-15 pointer-events-none">
-        <Leaf size={80} className="text-primary animate-pulse" />
-      </div>
+    <>
+      <div className={`auth-bg ${!fromLanding ? 'no-animation' : ''}`} />
+      <div className="auth-card-container">
+        {/* Overlay to ensure readability and animation */}
+        <div className={`auth-overlay ${!fromLanding ? 'no-animation' : ''}`} />
 
-      <div
-        className="absolute bottom-10 left-10 opacity-15 pointer-events-none"
-        style={{ animationDelay: "1s" }}
-      >
-        <Leaf size={100} className="text-primary animate-pulse" />
-      </div>
+        <div className={`w-full max-w-5xl z-10 ${fromLanding ? 'animate-fade-in-form' : ''}`}>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-border/50 flex flex-col md:flex-row min-h-[600px]">
+            {/* Left: Form area - animates only when NOT coming from landing */}
+            <div className={`w-full md:w-1/2 p-8 md:p-12 lg:p-14 flex flex-col justify-center ${!fromLanding ? 'animate-fade-in-form-fast' : ''}`}>
+              {/* Logo */}
+              <div className="flex justify-center mb-6">
+                <img
+                  src="/healing-garden-logo.png"
+                  alt="Healing Garden"
+                  width={60}
+                  height={60}
+                  className="rounded-xl shadow-sm"
+                />
+              </div>
 
-      <div className="w-full max-w-md z-10">
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="/healing-garden-logo.png"
-            alt="Healing Garden"
-            width={100}
-            height={100}
-            className="rounded-lg"
-          />
-        </div>
+              <h1 className="text-3xl font-bold text-primary mb-1 text-center tracking-tight">
+                Welcome Back
+              </h1>
+              <p className="text-center text-muted-foreground mb-8">
+                Continue your healing journey
+              </p>
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 border border-border/50">
-          <h1 className="text-3xl font-bold text-foreground mb-2 text-center">
-            Welcome Back
-          </h1>
-          <p className="text-center text-muted-foreground mb-8">
-            Continue your healing journey
-          </p>
+              {error && (
+                <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl animate-in fade-in slide-in-from-top-1">
+                  {error}
+                </div>
+              )}
 
-          {error && (
-            <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 text-destructive text-sm rounded-lg">
-              {error}
+              <form onSubmit={handleLogin} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm font-semibold ml-1">
+                    Email Address
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="border-border/50 focus:border-primary h-12 rounded-xl bg-gray-50/50"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-semibold ml-1"
+                  >
+                    Password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="border-border/50 focus:border-primary h-12 rounded-xl bg-gray-50/50"
+                    required
+                  />
+                  <div className="flex justify-end pr-1">
+                    <Link
+                      to="/forgot-password"
+                      state={{ fromLanding }}
+                      className="text-xs text-primary hover:underline font-medium"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full bg-primary hover:bg-primary/90 text-white h-12 rounded-xl font-bold mt-6 shadow-lg shadow-primary/20 transition-all active:scale-[0.98]"
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
+              </form>
+
+              {/* Divider */}
+              <div className="relative my-10">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border/30" />
+                </div>
+                <div className="relative flex justify-center text-[10px]">
+                  <span className="px-4 bg-white text-muted-foreground uppercase tracking-widest font-bold">
+                    or join with
+                  </span>
+                </div>
+              </div>
+
+              {/* Google login */}
+              <div className="flex justify-center">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                />
+              </div>
+
+              {/* Links */}
+              <div className="mt-10 text-center text-sm">
+                <span className="text-muted-foreground">
+                  Don't have an account?{" "}
+                </span>
+                <Link
+                  to="/register"
+                  state={{ fromLanding: false }}
+                  className="text-primary hover:text-primary/80 font-bold underline-offset-4 hover:underline"
+                >
+                  Sign up
+                </Link>
+              </div>
             </div>
-          )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground font-semibold">
-                Email Address
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="your@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border-border/50 focus:border-primary h-11"
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label
-                htmlFor="password"
-                className="text-foreground font-semibold"
+            {/* Right: Image */}
+            <div className="hidden md:flex w-1/2 p-4">
+              <div
+                className="w-full h-full bg-cover bg-center relative rounded-[2rem] overflow-hidden"
+                style={{ backgroundImage: "url('/login_form_1 (2).jpg')" }}
               >
-                Password
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="border-border/50 focus:border-primary h-11"
-                required
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-primary hover:bg-primary/90 text-white h-11 font-semibold mt-6"
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-border/30" />
-            </div>
-            <div className="relative flex justify-center text-xs">
-              <span className="px-2 bg-white text-muted-foreground">
-                or continue with
-              </span>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent flex items-end p-10">
+                  <div className="text-white">
+                    <h2 className="text-3xl font-bold mb-2 shadow-sm">Connect with Nature</h2>
+                    <p className="text-white/80 font-medium">Every step forward is a bloom in your inner garden.</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-          {/* Google login */}
-          <GoogleLogin
-            onSuccess={handleGoogleSuccess}
-          />
-
-          {/* Links */}
-          <div className="mt-6 text-center text-sm space-y-3">
-            <div>
-              <span className="text-muted-foreground">
-                Don't have an account?{" "}
-              </span>
-              <Link
-                to="/register"
-                className="text-primary hover:text-primary/80 font-semibold"
-              >
-                Sign up
-              </Link>
-            </div>
-
-            <div>
-              <Link
-                to="/forgot-password"
-                className="text-primary hover:text-primary/80 font-semibold"
-              >
-                Forgot Password?
-              </Link>
-            </div>
-          </div>
         </div>
-      </div>
 
-      <BannedUserModal
-        isOpen={showBannedModal}
-        onClose={() => setShowBannedModal(false)}
-        banExpiresAt={bannedInfo.expiresAt}
-        banReason={bannedInfo.reason}
-      />
-    </div>
+        <BannedUserModal
+          isOpen={showBannedModal}
+          onClose={() => setShowBannedModal(false)}
+          banExpiresAt={bannedInfo.expiresAt}
+          banReason={bannedInfo.reason}
+        />
+      </div>
+    </>
   );
 }
