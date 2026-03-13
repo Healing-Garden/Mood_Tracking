@@ -87,10 +87,12 @@ async def get_user_enhanced_context(db, user_id: str) -> Dict[str, Any]:
     
     try:
         # 1. Fetch Onboarding Data
-        onboarding = await db.onboardings.find_one({"userId": ObjectId(user_id)})
+        onboarding = await db.onboardings.find_one({"user": user_id})
         if not onboarding:
-            # Fallback for string ID
-            onboarding = await db.onboardings.find_one({"userId": user_id})
+            try:
+                onboarding = await db.onboardings.find_one({"user": ObjectId(user_id)})
+            except:
+                onboarding = None
             
         if onboarding:
             context["onboarding_goals"] = onboarding.get("goals", [])
@@ -114,7 +116,7 @@ async def get_user_enhanced_context(db, user_id: str) -> Dict[str, Any]:
             
             context["recent_journal_themes"] = list(set(themes))
             if sentiments:
-                context["recent_journal_sentiment"] = sentiments[0] # Most recent
+                context["recent_journal_sentiment"] = sentiments[0] 
                 
     except Exception as e:
         logger.error(f"Error fetching enhanced context: {e}")
@@ -183,7 +185,7 @@ async def fetch_actions_from_new_tables(
     mood_levels = get_mood_levels(mood)
     
     all_docs: List[Dict] = []
-    collections = ["healingquotes", "healingvideos", "healingpodcasts"]
+    collections = ["healingvideos", "healingpodcasts"]
     
     # Try multiple strategies to find best content
     strategies = [
@@ -250,8 +252,8 @@ async def suggest_actions(request: ActionRequest):
         # 3. SCORE & RE-RANK based on Onboarding Goals and Journal Themes
         all_actions = []
         for doc in actions_docs:
-            # Derive type from collection; default to 'article'
-            col_type = doc.get("_source_collection", "healingarticles").replace("healing", "").rstrip("s")
+            # Derive type from collection; default to 'video'
+            col_type = doc.get("_source_collection", "healingvideos").replace("healing", "").rstrip("s")
             action = convert_doc_to_action(doc, col_type)
             
             # Simple Scoring Logic
@@ -296,7 +298,7 @@ async def suggest_actions(request: ActionRequest):
             "actions": final_actions,
             "context": {
                 "mood": current_mood,
-                "analysis_sources": ["quick_checkin", "onboarding", "journals"],
+                "analysis_sources": ["dailycheckins", "onboardings", "journal_entries"],
                 "personalized_scores": True
             },
             "suggested_at": datetime.now().isoformat()
@@ -351,13 +353,16 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
             user_obj_id = request.user_id
 
         now = datetime.now()
-        since_journal = now - timedelta(days=7) # Thu hẹp lại 7 ngày cho gần nhất
+        since_journal = now - timedelta(days=7)
 
         # BẮT BUỘC: Có ít nhất 1 nhật ký tâm trạng tệ trong 7 ngày qua
         negative_moods = {"very sad", "very low", "sad", "low", "anxious", "stressed", "angry", "tired", "overwhelmed"}
+        user_ids = [request.user_id]
+        if user_obj_id is not None:
+            user_ids.insert(0, user_obj_id)
         bad_journals = await db.journal_entries.find(
             {
-                "user_id": request.user_id,
+                "user_id": {"$in": user_ids},
                 "created_at": {"$gte": since_journal},
                 "deleted_at": None
             },
@@ -382,11 +387,17 @@ async def check_suggest_actions_eligibility(request: EligibilityRequest):
             return EligibilityResponse(eligible=False)
 
         # Kiểm tra thêm nếu user đã hoàn thành Quick Check-in hôm nay
-        since_today = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        # Handle timezone: check both createdAt (Date) and date (String)
+        # We look for ANY check-in from today (VN time today or server time today)
+        today_str = now.strftime("%Y-%m-%d")
+        
         recent_checkin = await db.dailycheckins.find_one(
             {
                 "user": user_obj_id,
-                "createdAt": {"$gte": since_today}
+                "$or": [
+                    {"date": today_str},
+                    {"createdAt": {"$gte": now.replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(hours=7)}} # Look back a bit for TZ
+                ]
             }
         )
         

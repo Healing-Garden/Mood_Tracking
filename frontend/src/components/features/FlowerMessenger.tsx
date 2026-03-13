@@ -4,6 +4,7 @@ import { X, Send, Sparkles } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useChat } from '../../hooks/useChat';
 import { useDailyCheckInStore } from '../../store/dailyCheckInStore';
+import { aiApi } from '../../api/aiApi';
 
 const NEGATIVE_MOODS = ['very sad', 'very low', 'sad', 'low', 'anxious', 'stressed', 'angry', 'tired', 'overwhelmed'];
 
@@ -22,10 +23,29 @@ const FlowerMessenger: React.FC = () => {
 
   const { lastMood, currentCheckIn } = useDailyCheckInStore();
 
+  const [isEligibleByJournal, setIsEligibleByJournal] = useState(false);
+
   const shouldShow = useMemo(() => {
+    if (isEligibleByJournal) return true;
     if (!lastMood) return false;
     return NEGATIVE_MOODS.includes(lastMood.toLowerCase());
-  }, [lastMood]);
+  }, [lastMood, isEligibleByJournal]);
+
+  useEffect(() => {
+    const checkJournalEligibility = async () => {
+      if (!user?.id) return;
+      try {
+        const res = await aiApi.checkActionEligibility(user.id) as any;
+        const eligible = res?.eligible ?? res?.data?.eligible;
+        setIsEligibleByJournal(!!eligible);
+      } catch (err) {
+        console.error('Chatbot eligibility check failed:', err);
+      }
+    };
+    
+    checkJournalEligibility();
+    // Check again if lastMood changes as it might indicate new activity
+  }, [user, lastMood]);
 
   const moodContext = useMemo(() => ({
     recentMood: lastMood || 'neutral',
@@ -35,7 +55,7 @@ const FlowerMessenger: React.FC = () => {
 
   const { messages, sendMessage, isTyping, isConnected } = useChat(user?.id || '', moodContext);
 
-  // Logic tính toán vị trí linh hoạt để tránh bị mất khung chat
+  // Intelligent position calculation logic to avoid hiding the chat frame
   const calculateSmartPosition = () => {
     if (!entityRef.current) return;
 

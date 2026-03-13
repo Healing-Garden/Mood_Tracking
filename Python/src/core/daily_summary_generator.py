@@ -200,24 +200,87 @@ JSON:
 
     def _post_process(self, summary: str) -> str:
         """
-        Chuyển JSON từ model thành chuỗi nhiều dòng (mỗi dòng 1 bullet, + optional tips).
-        Không cắt bớt để tránh mất ý.
+        Chuyển JSON từ model thành chuỗi liệt kê các ý chính.
+        Loại bỏ hoàn toàn các ký tự JSON dư thừa như {, }, [, ], và các tag key.
         """
-        summary = summary.strip()
+        if not summary:
+            return ""
+
+        summary_text = summary.strip()
+        
+        # 1. Thử bóc tách JSON nếu bị bọc trong markdown code blocks
+        if "```json" in summary_text:
+            try:
+                summary_text = summary_text.split("```json")[1].split("```")[0].strip()
+            except:
+                pass
+        elif "```" in summary_text:
+            try:
+                summary_text = summary_text.split("```")[1].split("```")[0].strip()
+            except:
+                pass
+
+        # 2. Thử parse JSON
         try:
             import json
-            data = json.loads(summary)
-            bullets = [str(b).strip() for b in data.get("bullets", []) if str(b).strip()]
-            tips = [str(t).strip() for t in data.get("tips", []) if str(t).strip()]
+            data = json.loads(summary_text)
+            
+            bullets = data.get("bullets", [])
+            tips = data.get("tips", [])
+            
+            if not bullets and not tips:
+                # Nếu parse được JSON nhưng rỗng, thử dọn dẹp chuỗi gốc
+                return self._clean_raw_text(summary)
+
             lines = []
             for b in bullets:
-                lines.append(f"• {b}")
+                b_clean = str(b).strip("- ").strip("• ").strip()
+                if b_clean:
+                    lines.append(f"• {b_clean}")
+            
             for t in tips:
-                lines.append(f"• Tip: {t}")
-            return "\n".join(lines) if lines else summary
+                t_clean = str(t).strip("- ").strip("• ").strip()
+                if t_clean:
+                    lines.append(f"• Tip: {t_clean}")
+            
+            return "\n".join(lines)
         except Exception:
-            # Nếu parsing JSON lỗi, trả thẳng text (không cắt)
-            return summary
+            # 3. Nếu không parse được JSON, dọn dẹp thủ công các ký tự JSON
+            return self._clean_raw_text(summary)
+
+    def _clean_raw_text(self, text: str) -> str:
+        """Loại bỏ các ký tự JSON và định dạng lại thành danh sách bullet."""
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        # Các từ khóa JSON cần loại bỏ
+        skip_patterns = ['{', '}', '[', ']', '"bullets":', '"tips":', '"tone":', '```json', '```']
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            
+            # Bỏ các dòng chỉ chứa ký tự JSON hoặc keys
+            if any(p in line for p in skip_patterns) and len(line) < 15:
+                continue
+            
+            # Làm sạch nội dung: bỏ dấu phẩy cuối dòng, ngoặc kép bao quanh
+            # Ví dụ: "Nội dung abc", -> Nội dung abc
+            content = line.strip(',').strip()
+            if content.startswith('"') and content.endswith('"'):
+                content = content[1:-1]
+            elif content.startswith('"') and ('":' not in content):
+                 content = content.split('"')[1]
+            
+            if content and not any(p == content for p in ['{', '}', '[', ']', ',']):
+                # Nếu dòng có vẻ là nội dung thật, thêm bullet nếu chưa có
+                if not content.startswith('•') and not content.startswith('-'):
+                    cleaned_lines.append(f"• {content}")
+                else:
+                    cleaned_lines.append(content.replace('-', '•'))
+        
+        return "\n".join(cleaned_lines)
 
     def _calculate_avg_mood(self, mood_list: List[str], energy_list: List[int]) -> float:
         """Chuyển mood thành điểm số (1-5) và tính trung bình."""
