@@ -6,6 +6,7 @@ from src.core.sentiment import sentiment_analyzer
 from src.core.crisis_detection import detect_crisis, get_crisis_response
 from src.core.cbt_knowledge import cbt_kb
 from src.core.gemini_client import gemini_client
+from src.core.llm import call_llm
 from src.config import settings
 
 logger = logging.getLogger(__name__)
@@ -39,27 +40,31 @@ class CBTChatAgent:
                 "intent": "crisis_response",
             }
         
-        # 2 & 3. Sentiment analysis AND Retrieval (Run in PARALLEL to optimize speed)
-        # Identify current state and message count first
+        # 2 & 3. Sentiment analysis AND Retrieval
         current_state = session_state.get("state", "initial")
-        user_message_count = 1  
+        user_message_count = 1
         if conversation_history:
             user_message_count += sum(1 for msg in conversation_history if msg.get('sender') == 'user')
 
-        query = f"{user_input}" # Simplified query for speed
+        # Detect language early to filter techniques and select exercise
+        is_vi = self._is_vietnamese(user_input)
+        lang = "vi" if is_vi else "en"
         
+        query = user_input
         sentiment_task = asyncio.to_thread(sentiment_analyzer.analyze_journal_entry, user_input)
         
         if current_state in ["initial", "assessment"]:
-            techniques_task = cbt_kb.retrieve_techniques(query=query, category="exploratory", k=2)
+            # Exploration phase: fetch exploratory questions in user's language only
+            techniques_task = cbt_kb.retrieve_techniques(query=query, category="exploratory", k=3, lang=lang)
         else:
-            techniques_task = cbt_kb.retrieve_techniques(query, k=3)
+            # Intervention phase: fetch all technique types in user's language  
+            techniques_task = cbt_kb.retrieve_techniques(query, k=6, lang=lang)
             
         # Execute both tasks concurrently
         sentiment_result, techniques = await asyncio.gather(sentiment_task, techniques_task)
         
-        # 4. Generate response with Gemini
-        response_text = await self._generate_with_gemini(
+        # 4. Generate response with LLM (Prefer OpenAI for ChatBot)
+        response_text = await self._generate_with_openai(
             user_input,
             sentiment_result,
             user_context,
@@ -69,26 +74,53 @@ class CBTChatAgent:
             current_state
         )
 
-        # Fallback nếu Gemini không hoạt động
+        # Fallback if AI fails completely
         if not response_text:
-            logger.warning("Gemini returned empty, falling back to rule-based")
+            logger.warning("AI returned empty, falling back to rule-based")
             response_text = self._rule_based_response(user_input, sentiment_result, techniques, conversation_history, current_state)
         
         # 5. Xác định kỹ thuật và exercise
         technique_used = techniques[0]['metadata'].get('technique') if techniques else None
         exercise = None
 
-        # Chỉ gắn exercise nếu:
-        # - Không phải crisis
-        # - Đã qua giai đoạn initial/assessment
-        # - Đã có ít nhất 3 tin nhắn (hoặc theo logic khác)
-        # - Response chưa chứa gợi ý exercise
-        if not is_crisis and current_state == "intervention" and user_message_count >= 3:
-            if not any(kw in response_text.lower() for kw in ["try this", "exercise", "breath", "grounding"]):
-                if techniques and techniques[0]['metadata'].get('category') not in ['exploratory']:
-                    exercise = techniques[0]['text']
-                    # IMPORTANT: do not duplicate the exercise inside `text`.
-                    # Frontend renders `exercise` in a dedicated block.
+        # Exercise is shown ONLY when:
+        # - Not a crisis
+        # - State is "intervention" (user has gone through exploration)
+        # - User has sent >= 4 messages (enough context collected)
+        # - The LLM response itself doesn't already contain exercise text
+        should_show_exercise = (
+            not is_crisis
+            and current_state == "intervention"
+            and user_message_count >= 4
+        )
+        if should_show_exercise:
+            response_lower = response_text.lower()
+            already_has_exercise = any(
+                kw in response_lower
+                for kw in ["try this", "exercise", "breath", "grounding", "thở", "kỹ thuật", "bài tập"]
+            )
+            if not already_has_exercise:
+                # Pick first technique that:
+                # (a) matches user's language  (b) is NOT exploratory category
+                intervention_techniques = [
+                    t for t in techniques
+                    if t['metadata'].get('category') not in ['exploratory']
+                    and t['metadata'].get('lang') == lang
+                ]
+                if intervention_techniques:
+                    exercise = intervention_techniques[0]['text']
+                    logger.info(
+                        f"[CBT] Exercise shown — lang={lang}, msgs={user_message_count}, "
+                        f"technique: {exercise[:50]}..."
+                    )
+                elif techniques:
+                    # Fallback: any non-exploratory technique (no language restriction)
+                    fallback = [
+                        t for t in techniques
+                        if t['metadata'].get('category') not in ['exploratory']
+                    ]
+                    if fallback:
+                        exercise = fallback[0]['text']
         
         # 6. Xác định next state
         next_state = self._determine_next_state(session_state, sentiment_result, user_message_count)
@@ -104,7 +136,7 @@ class CBTChatAgent:
             "next_state": next_state,
         }
     
-    async def _generate_with_gemini(
+    async def _generate_with_openai(
         self,
         user_input: str,
         sentiment: Dict,
@@ -114,29 +146,35 @@ class CBTChatAgent:
         user_message_count: int,
         current_state: str
     ) -> Optional[str]:
-        """Xây dựng system instruction và prompt, gọi Gemini."""
-        if not gemini_client.api_key:
-            return None
-
+        """Xây dựng messages cho OpenAI (hoặc LLM chung), ưu tiên OpenAI."""
+        
         # 1. Tạo system instruction
         system_instruction = self._build_system_instruction(
             sentiment, user_context, techniques, user_message_count, current_state
         )
 
-        # 2. Tạo conversation prompt (lịch sử + input)
-        conversation_prompt = self._build_conversation_prompt(user_input, history)
+        # 2. Xây dựng danh sách messages (OpenAI format)
+        messages = [{"role": "system", "content": system_instruction}]
+        
+        # Thêm lịch sử nếu có
+        if history:
+            history_len = len(history)
+            recent = history[max(0, history_len-5):history_len]
+            for msg in recent:
+                role = "user" if msg['sender'] == 'user' else "assistant"
+                messages.append({"role": role, "content": msg['text']})
+        
+        # Thêm input hiện tại
+        messages.append({"role": "user", "content": user_input})
 
-        # 3. Gọi Gemini
-        response = await gemini_client.generate_response(
-            prompt=conversation_prompt,
-            system_instruction=system_instruction
-        )
-        return response
+        # 3. Gọi LLM qua wrapper (ưu tiên OpenAI)
+        result = await call_llm(messages=messages, temperature=settings.gemini_temperature)
+        return result.get("text")
     
     def _build_system_instruction(self, sentiment: Dict, user_context: Optional[Dict],
                                   techniques: List[Dict], user_message_count: int,
                                   current_state: str) -> str:
-        """Tạo system instruction cho Gemini."""
+        """Tạo system instruction cho LLM."""
         context_str = ""
         if user_context:
             recent_moods = user_context.get("recentMoods", [])
@@ -145,33 +183,51 @@ class CBTChatAgent:
         sentiment_label = sentiment['sentiment']['sentiment']
         primary_emotion = sentiment['dominant_emotion']
 
-        if current_state in ["initial", "assessment"] or user_message_count < 3:
-            guidance = "Your priority now is to ask open-ended questions to explore the user's feelings and thoughts. Do not suggest any exercise yet."
+        if current_state in ["initial", "assessment"] or user_message_count < 4:
+            guidance = (
+                "STRICT RULE — EXPLORATION PHASE:\n"
+                "  1. Validate the user's feelings with empathy (1 sentence).\n"
+                "  2. Ask exactly ONE open-ended question to explore further (1-2 sentences).\n"
+                "  PROHIBITED: Do NOT mention, hint at, or suggest any exercise, breathing technique,\n"
+                "  grounding activity, or coping strategy. Absolutely zero. Even if it feels helpful.\n"
+                "  Keep total response to 2-3 sentences."
+            )
         else:
-            guidance = "You have gathered enough information. You may now gently suggest a simple CBT exercise or reframe, but only if appropriate and the user seems receptive."
+            guidance = (
+                "INTERVENTION PHASE:\n"
+                "  You now have sufficient context. Provide a brief cognitive reframe or validation.\n"
+                "  You may mention that a helpful activity will be shown below (a dedicated card).\n"
+                "  Focus on the emotional reframe, not the exercise details themselves."
+            )
 
-        techniques_text = ""
-        if techniques:
-            techniques_text = "Relevant CBT techniques you might consider:\n"
-            for t in techniques:
-                techniques_text += f"- {t['text']} (type: {t['metadata'].get('category')})\n"
+        instruction = f"""You are Daisy, a CBT-trained (Cognitive Behavioral Therapy) support companion.
+You are NOT a free-chat AI. Every response must strictly follow CBT methodology.
 
-        instruction = f"""You are a compassionate AI assistant trained in Cognitive Behavioral Therapy (CBT). Your role is to provide psychological first aid: validate feelings, gently explore the user's thoughts and emotions, and only after understanding the situation, offer a small exercise if appropriate.
+SESSION STRUCTURE:
+  Phase 1 — Exploration (initial/assessment, <4 messages from user):
+    * Listen, validate, explore. One question only. No exercises.
+  Phase 2 — Intervention (intervention, ≥4 messages from user):
+    * Validate, reframe, bridge toward the exercise shown in the card below.
 
-Important: You must respond in the SAME LANGUAGE as the user. If the user writes in Vietnamese, you must reply in Vietnamese. If they write in English, reply in English.
+CURRENT PHASE INSTRUCTION:
+{guidance}
 
-Guidelines:
-- Always respond with warmth, empathy, and non-judgmental language.
-- {guidance}
-- Keep responses concise (2-3 sentences) but exploratory.
-- Do NOT diagnose or claim to be a therapist.
+LANGUAGE RULE (MANDATORY, NO EXCEPTIONS):
+- Detect the language of the user's latest message.
+- Vietnamese → respond 100% in Vietnamese. Use no English words or terms.
+- English → respond 100% in English. Use no Vietnamese words or terms.
+- STRICTLY ONE LANGUAGE PER RESPONSE.
 
-User context: {context_str}
-Current sentiment: {sentiment_label} (primary emotion: {primary_emotion})
+CBT CONSTRAINTS:
+- Only use CBT-based language: validation, Socratic questioning, cognitive reframing.
+- Do NOT give generic life advice, diagnoses, or advice outside CBT scope.
+- Do NOT invent techniques. Stick to the structured CBT approach.
 
-{techniques_text}
+Context:
+  User sentiment: {sentiment_label} | Primary emotion: {primary_emotion}
+  {f"Recent moods: {context_str}" if context_str else ""}
 
-Now respond to the user's message following the guidelines above."""
+Respond now. Be warm, structured, and CBT-compliant."""
         return instruction
     
     def _build_conversation_prompt(self, user_input: str, history: Optional[List]) -> str:

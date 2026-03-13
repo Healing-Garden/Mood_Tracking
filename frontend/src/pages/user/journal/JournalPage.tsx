@@ -282,30 +282,27 @@ export default function JournalPage() {
   }, []);
 
   useEffect(() => {
-    if (activeTab === "write" && !content.trim()) {
-      if (!timerRef.current) {
-        timerRef.current = setTimeout(() => {
-          fetchPromptQuestions();
-        }, 5000);
-      }
-    } else {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = undefined;
-      }
+    if (activeTab !== "write") return;
+
+    // Nếu người dùng đã gõ title hoặc content, KHÔNG suggest nữa
+    if (content.trim() || title.trim()) {
+      return;
     }
 
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
+    // Nếu chưa gõ gì, đếm 5 giây rồi gọi gợi ý
+    const timer = setTimeout(() => {
+      if (!content.trim() && !title.trim() && suggestedQuestions.length === 0) {
+        fetchPromptQuestions();
       }
-    };
-  }, [content, activeTab]);
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [activeTab, content, title]);
 
   const fetchPromptQuestions = async () => {
     if (!user?.id) return;
     try {
-      const res = await aiApi.getQuestions(user.id, selectedMood, 3, "en");
+      const res = await aiApi.getQuestions(user.id, selectedMood, 3, "vi");
       if (res?.data?.success) {
         setSuggestedQuestions(res.data?.data?.questions || []);
       } else if (res?.data?.questions?.length) {
@@ -595,9 +592,9 @@ export default function JournalPage() {
           {/* Write Tab */}
           <TabsContent value="write" className="space-y-6">
             <Card>
-              <CardContent className="pt-6 space-y-4">
+              <CardContent className="pt-5 space-y-4">
                 {suggestedQuestions.length > 0 && (
-                  <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                  <div className="p-4 bg-muted/30 rounded-lg">
                     <p className="text-sm font-medium mb-2">
                       ✨ Writing Suggestions:
                     </p>

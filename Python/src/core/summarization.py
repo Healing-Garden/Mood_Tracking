@@ -3,6 +3,7 @@ import logging
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import torch
 from src.config import settings
+from src.core.llm import call_llm
 
 logger = logging.getLogger(__name__)
 
@@ -32,39 +33,26 @@ class SummarizationService:
             logger.error(f"Failed to load summarization model: {e}")
             self.summarizer = None
     
-    def summarize(
+    async def summarize(
         self, 
         text: str, 
         max_length: int = None, 
         min_length: int = None,
         ratio: float = 0.3
     ) -> str:
-        """Summarize text"""
-        if not self.summarizer:
-            return self._fallback_summarize(text, ratio)
-        
-        if max_length is None:
-            max_length = settings.max_summary_length
-        if min_length is None:
-            min_length = max_length // 3
-        
+        """Summarize text using OpenAI"""
         try:
-            # Handle long texts by splitting
-            if len(text.split()) > 1000:
-                return self._summarize_long_text(text, max_length, min_length)
-            
-            result = self.summarizer(
-                text,
-                max_length=max_length,
-                min_length=min_length,
-                do_sample=False,
-                truncation=True
-            )
-            
-            return result[0]['summary_text']
-            
+            prompt = f"Summarize the following text concisely while preserving the emotional tone and key insights:\n\n{text}"
+            messages = [
+                {"role": "system", "content": "You are an expert summarizer. Provide a concise, meaningful summary."},
+                {"role": "user", "content": prompt}
+            ]
+            result = await call_llm(messages, temperature=0.5)
+            if result.get("text"):
+                return result["text"]
+            return self._fallback_summarize(text, ratio)
         except Exception as e:
-            logger.error(f"Summarization failed: {e}")
+            logger.error(f"OpenAI summarization failed: {e}")
             return self._fallback_summarize(text, ratio)
     
     def _summarize_long_text(
@@ -195,7 +183,7 @@ class SummarizationService:
             }
         
         # Generate summary
-        summary = self.summarize(combined_text)
+        summary = await self.summarize(combined_text)
         
         # Add encouraging note
         encouraging_notes = [
@@ -210,12 +198,15 @@ class SummarizationService:
         import random
         encouraging_note = random.choice(encouraging_notes)
         
+        # summary is a coroutine if not awaited, but we added await above
+        summary_str = str(summary)
+        
         return {
-            "summary": f"{summary} {encouraging_note}",
+            "summary": f"{summary_str} {encouraging_note}",
             "type": "full_summary",
             "entry_count": len(entries),
             "mood_count": len(moods),
-            "length": len(summary)
+            "length": len(summary_str)
         }
 
 summarization_service = SummarizationService()
