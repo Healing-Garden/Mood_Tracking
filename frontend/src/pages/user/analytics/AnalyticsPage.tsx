@@ -438,22 +438,6 @@ const AnalyticsPage = () => {
                 {loading ? '...' : `${summary?.current.consistency || 0}%`}
               </div>
               <p className="text-xs text-muted-foreground mt-1">Daily check-ins</p>
-              {loadingAI ? (
-                <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
-              ) : (
-                <div className="text-3xl font-bold text-accent">
-                  {trendData?.stats
-                    ? trendData.volatility < 0.2 ? 'High'
-                      : trendData.volatility < 0.4 ? 'Medium'
-                        : 'Low'
-                    : '—'}
-                </div>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                {trendData?.stats
-                  ? `Volatility: ${(trendData.volatility * 100).toFixed(0)}%`
-                  : 'Mood consistency'}
-              </p>
             </CardContent>
           </Card>
 
@@ -469,26 +453,6 @@ const AnalyticsPage = () => {
               <p className="text-xs text-muted-foreground mt-1">
                 In this {timeRange}
               </p>
-
-              <div className="mt-4">
-                <p className="text-sm font-semibold text-muted-foreground">
-                  Days Tracked
-                </p>
-
-                {loadingAI ? (
-                  <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
-                ) : (
-                  <div className="text-3xl font-bold text-primary">
-                    {trendData?.stats?.data_points ?? '—'}
-                  </div>
-                )}
-
-                <p className="text-xs text-muted-foreground mt-1">
-                  {trendData?.stats
-                    ? `In last ${trendData.stats.analysis_period_days} days`
-                    : 'Check-in days'}
-                </p>
-              </div>
             </CardContent>
           </Card>
 
@@ -497,9 +461,6 @@ const AnalyticsPage = () => {
               <CardTitle className="text-sm font-semibold text-muted-foreground">AI Insights</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-accent">
-                {loading ? '...' : (summary?.current.insightCount || 0)}
-              </div>
               {loadingAI ? (
                 <div className="h-8 w-16 bg-muted animate-pulse rounded mb-1" />
               ) : (

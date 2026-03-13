@@ -79,3 +79,21 @@ exports.deleteNotification = async (req, res) => {
   }
 };
 
+// POST /api/notifications/mark-all-read
+// Đánh dấu tất cả thông báo là đã đọc
+exports.markAllRead = async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    const SmartNotification = require('../models/SmartNotification');
+    await SmartNotification.updateMany(
+      { user_id: userId, status: { $ne: 'read' } },
+      { $set: { status: 'read', read_at: new Date() } }
+    );
+
+    res.json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
