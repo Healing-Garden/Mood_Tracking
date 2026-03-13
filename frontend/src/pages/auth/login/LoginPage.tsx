@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
 
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
@@ -211,8 +212,17 @@ export default function LoginPage() {
         {/* Overlay to ensure readability and animation */}
         <div className={`auth-overlay ${!fromLanding ? 'no-animation' : ''}`} />
 
-        <div className={`w-full max-w-5xl z-10 ${fromLanding ? 'animate-fade-in-form' : ''}`}>
-          <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-border/50 flex flex-col md:flex-row min-h-[600px]">
+        {/* Back to Home Button */}
+        <Link
+          to="/"
+          className="absolute top-6 left-6 z-20 flex items-center gap-2 text-white/80 hover:text-white transition-all bg-black/20 hover:bg-black/40 backdrop-blur-md px-4 py-2 rounded-full border border-white/20 group"
+        >
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
+          <span className="font-medium text-sm">Back to Home</span>
+        </Link>
+
+        <div className={`w-full max-w-[1004px] z-10 ${fromLanding ? 'animate-fade-in-form' : ''}`}>
+          <div className="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-border/50 flex flex-col md:flex-row min-h-[650px]">
             {/* Left: Form area - animates only when NOT coming from landing */}
             <div className={`w-full md:w-1/2 p-8 md:p-12 lg:p-14 flex flex-col justify-center ${!fromLanding ? 'animate-fade-in-form-fast' : ''}`}>
               {/* Logo */}
