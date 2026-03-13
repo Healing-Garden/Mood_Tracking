@@ -19,6 +19,7 @@ const FlowerMessenger: React.FC = () => {
   const { user } = useAuth();
   const entityRef = useRef<HTMLDivElement>(null);
   const dragConstraintsRef = useRef(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { lastMood, currentCheckIn } = useDailyCheckInStore();
 
@@ -35,7 +36,7 @@ const FlowerMessenger: React.FC = () => {
       if (!user?.id) return;
       try {
         const res = await aiApi.checkActionEligibility(user.id) as any;
-        const eligible = res?.eligible ?? res?.data?.eligible;
+        const eligible = res?.bot_eligible ?? res?.data?.bot_eligible ?? res?.eligible ?? res?.data?.eligible;
         setIsEligibleByJournal(!!eligible);
       } catch (err) {
         console.error('Chatbot eligibility check failed:', err);
@@ -52,6 +53,10 @@ const FlowerMessenger: React.FC = () => {
   }), [lastMood, currentCheckIn]);
 
   const { messages, sendMessage, isTyping, isConnected } = useChat(user?.id || '', moodContext);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping, isChatOpen]);
 
   // Intelligent position calculation logic to avoid hiding the chat frame
   const calculateSmartPosition = () => {
@@ -139,7 +144,7 @@ const FlowerMessenger: React.FC = () => {
         onDrag={isChatOpen ? calculateSmartPosition : undefined}
         onDragEnd={() => isChatOpen && calculateSmartPosition()}
         initial={{ y: 0, x: 0 }}
-        className="fixed bottom-24 right-24 z-50 flex items-center justify-center pointer-events-auto select-none touch-none"
+        className="fixed bottom-8 right-8 z-50 flex items-center justify-center pointer-events-auto select-none touch-none"
         ref={entityRef}
       >
         <div className="relative flex flex-col items-center">
@@ -193,7 +198,21 @@ const FlowerMessenger: React.FC = () => {
                           ? 'bg-primary text-white rounded-tr-none'
                           : 'bg-white text-gray-800 border border-gray-100 rounded-tl-none font-medium'
                           }`}>
-                          {msg.text}
+                          <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+                          {msg.exercise && (
+                            <div className="mt-2 p-2.5 bg-green-50 rounded-xl border border-green-100/50">
+                              <p className="font-bold text-[11px] mb-1 flex items-center gap-1.5 text-green-700 uppercase tracking-widest">
+                                💡 Suggested Exercise
+                              </p>
+                              <p className="text-xs text-green-800/90 leading-relaxed font-normal">{msg.exercise}</p>
+                            </div>
+                          )}
+                          {msg.isCrisis && (
+                            <div className="mt-2 p-2.5 bg-red-50 rounded-xl border border-red-100/50">
+                              <p className="font-bold text-[11px] text-red-700 mb-0.5 uppercase tracking-widest">Support is available</p>
+                              <p className="text-xs text-red-600 font-normal">If you're in crisis, please contact Emergency: 115 (VN) or 911 (US)</p>
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))
@@ -207,6 +226,7 @@ const FlowerMessenger: React.FC = () => {
                       </div>
                     </div>
                   )}
+                  <div ref={messagesEndRef} className="h-1" />
                 </div>
 
                 {/* Input Area */}

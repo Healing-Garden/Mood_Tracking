@@ -248,3 +248,26 @@
     transform: translateY(14px) scale(0.955);
   }
 }
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@layer utilities {
+  .hide-password-toggle::-ms-reveal,
+  .hide-password-toggle::-ms-clear {
+    display: none;
+  }
+  
+  .input-password-mask {
+    -webkit-text-security: disc !important;
+  }
+}

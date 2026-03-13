@@ -120,13 +120,14 @@ const SecurityPinModal: React.FC<{
               <Input
                 key={i}
                 id={`${step === 'confirm' ? 'conf-' : 'pin-'}${i}`}
-                type="password"
+                type="text"
                 inputMode="numeric"
                 maxLength={1}
                 value={digit}
                 onChange={(e: ChangeEvent<HTMLInputElement>) => handlePinDigitChange(i, e.target.value, step === 'confirm')}
-                className="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-bold border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl outline-none transition-all shadow-sm"
+                className="w-10 h-12 sm:w-12 sm:h-14 text-center text-2xl font-bold border-primary/20 bg-primary/5 focus:ring-2 focus:ring-primary focus:border-transparent rounded-xl outline-none transition-all shadow-sm input-password-mask hide-password-toggle"
                 autoFocus={i === 0}
+                autoComplete="one-time-code"
               />
             ))}
           </div>
@@ -135,16 +136,13 @@ const SecurityPinModal: React.FC<{
             <Button type="button" variant="ghost" onClick={onClose} className="px-6 py-2.5 text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors rounded-lg" disabled={isLoading}>
               Cancel
             </Button>
-            <Button
-              type="submit"
-              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2"
+            <Button 
+              type="submit" 
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center" 
               disabled={isLoading || (step === 'confirm' ? confirmPinDigits : pinDigits).some(d => !d)}
             >
               {isLoading ? 'Processing...' : (
-                <>
-                  <Check size={20} />
-                  {(step === 'confirm' || (step === 'verify' && mode === 'verify_to_disable')) ? 'Confirm' : 'Next'}
-                </>
+                (step === 'confirm' || (step === 'verify' && mode === 'verify_to_disable')) ? 'Confirm' : 'Next'
               )}
             </Button>
           </div>
@@ -239,13 +237,12 @@ const PasswordChangeModal: React.FC<{
             <Button type="button" variant="ghost" onClick={onClose} className="px-6 py-2.5 text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors rounded-lg" disabled={isLoading}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2">
-              {isLoading ? 'Saving...' : (
-                <>
-                  <Check size={20} />
-                  Update
-                </>
-              )}
+            <Button 
+              type="submit" 
+              disabled={isLoading} 
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center"
+            >
+              {isLoading ? 'Saving...' : 'Update'}
             </Button>
           </div>
         </form>
@@ -340,21 +337,21 @@ const EditProfileModal: React.FC<{
           </div>
 
           <div className="py-6 flex items-center justify-end gap-4">
-            <button type="button" onClick={onClose} className="px-6 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors">
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center gap-2"
+            <Button 
+              type="button" 
+              variant="ghost" 
+              onClick={onClose} 
+              className="px-6 py-2.5 rounded-lg text-slate-500 hover:text-primary hover:bg-primary/5 font-semibold transition-colors"
             >
-              {isLoading ? 'Saving...' : (
-                <>
-                  <Check size={20} />
-                  Save Changes
-                </>
-              )}
-            </button>
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isLoading}
+              className="px-8 py-2.5 bg-primary text-white rounded-lg font-semibold shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center"
+            >
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
           </div>
         </form>
       </Card>
@@ -602,7 +599,7 @@ const UserProfilePage: React.FC = () => {
                     ].map((item, i) => (
                       <div key={i} className="p-6 bg-white rounded-2xl border border-border/50 shadow-sm hover:border-primary/20 transition-all group">
                         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1 group-hover:text-primary/60 transition-colors">{item.label}</p>
-                        <p className="text-base font-bold text-foreground">{item.value || 'Not provided'}</p>
+                        <p className="text-base font-medium text-foreground">{item.value || 'Not provided'}</p>
                       </div>
                     ))}
                   </div>
@@ -657,17 +654,17 @@ const UserProfilePage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button
+                  <div className="flex flex-col items-center">
+                    <Button 
                       onClick={() => { setPinModalMode(hasPinSet ? 'verify_to_change' : 'setup'); setIsPinModalOpen(true); }}
-                      className="h-14 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl font-bold text-lg gap-3"
+                      className="h-14 w-full md:w-2/3 bg-primary hover:bg-primary/90 rounded-2xl shadow-xl font-bold text-lg gap-3"
                     >
                       <Key size={20} />
                       {hasPinSet ? 'Change Security PIN' : 'Set Security PIN'}
                     </Button>
                     {!hasPinSet && (
-                      <div className="flex items-center p-4 bg-primary/5 rounded-2xl">
-                        <p className="text-xs text-primary/70 italic leading-relaxed">
+                      <div className="mt-4 flex items-center p-4 bg-primary/5 rounded-2xl w-full md:w-2/3">
+                        <p className="text-xs text-primary/70 italic leading-relaxed text-center w-full">
                           Your peace of mind is our priority. A PIN adds an extra layer of privacy for your personal thoughts.
                         </p>
                       </div>

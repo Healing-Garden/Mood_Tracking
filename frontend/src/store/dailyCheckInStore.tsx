@@ -19,7 +19,7 @@ export interface DailyCheckInEntry {
   energy: number
   note?: string
   date: string 
-  theme?: 'low' | 'neutral' | 'positive'
+  theme?: 'negative' | 'neutral' | 'positive'
 }
 
 export interface DailyCheckInState {
@@ -33,7 +33,7 @@ export interface DailyCheckInState {
   setShowModal: (show: boolean) => void
   submitCheckIn: (entry: Omit<DailyCheckInEntry, 'date'>) => void
   hasCheckedInToday: () => boolean
-  getThemeByMood: (mood: MoodLevel) => 'low' | 'neutral' | 'positive'
+  getThemeByMood: (mood: MoodLevel) => 'negative' | 'neutral' | 'positive'
   resetStore: () => void
 }
 
@@ -67,7 +67,7 @@ export const useDailyCheckInStore = create<DailyCheckInState>()(
       },
 
       getThemeByMood: (mood: MoodLevel) => {
-        if (mood <= 2) return 'low'
+        if (mood <= 2) return 'negative'
         if (mood === 3) return 'neutral'
         return 'positive'
       },

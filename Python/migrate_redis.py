@@ -17,8 +17,16 @@ def migrate():
         return
 
     try:
+        # Robust connection logic for SSL (Upstash)
         source_client = redis.from_url(source_url)
-        target_client = redis.from_url(target_url)
+        
+        # Upkeep SSL for Upstash or rediss protocol
+        if "upstash.io" in target_url or target_url.startswith("rediss://"):
+            if target_url.startswith("redis://"):
+                target_url = target_url.replace("redis://", "rediss://")
+            target_client = redis.from_url(target_url)
+        else:
+            target_client = redis.from_url(target_url)
         
         source_client.ping()
         print(f"--- Đã kết nối nguồn: {source_url}")

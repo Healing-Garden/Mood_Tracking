@@ -187,7 +187,7 @@ export default function NotificationsPage() {
         </div>
       }
     >
-      <div className="px-4 py-6 max-w-3xl mx-auto w-full space-y-8 animate-in fade-in duration-500">
+      <div className="px-6 py-10 max-w-5xl mx-auto w-full space-y-8 animate-in fade-in duration-500">
         <div className="flex items-center justify-between">
           <div className="flex bg-secondary/10 p-1 rounded-xl border border-border/50">
             <button 
@@ -211,12 +211,12 @@ export default function NotificationsPage() {
             <p className="text-muted-foreground font-medium animate-pulse">Gathering your updates...</p>
           </div>
         ) : filteredNotifications.length === 0 ? (
-          <div className="text-center py-24 bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-primary/20">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Bell className="text-primary/40" size={40} />
+          <div className="text-center py-32 bg-white/50 backdrop-blur-sm rounded-3xl border-2 border-dashed border-primary/20">
+            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-8 animate-in zoom-in duration-700">
+              <Bell className="text-primary/40" size={48} />
             </div>
-            <h3 className="font-bold text-2xl text-slate-800 mb-2">Peace and Quiet</h3>
-            <p className="text-slate-500 max-w-xs mx-auto">
+            <h3 className="font-bold text-3xl text-slate-800 mb-3 tracking-tight">Peace and Quiet</h3>
+            <p className="text-slate-500 text-lg max-w-sm mx-auto leading-relaxed">
               You're all caught up. Take this moment to reflect and breathe.
             </p>
           </div>
@@ -231,7 +231,7 @@ export default function NotificationsPage() {
                   <div className="absolute top-4 right-4 w-2 h-2 bg-primary rounded-full shadow-[0_0_8px_rgba(24,134,24,0.6)]" />
                 )}
                 
-                <div className="p-5 flex gap-5 items-start">
+                <div className="p-6 flex gap-6 items-start">
                   <div className={`p-3 rounded-2xl flex-shrink-0 transition-colors ${!notification.read ? 'bg-white shadow-sm' : 'bg-secondary/10'}`}>
                     {getNotificationIcon(notification.type)}
                   </div>
