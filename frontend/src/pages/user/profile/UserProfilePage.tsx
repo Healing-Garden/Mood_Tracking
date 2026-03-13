@@ -69,8 +69,8 @@ const UserProfilePage: React.FC = () => {
       } catch (error) {
         console.error('Failed to load profile:', error)
         toast({
-          title: 'Lỗi',
-          description: 'Không thể tải thông tin cá nhân của bạn',
+          title: 'Error',
+          description: 'Unable to load your personal information',
           variant: 'destructive',
         })
       } finally {
@@ -93,12 +93,12 @@ const UserProfilePage: React.FC = () => {
 
       setAvatar(nextAvatar)
 
-      showSuccess('Avatar đã được cập nhật thành công.')
+      showSuccess('Avatar updated successfully.')
     } catch (avatarError) {
       console.error('Avatar upload error:', avatarError)
       toast({
-        title: 'Lỗi',
-        description: avatarError instanceof Error ? avatarError.message : 'Không thể cập nhật avatar',
+        title: 'Error',
+        description: avatarError instanceof Error ? avatarError.message : 'Unable to update avatar',
         variant: 'destructive',
       })
     } finally {
@@ -112,12 +112,12 @@ const UserProfilePage: React.FC = () => {
     try {
       const response = await userApi.removeAvatar()
       setAvatar(response.user.avatarUrl || '')
-      showSuccess('Avatar đã được gỡ bỏ.')
+      showSuccess('Avatar removed.')
     } catch (error) {
       console.error('Avatar removal error:', error)
       toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể gỡ bỏ avatar',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to remove avatar',
         variant: 'destructive',
       })
     } finally {
@@ -142,13 +142,13 @@ const UserProfilePage: React.FC = () => {
 
         setAvatar((prev) => response.user.avatarUrl || prev || '')
 
-        showSuccess('Thông tin cá nhân đã được cập nhật thành công.')
+        showSuccess('Personal information updated successfully.')
         setShowEditModal(false)
       } catch (profileError) {
         console.error('Profile update error:', profileError)
         toast({
-          title: 'Lỗi',
-          description: profileError instanceof Error ? profileError.message : 'Không thể cập nhật thông tin cá nhân',
+          title: 'Error',
+          description: profileError instanceof Error ? profileError.message : 'Unable to update personal information',
           variant: 'destructive',
         })
       }
@@ -169,19 +169,19 @@ const UserProfilePage: React.FC = () => {
     setSuccessMessage('')
 
     if (!newPassword) {
-      setPasswordError('Vui lòng nhập mật khẩu mới')
+      setPasswordError('Please enter a new password')
       return
     }
 
     if (!validatePasswordStrength(newPassword)) {
       setPasswordError(
-        'Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa và ký tự đặc biệt'
+        'Password must be at least 8 characters, including uppercase and special characters'
       )
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordError('Mật khẩu mới không khớp')
+      setPasswordError('New password does not match')
       return
     }
 
@@ -192,7 +192,7 @@ const UserProfilePage: React.FC = () => {
         newPassword,
       })
 
-      showSuccess(hasPassword ? 'Mật khẩu đã được thay đổi thành công.' : 'Mật khẩu đã được thiết lập thành công.')
+      showSuccess(hasPassword ? 'Password changed successfully.' : 'Password set successfully.')
 
       setCurrentPassword('')
       setNewPassword('')
@@ -202,10 +202,10 @@ const UserProfilePage: React.FC = () => {
       setIsSettingPassword(false)
     } catch (error) {
       console.error('Password change error:', error)
-      const errorMsg = error instanceof Error ? error.message : 'Không thể thay đổi mật khẩu'
+      const errorMsg = error instanceof Error ? error.message : 'Unable to change password'
       setPasswordError(errorMsg)
       toast({
-        title: 'Lỗi',
+        title: 'Error',
         description: errorMsg,
         variant: 'destructive',
       })
@@ -221,16 +221,16 @@ const UserProfilePage: React.FC = () => {
 
     if (pin !== confirmPin) {
       toast({
-        title: 'Lỗi',
-        description: 'Mã PIN không khớp',
+        title: 'Error',
+        description: 'PIN does not match',
         variant: 'destructive',
       })
       return
     }
     if (pin.length !== 6) {
       toast({
-        title: 'Lỗi',
-        description: 'Mã PIN phải có 6 chữ số',
+        title: 'Error',
+        description: 'PIN must be 6 digits',
         variant: 'destructive',
       })
       return
@@ -246,15 +246,15 @@ const UserProfilePage: React.FC = () => {
       setConfirmPinDigits(Array(6).fill(''))
 
       toast({
-        title: 'Thành công',
-        description: 'Mã PIN của bạn đã được đặt thành công!',
+        title: 'Success',
+        description: 'Your PIN has been set successfully!',
         variant: 'default',
       })
     } catch (error) {
       console.error('Set PIN error:', error)
       toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể đặt mã PIN',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to set PIN',
         variant: 'destructive',
       })
     } finally {
@@ -268,14 +268,14 @@ const UserProfilePage: React.FC = () => {
       await userApi.toggleAppLock(enabled)
       setIsAppLockEnabled(enabled)
       toast({
-        title: 'Thành công',
-        description: `Đã ${enabled ? 'bật' : 'tắt'} khóa ứng dụng`,
+        title: 'Success',
+        description: `App lock is now ${enabled ? 'enabled' : 'disabled'}`,
       })
     } catch (error) {
       console.error('Toggle App Lock error:', error)
       toast({
-        title: 'Lỗi',
-        description: error instanceof Error ? error.message : 'Không thể thay đổi trạng thái khóa',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'Unable to change lock status',
         variant: 'destructive',
       })
     } finally {

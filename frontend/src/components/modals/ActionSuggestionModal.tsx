@@ -118,7 +118,7 @@ const ActionSuggestionModal: React.FC = () => {
         'suggestion',
         postMoodScore
       );
-      toast.success(`Tuyệt vời! Bạn đã hoàn thành "${selectedAction.title}".`);
+      toast.success(`Great job! You've completed "${selectedAction.title}".`);
       handleClose();
     } catch (err) {
       console.error(err);
@@ -378,16 +378,16 @@ const ActionSuggestionModal: React.FC = () => {
                     <div className="relative py-6">
                       <div className="text-5xl mb-2">🎉</div>
                       <h2 className="text-2xl font-bold text-gray-900">
-                        Tuyệt vời! Bạn đã hoàn thành "{selectedAction.title}"
+                        Great job! You've completed "{selectedAction.title}"
                       </h2>
                       <p className="text-sm text-gray-500 mt-2">
-                        Hãy dành một chút để xem bạn đang cảm thấy thế nào sau khi hoàn thành hoạt động này.
+                        Take a moment to reflect on how you're feeling after completing this activity.
                       </p>
                     </div>
 
                     <div className="space-y-3">
                       <p className="text-sm font-medium text-gray-800">
-                        Bạn thấy tâm trạng mình lúc này (1–5) là bao nhiêu?
+                        How would you rate your current mood (1–5)?
                       </p>
                       <div className="flex items-center justify-center gap-4">
                         <span className="text-xs text-gray-400">1</span>
@@ -413,7 +413,7 @@ const ActionSuggestionModal: React.FC = () => {
                         className="w-full sm:w-auto"
                         disabled={loading}
                       >
-                        Bỏ qua bước này
+                        Skip this step
                       </Button>
                       <Button
                         onClick={submitCompletionWithMood}
@@ -421,7 +421,7 @@ const ActionSuggestionModal: React.FC = () => {
                         disabled={loading}
                       >
                         {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
-                        Lưu lại cảm nhận của tôi
+                        Save my reflection
                       </Button>
                     </div>
                   </div>

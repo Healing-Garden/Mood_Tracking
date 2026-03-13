@@ -124,7 +124,7 @@ export default function LoginPage() {
       setIsLoading(true);
 
       const res = await authApi.googleLogin({
-        credential: accessToken, // giờ là access token
+        credential: accessToken, // now using access token
       });
 
       localStorage.setItem("accessToken", res.accessToken);
