@@ -30,10 +30,14 @@ async def generate_daily_summary(request: DailySummaryRequest):
         else:
             target_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
 
-        start_of_day = target_date
-        end_of_day = datetime(target_date.year, target_date.month, target_date.day, 23, 59, 59)
-
         db = mongodb.get_db()
+
+        # Handle Timezone: Expand search window for journals/moods if we suspect TZ mismatch
+        # Journals might be saved in UTC, while user local date is target_date.
+        # User local "2026-03-13" (VN) is "2026-03-12 17:00 UTC" to "2026-03-13 16:59 UTC".
+        # We broaden the window to -7h and +17h from start of day UTC.
+        start_of_day = target_date - timedelta(hours=7) # VN offset back
+        end_of_day = target_date + timedelta(hours=24 + 5) # VN offset forward + buffer
 
         # Parse user_id -> ObjectId when possible (dailycheckins uses ObjectId)
         user_object_id = None
@@ -87,13 +91,24 @@ async def generate_daily_summary(request: DailySummaryRequest):
             ).to_list(length=None)
 
         if not moods:
+            # Try searching with just the date string (for UTC server matching "yesterday" logic)
+            yesterday_str = (target_date - timedelta(days=1)).strftime("%Y-%m-%d")
+            tomorrow_str = (target_date + timedelta(days=1)).strftime("%Y-%m-%d")
+            
             moods = await db.dailycheckins.find(
-                {"user": request.user_id, "date": target_date_str},
+                {
+                    "user": user_object_id if user_object_id else request.user_id, 
+                    "date": {"$in": [target_date_str, yesterday_str, tomorrow_str]}
+                },
                 {"date": 1, "createdAt": 1, "created_at": 1, "mood": 1, "energy": 1, "user": 1}
             ).to_list(length=None)
         
         # Get Onboarding preferences
-        onboarding = await db.onboarding.find_one({"user": user_object_id if user_object_id else request.user_id})
+        onboarding = await db.onboardings.find_one({"user": user_object_id})
+        if not onboarding:
+            onboarding = await db.onboardings.find_one({"user": request.user_id})
+        if not onboarding:
+             onboarding = await db.onboardings.find_one({"userId": user_object_id if user_object_id else request.user_id})
 
         # Generate summary (pass onboarding to generator if possible)
         generator = DailySummaryGenerator()

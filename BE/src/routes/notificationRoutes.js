@@ -12,5 +12,8 @@ router.patch('/:id/read', authMiddleware, notificationsController.markAsRead);
 // Xoá thông báo
 router.delete('/:id', authMiddleware, notificationsController.deleteNotification);
 
+// Đánh dấu tất cả là đã đọc
+router.post('/mark-all-read', authMiddleware, notificationsController.markAllRead);
+
 module.exports = router;
 

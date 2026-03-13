@@ -468,9 +468,18 @@ async def detect_patterns(user_id: str, days: int = 90):
     """
     try:
         db = mongodb.get_db()
+        query_ids = [user_id]
+        try:
+            query_ids.append(ObjectId(user_id))
+        except:
+            pass
+
         mood_entries = await db.dailycheckins.find({
-            "user_id": user_id,
-            "created_at": {"$gte": datetime.now() - timedelta(days=days)}
+            "user": {"$in": query_ids},
+            "$or": [
+                {"created_at": {"$gte": datetime.now() - timedelta(days=days)}},
+                {"createdAt": {"$gte": datetime.now() - timedelta(days=days)}}
+            ]
         }).to_list(length=None)
 
         if not mood_entries:

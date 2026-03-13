@@ -73,7 +73,7 @@ export const userApi = {
   },
 
   toggleAppLock(enabled: boolean): Promise<{ message: string }> {
-    return http.put("/app-lock/toggle", { enabled });
+    return http.put("/user/app-lock/toggle", { enabled });
   },
 
   getHealingContent(type?: string): Promise<HealingContent[]> {
