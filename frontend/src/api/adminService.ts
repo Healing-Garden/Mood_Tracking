@@ -46,5 +46,9 @@ export const adminService = {
 
     getAllFeedback: (): Promise<FeedbackDTO[]> => {
         return http.get('/admin/feedback') as Promise<FeedbackDTO[]>;
+    },
+
+    updateFeedbackStatus: (id: string, status: string): Promise<{ message: string, feedback: FeedbackDTO }> => {
+        return http.patch(`/admin/feedback/${id}/status`, { status }) as Promise<{ message: string, feedback: FeedbackDTO }>;
     }
 };

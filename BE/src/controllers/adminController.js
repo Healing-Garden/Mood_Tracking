@@ -27,9 +27,19 @@ module.exports = {
 
     getAllFeedback: async (req, res) => {
         try {
+            console.log("Fetching all feedback...");
             const feedbacks = await Feedback.find()
-                .populate("user_id", "fullName email")
+                .populate({
+                    path: "user_id",
+                    model: "Users",
+                    select: "fullName email"
+                })
                 .sort({ created_at: -1 });
+
+            console.log(`Found ${feedbacks.length} feedback entries.`);
+            if (feedbacks.length > 0) {
+                console.log("Sample feedback user_id:", feedbacks[0].user_id);
+            }
 
             res.json(feedbacks);
         } catch (err) {
@@ -90,6 +100,25 @@ module.exports = {
             if (!user) return res.status(404).json({ message: "User not found" });
 
             res.json({ message: "User unbanned successfully", user });
+        } catch (err) {
+            res.status(500).json({ message: err.message });
+        }
+    },
+
+    updateFeedbackStatus: async (req, res) => {
+        try {
+            const { id } = req.params;
+            const { status, admin_response } = req.body;
+
+            const feedback = await Feedback.findByIdAndUpdate(
+                id,
+                { status, admin_response },
+                { new: true }
+            );
+
+            if (!feedback) return res.status(404).json({ message: "Feedback not found" });
+
+            res.json({ message: "Feedback updated successfully", feedback });
         } catch (err) {
             res.status(500).json({ message: err.message });
         }
