@@ -22,20 +22,17 @@ import {
   Pie,
   Cell,
 } from "recharts"
-import {
-  AlertCircle,
-  Search,
-} from "lucide-react"
+import { Search } from "lucide-react"
 
 /* -------------------- DATA -------------------- */
 const communityMoodData = [
-  { date: "Jan 1", avgMood: 3.5 },
-  { date: "Jan 5", avgMood: 3.7 },
-  { date: "Jan 10", avgMood: 3.9 },
-  { date: "Jan 15", avgMood: 4.1 },
-  { date: "Jan 20", avgMood: 4.0 },
-  { date: "Jan 25", avgMood: 4.2 },
-  { date: "Jan 30", avgMood: 4.3 },
+  { date: "Mar 15", avgMood: 3.5 },
+  { date: "Jan 20", avgMood: 3.7 },
+  { date: "Mar 25", avgMood: 3.9 },
+  { date: "Mar 1", avgMood: 4.1 },
+  { date: "Mar 5", avgMood: 4.0 },
+  { date: "Mar 10", avgMood: 4.2 },
+  { date: "Mar 15", avgMood: 4.3 },
 ]
 
 const userStatsData = [
@@ -179,27 +176,6 @@ export default function AdminDashboardPage() {
               </CardContent>
             </Card>
           </div>
-
-          {/* Alerts */}
-          <Card className="border-yellow-200 bg-yellow-50/50 shadow-none">
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center gap-2 text-yellow-800 text-lg">
-                <AlertCircle className="w-5 h-5" /> System Alerts
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2 text-yellow-700 text-sm">
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
-                  ⚠️ Unusual Activity Detected in APAC region
-                </li>
-                <li className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full" />
-                  ℹ️ Daily backup completed (Success Rate: 100%)
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
         </div>
     </DashboardLayout>
   )
