@@ -16,14 +16,32 @@ class RedisClient:
     async def connect(self):
         """Connect to Redis with connection pooling"""
         try:
-            self.pool = redis.ConnectionPool.from_url(
-                settings.redis_url,
-                max_connections=20,
-                decode_responses=True,
-                encoding="utf-8"
-            )
+            url = settings.redis_url
             
-            self.client = redis.Redis.from_pool(self.pool)
+            # Auto-fix: Nếu là upstash nhưng thiếu rediss:// thì thêm vào
+            if "upstash.io" in url and url.startswith("redis://"):
+                url = url.replace("redis://", "rediss://", 1)
+                logger.warning("Automatically upgraded Upstash URL to rediss:// for secure connection")
+
+            # Mask password for logging
+            import re
+            masked_url = re.sub(r':([^:@]+)@', ':****@', url)
+            logger.info(f"Connecting to Redis: {masked_url}")
+
+            # Connection options
+            kwargs = {
+                "max_connections": 20,
+                "decode_responses": True,
+                "encoding": "utf-8"
+            }
+            
+            # Chỉ thêm ssl_cert_reqs cho rediss://
+            if url.startswith("rediss://"):
+                kwargs["ssl_cert_reqs"] = "none"
+                logger.info("SSL (TLS) enabled for Redis connection")
+            
+            # Create client directly from URL (internal pooling)
+            self.client = redis.from_url(url, **kwargs)
             
             # Test connection
             await self.client.ping()
@@ -38,9 +56,6 @@ class RedisClient:
         if self.client:
             await self.client.aclose()
             self.client = None
-        if self.pool:
-            await self.pool.aclose()
-            self.pool = None
         logger.info("Disconnected from Redis")
     
     async def get(self, key: str) -> Optional[Any]:

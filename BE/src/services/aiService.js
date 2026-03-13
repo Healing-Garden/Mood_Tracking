@@ -288,7 +288,7 @@ class AIServiceClient {
                 current_mood: currentMood,
                 count: count,
                 exclude_ids: excludeIds
-            }, { timeout: 5000 });
+            }, { timeout: 30000 });
 
             return {
                 success: true,
